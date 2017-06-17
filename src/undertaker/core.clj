@@ -1,108 +1,99 @@
 (ns undertaker.core
   (:gen-class)
-  (:require [clojure.core.async :as a]
-            [clojure.spec :as s]
-            [clojure.string :as str])
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [undertaker.proto :as proto])
   (:import (java.util Random)
-           (clojure.core.async.impl.protocols WritePort)
            (java.nio ByteBuffer)))
 
-(defn tombstone?
-  ([^Byte first-byte ^Byte second-byte] (= 0 (bit-xor first-byte second-byte))))
+(def ^:dynamic *source* nil)
 
-(defn tombstone-arr?
-  ([byte-array] (tombstone? (first byte-array) (last byte-array))))
+(defn fixture [f]
+  (with-bindings {#'*source* (Random.)}
+    (f)))
 
-(s/def ::tombstone-candidate (s/and bytes? (comp (partial = 2) count)))
+(defn get-bytes [source number]
+  (if (extends? proto/BytesSource (class source))
+    (proto/get-bytes source number)
+    (byte-array (repeatedly number (proto/get-byte source)))))
 
-(s/fdef tombstone-arr?
-  :args (s/cat :byte-array ::tombstone-candidate)
-  :ret boolean?)
+(extend-type Random
+  proto/ByteSource
+  (get-byte [this]
+    (let [output (byte-array 1)]
+      (.nextBytes this output)
+      (aget output 0)))
+  proto/BytesSource
+  (get-bytes [this number]
+    (let [output (byte-array number)]
+      (.nextBytes this output)
+      output)))
+
+;Due to bytes being signed.
+(def fixed-byte-offset 128)
+
+(defn move-into-range [byte min max]
+  (let [byte-range (- Byte/MAX_VALUE Byte/MIN_VALUE)
+        range (- max min)]
+    (if (= range 0)
+      min
+      (let [divisor (/ byte-range range)
+            adjusted-byte (+ fixed-byte-offset byte)]
+        (Math/round (double (+ min (/ adjusted-byte divisor))))))))
 
 (defn byte? [b]
   (and (number? b)
-       (>= Byte/MAX_VALUE b)
-       (<= Byte/MIN_VALUE b)))
+       (integer? b)
+       (<= b Byte/MAX_VALUE)
+       (>= b Byte/MIN_VALUE)))
 
-(s/fdef tombstone?
-  :args (s/cat :first-byte byte? :second-byte byte?))
+(s/fdef move-into-range
+  :args (s/cat :byte (s/? byte?)
+               :min (s/? byte?)
+               :max (s/? byte?))
+  :ret byte?
+  :fn (fn [{:keys [args ret]}]
+        (<= (:max args) ret)
+        (>= (:max args) ret)))
 
-(s/def ::tombstone (s/and ::tombstone-candidate tombstone-arr?))
+(defn take-byte
+  ([source] (take-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([source ^Byte max] (take-byte source Byte/MIN_VALUE max))
+  ([source ^Byte min ^Byte max]
+   (let [raw (proto/get-byte source)]
+     (if-not (and (= Byte/MIN_VALUE min) (= Byte/MAX_VALUE max))
+       (move-into-range raw min max)
+       raw))))
 
-(defn take-til-tombstone-xf [xf]
-  (let [last-byte (volatile! false)
-        done? (volatile! false)]
-    (fn
-      ([] (xf))
-      ([result]
-       (let [prior @last-byte]
-         (if (and (not @done?) prior)
-           (do
-             (vreset! last-byte false)
-             (xf result prior))
-           (xf result))))
-      ([result input]
-       (let [prior @last-byte]
-         (cond
-           @done? result
-           (and prior (= input 0)) (do (vreset! done? true)
-                                       result)
-           (and (not prior) (= input 0)) (do
-                                           (vreset! last-byte input)
-                                           result)
-           (and prior (not= 0 input)) (do (vreset! last-byte input)
-                                          (xf result prior))
-           (and (not prior) input) (xf result input)))))))
+(s/def ::source (comp (partial extends? proto/ByteSource) class))
 
-(defn take-bytes [source count]
-  (.takeBytes source count))
+(s/fdef take-byte
+  :args (s/cat :source ::source
+               :min (s/? byte?)
+               :max (s/? byte?))
+  :ret byte?
+  :fn (fn [{:keys [args ret]}]
+        (<= (:max args) ret)
+        (>= (:max args) ret)))
 
-(def test-generator-tree
-  [{::name     "vec-gen [1 3]"
-    ::data     [0 0 0 2]
-    ::children [{::name "int-gen [0 1]"
-                 ::data [0 0 0 0]}
-                {::name "int-gen [0 1]"
-                 ::data [0 0 0 1]}]}])
+(defn take-bytes
+  ([source number] (take-bytes source Byte/MIN_VALUE Byte/MAX_VALUE number))
+  ([source max number] (take-bytes source Byte/MIN_VALUE max number))
+  ([source ^Byte min ^Byte max number]
+   (->> (get-bytes source number)
+        (map (partial move-into-range min max))
+        (byte-array))))
 
-(defn can-shrink-more? [data]
-  (not (every? (partial = 0) data)))
-
-(defn shrink-data-halve [])
-
-(defn make-split-fn []
-  (let [found-nonzero? (volatile! false)]
-    (fn [byte]
-      (cond
-        @found-nonzero? false
-        (not= byte 0) (do (vreset! found-nonzero? true)
-                          false)
-        :default true))))
-
-(defn shrink-data-step [data]
-  (let [[prefix all] (split-with (make-split-fn) data)
-        non-zero (drop (count prefix) all)]
-    (concat prefix [(dec (first non-zero))] (rest non-zero))))
-
-(s/fdef shrink-data-step
-  :args (s/cat :data (partial every? byte?))
-  :ret (s/and seq? (partial every? byte?))
-  :fn (fn [{:keys [args ret]}] (<= (reduce + (:data args)) (reduce + ret))))
-
-(defn shrink-walker [shrink-fn]
-  (let [done? (volatile! false)]
-    (fn [tree-part]
-      (if (and (not @done?)
-               (vector? tree-part)
-               (= ::data (first tree-part))
-               (can-shrink-more? (last tree-part)))
-        (do (vreset! done? true)
-            (prn "Shrinking " (last tree-part))
-            [::data (shrink-fn (last tree-part))])
-        tree-part))))
-
-(defn shrink-tree [generator-tree]
-  (clojure.walk/postwalk (shrink-walker shrink-data-step) test-generator-tree))
+(s/fdef take-bytes
+  :args (s/cat :source ::source
+               :min (s/? byte?)
+               :max (s/? byte?)
+               :number integer?)
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (= (:number args) (count ret))
+        (<= (:min args) (reduce min ret))
+        (>= (:max args) (reduce max ret))))
 
 (defn format-interval-name [name & args]
   (str name " [" (str/join args " ") "]"))
@@ -118,26 +109,40 @@
      result#))
 
 (defn int-gen
-  ([source] (int-gen Integer/MIN_VALUE))
-  ([source min] (int-gen Integer/MIN_VALUE Integer/MAX_VALUE))
+  ([] (int-gen *source*))
+  ([source] (int-gen source Integer/MIN_VALUE))
+  ([source min] (int-gen source Integer/MIN_VALUE Integer/MAX_VALUE))
   ([source min max]
    (with-interval (format-interval-name "int-gen" min max)
-     (let [^ByteBuffer buffer (take-bytes source 4)]
+     (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
        (+ min (mod (.getInt buffer) (- max min)))))))
 
 (s/fdef int-gen
-  :args (s/cat :source fn?
-               :min int?
-               :max int?)
+  :args (s/cat :source (s/? ::source)
+               :min (s/? int?)
+               :max (s/? int?))
   :ret int?
   :fn (fn [{:keys [args ret]}]
         (and (<= (:min args) ret)
              (>= (:max args) ret))))
 
+(def default-max-size 64)
+
 (defn vec-gen
-  ([source] (vec-gen 0))
-  ([source min] (vec-gen min Short/MAX_VALUE))
-  ([source min max]
+  ([elem-gen] (vec-gen *source* elem-gen))
+  ([source elem-gen] (vec-gen source elem-gen 0))
+  ([source elem-gen min] (vec-gen source elem-gen min default-max-size))
+  ([source elem-gen min max]
    (with-interval (format-interval-name "vec-gen" min max)
-     (let [length (int-gen min max)]
-       ))))
+     (let [length (int-gen source min max)]
+       (vec (repeatedly length #(elem-gen source)))))))
+
+(defn bool-gen
+  ([] (bool-gen *source*))
+  ([source] (if (= 1 (take-byte source 0 1))
+              true
+              false)))
+
+(s/fdef bool-gen
+  :args (s/cat :source (s/? ::source))
+  :ret boolean?)
