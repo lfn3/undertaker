@@ -2,32 +2,17 @@
   (:gen-class)
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [undertaker.proto :as proto])
+            [undertaker.proto :as proto]
+            [clojure.test :as t]
+            [undertaker.source :as source])
   (:import (java.util Random)
            (java.nio ByteBuffer)))
 
 (def ^:dynamic *source* nil)
 
 (defn fixture [f]
-  (with-bindings {#'*source* (Random.)}
+  (with-bindings {#'*source* (source/make-source (System/nanoTime))}
     (f)))
-
-(defn get-bytes [source number]
-  (if (extends? proto/BytesSource (class source))
-    (proto/get-bytes source number)
-    (byte-array (repeatedly number (proto/get-byte source)))))
-
-(extend-type Random
-  proto/ByteSource
-  (get-byte [this]
-    (let [output (byte-array 1)]
-      (.nextBytes this output)
-      (aget output 0)))
-  proto/BytesSource
-  (get-bytes [this number]
-    (let [output (byte-array number)]
-      (.nextBytes this output)
-      output)))
 
 ;Due to bytes being signed.
 (def fixed-byte-offset 128)
@@ -80,8 +65,8 @@
   ([source number] (take-bytes source Byte/MIN_VALUE Byte/MAX_VALUE number))
   ([source max number] (take-bytes source Byte/MIN_VALUE max number))
   ([source ^Byte min ^Byte max number]
-   (->> (get-bytes source number)
-        (map (partial move-into-range min max))
+   (->> (proto/get-bytes source number)
+        (map #(move-into-range %1 min max))
         (byte-array))))
 
 (s/fdef take-bytes
@@ -98,22 +83,18 @@
 (defn format-interval-name [name & args]
   (str name " [" (str/join args " ") "]"))
 
-(defn start-interval [name])
-
-(defn end-interval [token])
-
-(defmacro with-interval [name & body]
-  `(let [interval-token# (start-interval ~name)
+(defmacro with-interval [source name & body]
+  `(let [interval-token# (proto/push-interval ~source ~name)
          result# (do ~@body)]
-     (end-interval interval-token#)
+     (proto/pop-interval ~source interval-token#)
      result#))
 
 (defn int-gen
   ([] (int-gen *source*))
-  ([source] (int-gen source Integer/MIN_VALUE))
-  ([source min] (int-gen source Integer/MIN_VALUE Integer/MAX_VALUE))
+  ([source] (int-gen source Integer/MIN_VALUE Integer/MAX_VALUE))
+  ([source min] (int-gen source min Integer/MAX_VALUE))
   ([source min max]
-   (with-interval (format-interval-name "int-gen" min max)
+   (with-interval source (format-interval-name "int-gen" min max)
      (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
        (+ min (mod (.getInt buffer) (- max min)))))))
 
@@ -133,16 +114,73 @@
   ([source elem-gen] (vec-gen source elem-gen 0))
   ([source elem-gen min] (vec-gen source elem-gen min default-max-size))
   ([source elem-gen min max]
-   (with-interval (format-interval-name "vec-gen" min max)
+   (with-interval source (format-interval-name "vec-gen" min max)
      (let [length (int-gen source min max)]
        (vec (repeatedly length #(elem-gen source)))))))
 
 (defn bool-gen
   ([] (bool-gen *source*))
-  ([source] (if (= 1 (take-byte source 0 1))
-              true
-              false)))
+  ([source]
+   (with-interval source (format-interval-name "bool-gen")
+     (if (= 1 (take-byte source 0 1))
+       true
+       false))))
 
 (s/fdef bool-gen
   :args (s/cat :source (s/? ::source))
   :ret boolean?)
+
+(defn check-result [result]
+  (not-any? (comp (partial = :fail) :type) result))
+
+(defn make-report-fn [an-atom]
+  (fn [msg]
+    (swap! an-atom conj msg)))
+
+(defmacro run-and-report [source & body]
+  `(let [result# (atom [])
+         report-fn# (make-report-fn result#)]
+     (with-bindings {#'t/report report-fn#
+                     #'*source* ~source}
+       (do ~@body))
+     (check-result @result#)))
+
+(defonce seed-uniquifier* (volatile! (long 8682522807148012)))
+
+(defn seed-uniquifier []
+  (vswap! seed-uniquifier* #(unchecked-multiply (long %1) (long 181783497276652981)))) ;TODO: get rid of casts.
+
+(defn next-seed [seed]
+  (bit-xor (seed-uniquifier) (inc seed)))
+
+(defn shrink [bytes fn]
+  (prn "Shrinking..."))
+
+(defn run-prop-1 [source fn]
+  (if (fn source)
+    true
+    (do (shrink (proto/freeze source) fn)
+        false)))
+
+(defn run-prop [{:keys [seed iterations]
+                 :or   {seed       (System/nanoTime)
+                        iterations 1000}
+                 :as   opts-map}
+                fn]
+  (loop [iterations-left iterations
+         seed (bit-xor seed (seed-uniquifier))]
+    (if (> iterations-left 0)
+      (let [source (source/make-source seed)]
+        (if (run-prop-1 source fn)
+          (recur
+            (dec iterations-left)
+            (next-seed seed))
+          false))
+      true)))
+
+(defmacro prop
+  [opts & body]
+  `(let [result# (atom [])
+         report-fn# (make-report-fn result#)
+         wrapped-body# (fn [source#] (run-and-report source# ~@body))]
+     (run-prop ~opts wrapped-body#)))
