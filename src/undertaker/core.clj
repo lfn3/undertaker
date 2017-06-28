@@ -176,11 +176,22 @@
                :intervals (s/coll-of ::source/interval))
   :ret (s/coll-of byte?))
 
+;TODO feed this intervals, have it make decisions based on those.
+(defn can-shrink-more? [bytes]
+  (not-every? zero? bytes))
+
+(s/fdef can-shrink-more?
+  :args (s/cat :bytes (s/coll-of byte?))
+  :ret boolean?)
+
 (defn shrink
   ([bytes intervals fn]
    (when-not (empty? bytes)
-     (let [shrunk-bytes (shrink-bytes bytes intervals)]
-       (fn (source/make-fixed-source shrunk-bytes intervals))))))
+     (loop [shrunk-bytes (shrink-bytes bytes intervals)]
+       (if (and (false? (fn (source/make-fixed-source shrunk-bytes intervals)))
+                (can-shrink-more? shrunk-bytes))
+         (recur (shrink-bytes shrunk-bytes intervals))
+         shrunk-bytes)))))
 
 (defn run-prop-1 [source fn]
   (if (fn source)

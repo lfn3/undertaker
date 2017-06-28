@@ -110,7 +110,7 @@
 (defrecord FixedSource [state-atom]
   proto/ByteSource
   (get-byte [_]
-    (let [byte (nth (::cursor @state-atom) (::bytes @state-atom))]
+    (let [byte (nth (::bytes @state-atom) (::cursor @state-atom))]
       (swap! state-atom update ::cursor inc)
       byte))
   proto/BytesSource

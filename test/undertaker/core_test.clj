@@ -8,7 +8,8 @@
             [clojure.test.check.clojure-test :as tcheck-test]
             [clojure.test.check.properties :as tcheck-prop]
             [clojure.test.check.generators :as tcheck-gen]
-            [undertaker.source :as source]))
+            [undertaker.source :as source]
+            [undertaker.proto :as proto]))
 
 (t/use-fixtures :once #(do (spec-test/instrument)
                            (%1)
@@ -64,6 +65,12 @@
 
 (deftest should-not-further-shrink-0
   (is (= 0 (first (undertaker/shrink-bytes [0] [])))))
+
+(deftest should-shrink-two-steps
+  (is (= 0 (first (undertaker/shrink [2] [] (fn [_] false))))))
+
+(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
+  (is (= 1 (first (undertaker/shrink [2] [] (fn [source] (not= 0 (proto/get-byte source))))))))
 
 (deftest can-run-prop
   (undertaker/run-prop {} (constantly true)))
