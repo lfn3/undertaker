@@ -153,14 +153,45 @@
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
 
-(defn shrink [bytes fn]
-  (prn "Shrinking..."))
+(defn move-towards-0 [byte]
+  (cond
+    (= 0 byte) byte
+    (neg-int? byte) (inc byte)
+    (pos-int? byte) (dec byte)))
+
+(s/fdef move-towards-0
+  :args (s/cat :byte byte?)
+  :ret byte?
+  :fn (fn [{:keys [args ret]}]
+        (or (= 0 ret)
+            (< (Math/abs ret)
+               (Math/abs (:byte args))))))
+
+(defn shrink-bytes [bytes intervals]
+  (concat (vector (move-towards-0 (first bytes)))
+          (rest bytes)))
+
+(s/fdef shrink-bytes
+  :args (s/cat :bytes (s/coll-of byte?)
+               :intervals (s/coll-of ::source/interval))
+  :ret (s/coll-of byte?))
+
+(defn shrink
+  ([bytes intervals fn]
+   (when-not (empty? bytes)
+     (let [shrunk-bytes (shrink-bytes bytes intervals)]
+       (fn (source/make-fixed-source shrunk-bytes intervals))))))
 
 (defn run-prop-1 [source fn]
   (if (fn source)
     true
-    (do (shrink (proto/freeze source) fn)
+    (do (shrink (proto/freeze source) (proto/get-intervals source) fn)
         false)))
+
+(s/fdef run-prop-1
+  :args (s/cat :source (partial satisfies? proto/Recall)
+               :fn fn?)
+  :ret boolean?)
 
 (defn run-prop [{:keys [seed iterations]
                  :or   {seed       (System/nanoTime)
