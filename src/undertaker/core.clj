@@ -1,6 +1,7 @@
 (ns undertaker.core
   (:gen-class)
   (:require [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
             [undertaker.proto :as proto]
             [clojure.test :as t]
@@ -14,17 +15,18 @@
   (with-bindings {#'*source* (source/make-source (System/nanoTime))}
     (f)))
 
-;Due to bytes being signed.
-(def fixed-byte-offset 128)
-
-(defn move-into-range [byte min max]
-  (let [byte-range (- Byte/MAX_VALUE Byte/MIN_VALUE)
-        range (- max min)]
-    (if (= range 0)
-      min
-      (let [divisor (/ byte-range range)
-            adjusted-byte (+ fixed-byte-offset byte)]
-        (Math/round (double (+ min (/ adjusted-byte divisor))))))))
+(defn move-into-range
+  ([byte min max]
+    (move-into-range byte min max Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([number min max type-min type-max]
+   (let [type-range (- type-max type-min)
+         range (- max min)
+         fixed-offset (- type-min)]                         ;Due to everything in java being signed.
+     (if (= range 0)
+       min
+       (let [divisor (/ type-range range)
+             adjusted-number (+ fixed-offset number)]
+         (Math/round (double (+ min (/ adjusted-number divisor)))))))))
 
 (defn byte? [b]
   (and (number? b)
@@ -32,11 +34,25 @@
        (<= b Byte/MAX_VALUE)
        (>= b Byte/MIN_VALUE)))
 
+(s/def ::byte byte?)
+;TODO should be
+#_(s/with-gen byte?
+              #(s.gen/fmap first (s.gen/bytes)))
+;But that's broke. Not sure why, yet.
+
 (s/fdef move-into-range
-  :args (s/cat :byte (s/? byte?)
-               :min (s/? byte?)
-               :max (s/? byte?))
-  :ret byte?
+  :args (s/alt
+          :bytes
+          (s/cat :byte ::byte
+                 :min ::byte
+                 :max ::byte)
+          :any-integers
+          (s/cat :byte integer?
+                 :min integer?
+                 :max integer?
+                 :type-min integer?
+                 :type-max integer?))
+  :ret integer?
   :fn (fn [{:keys [args ret]}]
         (<= (:max args) ret)
         (>= (:max args) ret)))
@@ -54,9 +70,9 @@
 
 (s/fdef take-byte
   :args (s/cat :source ::source
-               :min (s/? byte?)
-               :max (s/? byte?))
-  :ret byte?
+               :min (s/? ::byte)
+               :max (s/? ::byte))
+  :ret ::byte
   :fn (fn [{:keys [args ret]}]
         (<= (:max args) ret)
         (>= (:max args) ret)))
@@ -71,8 +87,8 @@
 
 (s/fdef take-bytes
   :args (s/cat :source ::source
-               :min (s/? byte?)
-               :max (s/? byte?)
+               :min (s/? ::byte)
+               :max (s/? ::byte)
                :number integer?)
   :ret bytes?
   :fn (fn [{:keys [args ret]}]
@@ -86,8 +102,10 @@
 (defmacro with-interval [source name & body]
   `(let [interval-token# (proto/push-interval ~source ~name)
          result# (do ~@body)]
-     (proto/pop-interval ~source interval-token#)
+     (proto/pop-interval ~source interval-token# result#)
      result#))
+
+(def fixed-int-offset (- Integer/MIN_VALUE))
 
 (defn int-gen
   ([] (int-gen *source*))
@@ -96,7 +114,9 @@
   ([source min max]
    (with-interval source (format-interval-name "int-gen" min max)
      (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
-       (+ min (mod (.getInt buffer) (- max min)))))))
+       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)
+       ; (+ min (mod adjusted-int (- max min)))
+       ))))
 
 (s/fdef int-gen
   :args (s/cat :source (s/? ::source)
@@ -160,19 +180,24 @@
     (pos-int? byte) (dec byte)))
 
 (s/fdef move-towards-0
-  :args (s/cat :byte byte?)
-  :ret byte?
+  :args (s/cat :byte ::byte)
+  :ret ::byte
   :fn (fn [{:keys [args ret]}]
         (or (= 0 ret)
             (< (Math/abs ret)
                (Math/abs (:byte args))))))
 
 (defn shrink-bytes [bytes intervals]
-  (concat (vector (move-towards-0 (first bytes)))
-          (rest bytes)))
+  (let [already-zero (take-while (partial = 0) bytes)
+        not-yet-zero (drop-while (partial = 0) bytes)]
+    (concat already-zero
+            (some-> (first not-yet-zero)
+                    (move-towards-0)
+                    vector)
+            (rest not-yet-zero))))
 
 (s/fdef shrink-bytes
-  :args (s/cat :bytes (s/coll-of byte?)
+  :args (s/cat :bytes (s/coll-of ::byte)
                :intervals (s/coll-of ::source/interval))
   :ret (s/coll-of byte?))
 
@@ -186,18 +211,23 @@
 
 (defn shrink
   ([bytes intervals fn]
-   (when-not (empty? bytes)
+   (if-not (empty? bytes)
      (loop [shrunk-bytes (shrink-bytes bytes intervals)]
-       (if (and (false? (fn (source/make-fixed-source shrunk-bytes intervals)))
-                (can-shrink-more? shrunk-bytes))
-         (recur (shrink-bytes shrunk-bytes intervals))
-         shrunk-bytes)))))
+       (let [source (source/make-fixed-source shrunk-bytes intervals)]
+         (if (and (false? (fn source))
+                  (can-shrink-more? shrunk-bytes))
+           (recur (shrink-bytes shrunk-bytes intervals))
+           source)))
+     (source/make-fixed-source bytes intervals))))
 
 (defn run-prop-1 [source fn]
   (if (fn source)
-    true
-    (do (shrink (proto/freeze source) (proto/get-intervals source) fn)
-        false)))
+    {:result           true
+     :generated-values (map last (proto/get-intervals source))}
+    (let [shrunk-source (shrink (proto/freeze source) (proto/get-intervals source) fn)]
+      {:result           false
+       :generated-values (map last (proto/get-intervals source))
+       :shrunk-values    (map last (proto/get-intervals shrunk-source))})))
 
 (s/fdef run-prop-1
   :args (s/cat :source (partial satisfies? proto/Recall)
@@ -212,12 +242,15 @@
   (loop [iterations-left iterations
          seed (bit-xor seed (seed-uniquifier))]
     (if (> iterations-left 0)
-      (let [source (source/make-source seed)]
-        (if (run-prop-1 source fn)
+      (let [source (source/make-source seed)
+            run-data (run-prop-1 source fn)]
+        (if (-> run-data
+                :result
+                (true?))
           (recur
             (dec iterations-left)
             (next-seed seed))
-          false))
+          run-data))
       true)))
 
 (defmacro prop
@@ -226,3 +259,9 @@
          report-fn# (make-report-fn result#)
          wrapped-body# (fn [source#] (run-and-report source# ~@body))]
      (run-prop ~opts wrapped-body#)))
+
+(defmacro defprop
+  [name opts & body]
+  `(t/deftest ~name
+     (let [prop-result# (prop ~opts ~@body)]
+       (t/is (:result prop-result#) prop-result#))))

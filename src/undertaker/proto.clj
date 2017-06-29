@@ -8,12 +8,13 @@
 
 (defprotocol Interval
   (push-interval [this interval-name])
-  (pop-interval [this interval-id])
+  (pop-interval [this interval-id generated-value])
   (current-stack [this])
   (get-intervals [this]))
 
 (defprotocol Recall
-  "Allows you to get the sequence of bytes this source of randomness has emitted since the last reset using freeze.
+  "Allows you to get the sequence of bytes this source of randomness has emitted since the last reset.
    Freeze should also prevent the source of randomness from continuing to produce output until reset is called."
   (reset [this])
-  (freeze [this]))
+  (freeze [this])
+  (get-sourced-bytes [this]))

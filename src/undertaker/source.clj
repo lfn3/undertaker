@@ -24,8 +24,9 @@
 (s/def ::interval-id int?)
 (s/def ::interval-start int?)
 (s/def ::interval-end int?)
+(s/def ::generated-value any?)
 (s/def ::wip-interval (s/tuple ::interval-name ::interval-id ::interval-start))
-(s/def ::interval (s/tuple ::interval-name ::interval-id ::interval-start ::interval-end))
+(s/def ::interval (s/tuple ::interval-name ::interval-id ::interval-start ::interval-end ::generated-value))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -44,7 +45,7 @@
         (update ::interval-id-counter inc)
         (update ::interval-stack conj [interval-name id (get state counter-key)]))))
 
-(defn pop-interval* [state counter-key interval-id]
+(defn pop-interval* [state counter-key interval-id generated-value]
   (let [interval-to-update (last (::interval-stack state))]
     (when (not= (nth interval-to-update 1) interval-id)
       (throw (ex-info "Popped interval without matching id"
@@ -53,7 +54,9 @@
                        :state           state})))
     (-> state
         (update ::interval-stack pop)
-        (update ::completed-intervals conj (conj interval-to-update (get state counter-key))))))
+        (update ::completed-intervals conj (-> interval-to-update
+                                               (conj (get state counter-key))
+                                               (conj generated-value))))))
 
 (def initial-state {::interval-id-counter 0
                     ::bytes-counter       0
@@ -81,8 +84,8 @@
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* ::bytes-counter interval-name)))
-  (pop-interval [_ interval-id]
-    (swap! state-atom pop-interval* ::bytes-counter interval-id))
+  (pop-interval [_ interval-id generated-value]
+    (swap! state-atom pop-interval* ::bytes-counter interval-id generated-value))
   (current-stack [_] (::interval-stack @state-atom))
   (get-intervals [_] (::completed-intervals @state-atom))
   proto/Recall
@@ -99,7 +102,9 @@
         (throw (ex-info "Not all intervals have been popped, cannot freeze yet" {:state current-state})))))
   (reset [_]
     (set-validator! state-atom nil)
-    (reset! state-atom initial-state)))
+    (reset! state-atom initial-state))
+  (get-sourced-bytes [_]
+    (::bytes @state-atom)))
 
 (defn make-source [seed]
   (let [rnd (Random. seed)
@@ -115,16 +120,20 @@
       byte))
   proto/BytesSource
   (get-bytes [_ number]
-    (let [bytes (-> (drop (::cursor @state-atom))
-                    (take number))]
-      (swap! state-atom update ::cursor + number)))
+    (let [bytes (->> (::bytes @state-atom)
+                     (drop (::cursor @state-atom))
+                     (take number))]
+      (swap! state-atom update ::cursor + number)
+      bytes))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* ::cursor interval-name)))
-  (pop-interval [_ interval-id]
-    (swap! state-atom pop-interval* ::cursor interval-id))
+  (pop-interval [_ interval-id generated-value]
+    (swap! state-atom pop-interval* ::cursor interval-id generated-value))
   (current-stack [_] (::interval-stack @state-atom))
-  (get-intervals [_] (::completed-intervals @state-atom)))
+  (get-intervals [_] (::completed-intervals @state-atom))
+  proto/Recall
+  (get-sourced-bytes [_] (::bytes @state-atom)))
 
 (defn make-fixed-source [bytes intervals]
   (let [state (atom {::cursor              0

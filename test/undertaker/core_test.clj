@@ -43,7 +43,9 @@
   (is (integer? (undertaker/int-gen))))
 
 (deftest test-vec-gen
-  (is (vector? (undertaker/vec-gen undertaker/int-gen))))
+  (is (vector? (undertaker/vec-gen undertaker/int-gen)))
+  (is (every? int? (undertaker/vec-gen undertaker/int-gen)))
+  (is (not-empty (undertaker/vec-gen undertaker/int-gen))))
 
 (deftest test-run-and-report
   (t/testing "Failure"
@@ -67,14 +69,21 @@
   (is (= 0 (first (undertaker/shrink-bytes [0] [])))))
 
 (deftest should-shrink-two-steps
-  (is (= 0 (first (undertaker/shrink [2] [] (fn [_] false))))))
+  (is (= [0] (proto/get-sourced-bytes (undertaker/shrink [2] [] (fn [_] false))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= 1 (first (undertaker/shrink [2] [] (fn [source] (not= 0 (proto/get-byte source))))))))
+  (is (= [1] (proto/get-sourced-bytes (undertaker/shrink [2] [] (fn [source] (not= 0 (proto/get-byte source))))))))
 
 (deftest can-run-prop
-  (undertaker/run-prop {} (constantly true)))
+  (is (true? (undertaker/run-prop {} (constantly true)))))
 
-(deftest a-prop
-  (undertaker/prop {}
-    (is false)))
+(deftest should-shrink-to-zero
+  (is (= 0 (first (:shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int-gen %1))))))))
+
+(deftest should-show-failing-values
+  (let [expanded (macroexpand-1 '(undertaker/defprop should-show-failing-values {}
+                                   (is (not (empty? (undertaker/vec-gen undertaker/int-gen))))))]
+    (is (= 3 (count (last (last expanded)))))))
+
+(deftest can-fail-prop
+  (is (false? (:result (undertaker/prop {} (is false))))))
