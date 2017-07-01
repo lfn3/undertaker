@@ -19,7 +19,7 @@
 
 (def this-ns *ns*)
 
-(def ignored #{})
+(def ignored #{`undertaker/from `undertaker/bool `undertaker/take-byte `undertaker/take-bytes})
 
 (deftest check-core
   (let [target-namespace (first (str/split (str this-ns) #"-test"))

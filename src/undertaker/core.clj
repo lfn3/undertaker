@@ -5,11 +5,24 @@
             [clojure.string :as str]
             [undertaker.proto :as proto]
             [clojure.test :as t]
-            [undertaker.source :as source])
+            [undertaker.source :as source]
+            [clojure.test.check.generators :as gen])
   (:import (java.util Random)
            (java.nio ByteBuffer)))
 
-(def ^:dynamic *source* nil)
+(defonce seed-uniquifier* (volatile! (long 8682522807148012)))
+
+(defn seed-uniquifier []
+  (vswap! seed-uniquifier* #(unchecked-multiply (long %1) (long 181783497276652981)))) ;TODO: get rid of casts.
+
+(defn next-seed [seed]
+  (bit-xor (seed-uniquifier) (inc seed)))
+
+(s/fdef next-seed
+  :args (s/cat :seed integer?)
+  :ret integer?)
+
+(def ^:dynamic *source* (source/make-source (next-seed (System/nanoTime))))
 
 (defn move-into-range
   ([byte min max]
@@ -75,17 +88,23 @@
         (byte-array))))
 
 (s/fdef take-bytes
-  :args (s/cat :source ::source
-               :number integer?
-               :min-val (s/? ::byte)
-               :max-val (s/? ::byte))
+  :args (s/or
+          :no-min-or-max (s/cat :source ::source
+                                :number pos-int?)
+          :min-only (s/cat :source ::source
+                           :number pos-int?
+                           :max-val ::byte)
+          :min-and-max (s/cat :source ::source
+                              :number pos-int?
+                              :min-val ::byte
+                              :max-val ::byte))
   :ret bytes?
   :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min-val max-val]
-               :or {min-val Byte/MIN_VALUE
-                    max-val Byte/MAX_VALUE}} args]
+        (let [{:keys [min-val max-val number]
+               :or   {min-val Byte/MIN_VALUE
+                      max-val Byte/MAX_VALUE}} (last args)]
           (and
-            (= (:number args) (count ret))
+            (= number (count ret))
             (<= min-val (reduce min ret))
             (>= max-val (reduce max ret))))))
 
@@ -113,18 +132,6 @@
        (do ~@body))
      (check-result @result#)))
 
-(defonce seed-uniquifier* (volatile! (long 8682522807148012)))
-
-(defn seed-uniquifier []
-  (vswap! seed-uniquifier* #(unchecked-multiply (long %1) (long 181783497276652981)))) ;TODO: get rid of casts.
-
-(defn next-seed [seed]
-  (bit-xor (seed-uniquifier) (inc seed)))
-
-(s/fdef next-seed
-  :args (s/cat :seed integer?)
-  :ret integer?)
-
 (defn move-towards-0 [byte]
   (cond
     (= 0 byte) byte
@@ -148,9 +155,9 @@
         target (first not-yet-zero)]
     (byte-array
       (into (if target
-             (conj already-zero (move-towards-0 target))
-             already-zero)
-           (rest not-yet-zero)))))
+              (conj already-zero (move-towards-0 target))
+              already-zero)
+            (rest not-yet-zero)))))
 
 (defn sum-abs [coll]
   (->> coll
@@ -205,31 +212,44 @@
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
 (s/def ::shrunk-values any?)
+(s/def ::seed integer?)
+(s/def ::results-map (s/keys :req [::result ::generated-values]
+                             :opt [::shrunk-values ::seed]))
+
+(s/def ::prop-fn (s/fspec :args (s/cat :source ::source)
+                          :ret boolean?))
 
 (s/fdef run-prop-1
-  :args (s/cat :source (partial satisfies? proto/Recall)
-               :fn fn?)
-  :ret (s/keys :req [::result ::generated-values]
-               :opt [::shrunk-values]))
+  :args (s/cat :source ::source
+               :fn ::prop-fn)
+  :ret ::results-map)
 
-(defn run-prop [{:keys [seed iterations]
+(defn run-prop [{:keys [::seed ::iterations]
                  :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
                         iterations 1000}
                  :as   opts-map}
                 fn]
   (loop [iterations-left iterations
          seed seed]
-    (if (> iterations-left 0)
-      (let [source (source/make-source seed)
-            run-data (run-prop-1 source fn)]
-        (if (-> run-data
-                :result
-                (true?))
-          (recur
-            (dec iterations-left)
-            (next-seed seed))
-          (assoc run-data ::seed seed)))
-      true)))
+    (let [source (source/make-source seed)
+          run-data (-> (run-prop-1 source fn)
+                       (assoc ::seed seed))]
+      (if (and (-> run-data
+                   ::result
+                   (true?))
+               (> iterations-left 0))
+        (recur
+          (dec iterations-left)
+          (next-seed seed))
+        run-data))))
+
+(s/def ::iterations integer?)
+(s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
+
+(s/fdef run-prop
+  :args (s/cat :opts-map ::prop-opts-map
+               :fn ::prop-fn)
+  :ret ::results-map)
 
 ;; === === === === === === === ===
 ;; Public api
@@ -251,8 +271,8 @@
   :ret int?
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [min max]
-               :or {min Integer/MIN_VALUE
-                    max Integer/MAX_VALUE}} args]
+               :or   {min Integer/MIN_VALUE
+                      max Integer/MAX_VALUE}} args]
           (and (<= min ret)
                (>= max ret)))))
 
@@ -282,9 +302,9 @@
 (defn from
   ([coll] (from *source* coll))
   ([source coll]
-    (with-interval source (format-interval-name "from" coll)
-      (let [target-idx (int source 0 (dec (count coll)))]
-        (nth (vec coll) target-idx)))))
+   (with-interval source (format-interval-name "from" coll)
+     (let [target-idx (int source 0 (dec (count coll)))]
+       (nth (vec coll) target-idx)))))
 
 (s/fdef from
   :args (s/cat :source (s/? ::source) :coll (s/coll-of any?))
@@ -303,7 +323,7 @@
        (chosen-generator source)))))
 
 (s/fdef any
-  :args (s/cat :source (s/? ::source))
+  :args (s/cat :source (s/? ::source) :exclusions (s/or :fn fn? :set set?))
   :ret any?)
 
 (defmacro prop

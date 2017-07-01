@@ -115,6 +115,10 @@
         state (atom initial-state)]
     (->WrappedRandomSource rnd state)))
 
+(s/fdef make-source
+  :args (s/cat :seed integer?)
+  :ret (comp (partial extends? proto/BytesSource) class))
+
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
   proto/ByteSource
