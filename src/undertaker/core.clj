@@ -11,10 +11,6 @@
 
 (def ^:dynamic *source* nil)
 
-(defn fixture [f]
-  (with-bindings {#'*source* (source/make-source (System/nanoTime))}
-    (f)))
-
 (defn move-into-range
   ([byte min max]
    (move-into-range byte min max Byte/MIN_VALUE Byte/MAX_VALUE))
@@ -101,50 +97,6 @@
          result# (do ~@body)]
      (proto/pop-interval ~source interval-token# result#)
      result#))
-
-(defn int-gen
-  ([] (int-gen *source*))
-  ([source] (int-gen source Integer/MIN_VALUE Integer/MAX_VALUE))
-  ([source min] (int-gen source min Integer/MAX_VALUE))
-  ([source min max]
-   (with-interval source (format-interval-name "int-gen" min max)
-     (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
-       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)))))
-
-(s/fdef int-gen
-  :args (s/cat :source (s/? ::source)
-               :min (s/? int?)
-               :max (s/? int?))
-  :ret int?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or {min Integer/MIN_VALUE
-                    max Integer/MAX_VALUE}} args]
-          (and (<= min ret)
-               (>= max ret)))))
-
-(def default-max-size 64)
-
-(defn vec-gen
-  ([elem-gen] (vec-gen *source* elem-gen))
-  ([source elem-gen] (vec-gen source elem-gen 0))
-  ([source elem-gen min] (vec-gen source elem-gen min default-max-size))
-  ([source elem-gen min max]
-   (with-interval source (format-interval-name "vec-gen" min max)
-     (let [length (int-gen source min max)]
-       (vec (repeatedly length #(elem-gen source)))))))
-
-(defn bool-gen
-  ([] (bool-gen *source*))
-  ([source]
-   (with-interval source (format-interval-name "bool-gen")
-     (if (= 1 (take-byte source 0 1))
-       true
-       false))))
-
-(s/fdef bool-gen
-  :args (s/cat :source (s/? ::source))
-  :ret boolean?)
 
 (defn check-result [result]
   (not-any? (comp (partial = :fail) :type) result))
@@ -261,12 +213,12 @@
                :opt [::shrunk-values]))
 
 (defn run-prop [{:keys [seed iterations]
-                 :or   {seed       (System/nanoTime)
+                 :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
                         iterations 1000}
                  :as   opts-map}
                 fn]
   (loop [iterations-left iterations
-         seed (bit-xor seed (seed-uniquifier))]
+         seed seed]
     (if (> iterations-left 0)
       (let [source (source/make-source seed)
             run-data (run-prop-1 source fn)]
@@ -276,8 +228,83 @@
           (recur
             (dec iterations-left)
             (next-seed seed))
-          run-data))
+          (assoc run-data ::seed seed)))
       true)))
+
+;; === === === === === === === ===
+;; Public api
+;; === === === === === === === ===
+
+(defn int
+  ([] (int *source*))
+  ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
+  ([source min] (int source min Integer/MAX_VALUE))
+  ([source min max]
+   (with-interval source (format-interval-name "int" min max)
+     (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
+       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)))))
+
+(s/fdef int
+  :args (s/cat :source (s/? ::source)
+               :min (s/? int?)
+               :max (s/? int?))
+  :ret int?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or {min Integer/MIN_VALUE
+                    max Integer/MAX_VALUE}} args]
+          (and (<= min ret)
+               (>= max ret)))))
+
+(def default-max-size 64)
+
+(defn vec-of
+  ([elem-gen] (vec-of *source* elem-gen))
+  ([source elem-gen] (vec-of source elem-gen 0))
+  ([source elem-gen min] (vec-of source elem-gen min default-max-size))
+  ([source elem-gen min max]
+   (with-interval source (format-interval-name "vec" min max)
+     (let [length (int source min max)]
+       (vec (repeatedly length #(elem-gen source)))))))
+
+(defn bool
+  ([] (bool *source*))
+  ([source]
+   (with-interval source (format-interval-name "bool")
+     (if (= 1 (take-byte source 0 1))
+       true
+       false))))
+
+(s/fdef bool
+  :args (s/cat :source (s/? ::source))
+  :ret boolean?)
+
+(defn from
+  ([coll] (from *source* coll))
+  ([source coll]
+    (with-interval source (format-interval-name "from" coll)
+      (let [target-idx (int source 0 (dec (count coll)))]
+        (nth (vec coll) target-idx)))))
+
+(s/fdef from
+  :args (s/cat :source (s/? ::source) :coll (s/coll-of any?))
+  :ret any?
+  :fn (fn [{:keys [args ret]}] (contains? (set (:coll args)) ret)))
+
+(def any-gens #{bool
+                int})
+
+(defn any
+  ([] (any *source*))
+  ([source] (any source #{}))
+  ([source exclusions]
+   (with-interval source (format-interval-name "any")
+     (let [chosen-generator (from (remove exclusions any-gens))]
+       (chosen-generator source)))))
+
+(s/fdef any
+  :args (s/cat :source (s/? ::source))
+  :ret any?)
 
 (defmacro prop
   [opts & body]
@@ -291,3 +318,7 @@
   `(t/deftest ~name
      (let [prop-result# (prop ~opts ~@body)]
        (t/is (:result prop-result#) prop-result#))))
+
+(defn fixture [f]
+  (with-bindings {#'*source* (source/make-source (System/nanoTime))}
+    (f)))

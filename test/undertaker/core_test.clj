@@ -38,15 +38,15 @@
     (is (empty? failures))))
 
 (deftest test-boolean-gen
-  (is (boolean? (undertaker/bool-gen))))
+  (is (boolean? (undertaker/bool))))
 
 (deftest test-int-gen
-  (is (integer? (undertaker/int-gen))))
+  (is (integer? (undertaker/int))))
 
 (deftest test-vec-gen
-  (is (vector? (undertaker/vec-gen undertaker/int-gen)))
-  (is (every? int? (undertaker/vec-gen undertaker/int-gen)))
-  (is (not-empty (undertaker/vec-gen undertaker/int-gen))))
+  (is (vector? (undertaker/vec-of undertaker/int)))
+  (is (every? int? (undertaker/vec-of undertaker/int)))
+  (is (not-empty (undertaker/vec-of undertaker/int))))
 
 (deftest test-run-and-report
   (t/testing "Failure"
@@ -79,11 +79,11 @@
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (first (::undertaker/shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int-gen %1))))))))
+  (is (= 0 (first (::undertaker/shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int %1))))))))
 
 (deftest should-show-failing-values
   (let [expanded (macroexpand-1 '(undertaker/defprop should-show-failing-values {}
-                                   (is (not (empty? (undertaker/vec-gen undertaker/int-gen))))))]
+                                   (is (not (empty? (undertaker/vec-of undertaker/int))))))]
     (is (= 3 (count (last (last expanded)))))))
 
 (deftest can-fail-prop
