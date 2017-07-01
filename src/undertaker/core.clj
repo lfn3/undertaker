@@ -17,7 +17,7 @@
 
 (defn move-into-range
   ([byte min max]
-    (move-into-range byte min max Byte/MIN_VALUE Byte/MAX_VALUE))
+   (move-into-range byte min max Byte/MIN_VALUE Byte/MAX_VALUE))
   ([number min max type-min type-max]
    (let [type-range (- type-max type-min)
          range (- max min)
@@ -28,34 +28,26 @@
              adjusted-number (+ fixed-offset number)]
          (Math/round (double (+ min (/ adjusted-number divisor)))))))))
 
-(defn byte? [b]
-  (and (number? b)
-       (integer? b)
-       (<= b Byte/MAX_VALUE)
-       (>= b Byte/MIN_VALUE)))
-
-(s/def ::byte byte?)
-;TODO should be
-#_(s/with-gen byte?
-              #(s.gen/fmap first (s.gen/bytes)))
-;But that's broke. Not sure why, yet.
+(s/def ::byte (s/with-gen (s/and integer?
+                                 (partial >= Byte/MAX_VALUE)
+                                 (partial <= Byte/MIN_VALUE))
+                          #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
 
 (s/fdef move-into-range
   :args (s/alt
-          :bytes
-          (s/cat :byte ::byte
-                 :min ::byte
-                 :max ::byte)
-          :any-integers
-          (s/cat :byte integer?
-                 :min integer?
-                 :max integer?
-                 :type-min integer?
-                 :type-max integer?))
+          :byte (s/cat :byte ::byte
+                       :min ::byte
+                       :max ::byte)
+          :integer (s/cat :integer integer?
+                          :min integer?
+                          :max integer?
+                          :type-min integer?
+                          :type-max integer?))
   :ret integer?
   :fn (fn [{:keys [args ret]}]
-        (<= (:max args) ret)
-        (>= (:max args) ret)))
+        (let [inner-args (last args)]
+          (<= (:min inner-args) ret)
+          (>= (:max inner-args) ret))))
 
 (defn take-byte
   ([source] (take-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
@@ -66,7 +58,8 @@
        (move-into-range raw min max)
        raw))))
 
-(s/def ::source (comp (partial extends? proto/ByteSource) class))
+(s/def ::source (s/with-gen (comp (partial extends? proto/ByteSource) class)
+                            #(s.gen/fmap source/make-source (s.gen/int))))
 
 (s/fdef take-byte
   :args (s/cat :source ::source
@@ -74,27 +67,31 @@
                :max (s/? ::byte))
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
-        (<= (:max args) ret)
+        (<= (:min args) ret)
         (>= (:max args) ret)))
 
 (defn take-bytes
-  ([source number] (take-bytes source Byte/MIN_VALUE Byte/MAX_VALUE number))
-  ([source max number] (take-bytes source Byte/MIN_VALUE max number))
-  ([source ^Byte min ^Byte max number]
+  ([source number] (take-bytes source number Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([source number ^Byte max] (take-bytes source number Byte/MIN_VALUE max))
+  ([source number ^Byte min ^Byte max]
    (->> (proto/get-bytes source number)
         (map #(move-into-range %1 min max))
         (byte-array))))
 
 (s/fdef take-bytes
   :args (s/cat :source ::source
-               :min (s/? ::byte)
-               :max (s/? ::byte)
-               :number integer?)
+               :number integer?
+               :min-val (s/? ::byte)
+               :max-val (s/? ::byte))
   :ret bytes?
   :fn (fn [{:keys [args ret]}]
-        (= (:number args) (count ret))
-        (<= (:min args) (reduce min ret))
-        (>= (:max args) (reduce max ret))))
+        (let [{:keys [min-val max-val]
+               :or {min-val Byte/MIN_VALUE
+                    max-val Byte/MAX_VALUE}} args]
+          (and
+            (= (:number args) (count ret))
+            (<= min-val (reduce min ret))
+            (>= max-val (reduce max ret))))))
 
 (defn format-interval-name [name & args]
   (str name " [" (str/join args " ") "]"))
@@ -105,8 +102,6 @@
      (proto/pop-interval ~source interval-token# result#)
      result#))
 
-(def fixed-int-offset (- Integer/MIN_VALUE))
-
 (defn int-gen
   ([] (int-gen *source*))
   ([source] (int-gen source Integer/MIN_VALUE Integer/MAX_VALUE))
@@ -114,9 +109,7 @@
   ([source min max]
    (with-interval source (format-interval-name "int-gen" min max)
      (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
-       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)
-       ; (+ min (mod adjusted-int (- max min)))
-       ))))
+       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)))))
 
 (s/fdef int-gen
   :args (s/cat :source (s/? ::source)
@@ -124,8 +117,11 @@
                :max (s/? int?))
   :ret int?
   :fn (fn [{:keys [args ret]}]
-        (and (<= (:min args) ret)
-             (>= (:max args) ret))))
+        (let [{:keys [min max]
+               :or {min Integer/MIN_VALUE
+                    max Integer/MAX_VALUE}} args]
+          (and (<= min ret)
+               (>= max ret)))))
 
 (def default-max-size 64)
 
@@ -173,40 +169,59 @@
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
 
+(s/fdef next-seed
+  :args (s/cat :seed integer?)
+  :ret integer?)
+
 (defn move-towards-0 [byte]
   (cond
     (= 0 byte) byte
     (neg-int? byte) (inc byte)
     (pos-int? byte) (dec byte)))
 
+(defn abs [i]
+  (if (neg-int? i) (- i) i))
+
 (s/fdef move-towards-0
   :args (s/cat :byte ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
         (or (= 0 ret)
-            (< (Math/abs ret)
-               (Math/abs (:byte args))))))
+            (< (abs ret)
+               (abs (:byte args))))))
 
 (defn shrink-bytes [bytes intervals]
-  (let [already-zero (take-while (partial = 0) bytes)
-        not-yet-zero (drop-while (partial = 0) bytes)]
-    (concat already-zero
-            (some-> (first not-yet-zero)
-                    (move-towards-0)
-                    vector)
-            (rest not-yet-zero))))
+  (let [already-zero (vec (take-while zero? bytes))
+        not-yet-zero (drop-while zero? bytes)
+        target (first not-yet-zero)]
+    (byte-array
+      (into (if target
+             (conj already-zero (move-towards-0 target))
+             already-zero)
+           (rest not-yet-zero)))))
+
+(defn sum-abs [coll]
+  (->> coll
+       (map abs)
+       (reduce +)))
 
 (s/fdef shrink-bytes
-  :args (s/cat :bytes (s/coll-of ::byte)
+  :args (s/cat :byte-array bytes?
                :intervals (s/coll-of ::source/interval))
-  :ret (s/coll-of byte?))
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (let [arg-bytes (:byte-array args)]
+          (and (= (count arg-bytes)
+                  (count ret))
+               (>= (sum-abs arg-bytes)
+                   (sum-abs ret))))))
 
 ;TODO feed this intervals, have it make decisions based on those.
 (defn can-shrink-more? [bytes]
   (not-every? zero? bytes))
 
 (s/fdef can-shrink-more?
-  :args (s/cat :bytes (s/coll-of byte?))
+  :args (s/cat :byte-array bytes?)
   :ret boolean?)
 
 (defn shrink
@@ -220,19 +235,30 @@
            source)))
      (source/make-fixed-source bytes intervals))))
 
+(s/fdef shrink
+  :args (s/cat :bytes bytes?
+               :intervals (s/coll-of ::source/interval)
+               :fn fn?)
+  :ret ::source)
+
 (defn run-prop-1 [source fn]
   (if (fn source)
-    {:result           true
-     :generated-values (map last (proto/get-intervals source))}
-    (let [shrunk-source (shrink (proto/freeze source) (proto/get-intervals source) fn)]
-      {:result           false
-       :generated-values (map last (proto/get-intervals source))
-       :shrunk-values    (map last (proto/get-intervals shrunk-source))})))
+    {::result           true
+     ::generated-values (map last (proto/get-intervals source))}
+    (let [shrunk-source (shrink (proto/get-sourced-bytes source) (proto/get-intervals source) fn)]
+      {::result           false
+       ::generated-values (map last (proto/get-intervals source))
+       ::shrunk-values    (map last (proto/get-intervals shrunk-source))})))
+
+(s/def ::result boolean?)
+(s/def ::generated-values any?)
+(s/def ::shrunk-values any?)
 
 (s/fdef run-prop-1
   :args (s/cat :source (partial satisfies? proto/Recall)
                :fn fn?)
-  :ret boolean?)
+  :ret (s/keys :req [::result ::generated-values]
+               :opt [::shrunk-values]))
 
 (defn run-prop [{:keys [seed iterations]
                  :or   {seed       (System/nanoTime)

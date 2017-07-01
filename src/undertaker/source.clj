@@ -24,7 +24,8 @@
 (s/def ::interval-id int?)
 (s/def ::interval-start int?)
 (s/def ::interval-end int?)
-(s/def ::generated-value any?)
+(s/def ::generated-value (s/with-gen any?
+                                     #(s/gen nil?)))
 (s/def ::wip-interval (s/tuple ::interval-name ::interval-id ::interval-start))
 (s/def ::interval (s/tuple ::interval-name ::interval-id ::interval-start ::interval-end ::generated-value))
 
@@ -104,7 +105,10 @@
     (set-validator! state-atom nil)
     (reset! state-atom initial-state))
   (get-sourced-bytes [_]
-    (::bytes @state-atom)))
+    (-> state-atom
+        deref
+        ::bytes
+        (byte-array))))
 
 (defn make-source [seed]
   (let [rnd (Random. seed)
@@ -133,7 +137,11 @@
   (current-stack [_] (::interval-stack @state-atom))
   (get-intervals [_] (::completed-intervals @state-atom))
   proto/Recall
-  (get-sourced-bytes [_] (::bytes @state-atom)))
+  (get-sourced-bytes [_]
+    (-> state-atom
+        deref
+        ::bytes
+        (byte-array))))
 
 (defn make-fixed-source [bytes intervals]
   (let [state (atom {::cursor              0

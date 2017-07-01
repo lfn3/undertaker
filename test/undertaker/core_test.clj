@@ -1,6 +1,7 @@
 (ns undertaker.core-test
   (:require [clojure.test :as t :refer [deftest is]]
-            [clojure.spec.test.alpha :as spec-test]
+            [clojure.spec.test.alpha :as s.test]
+            [orchestra.spec.test :as orchestra.test]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [undertaker.core :as undertaker]
@@ -11,9 +12,9 @@
             [undertaker.source :as source]
             [undertaker.proto :as proto]))
 
-(t/use-fixtures :once #(do (spec-test/instrument)
+(t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
-                           (spec-test/unstrument)))
+                           (orchestra.test/unstrument)))
 (t/use-fixtures :each undertaker/fixture)
 
 (def this-ns *ns*)
@@ -26,7 +27,7 @@
                      (filter #(str/starts-with? (str (key %1)) target-namespace))
                      (map first)
                      (remove ignored))
-        result (spec-test/check targets)
+        result (s.test/check targets {:clojure.spec.test.check/opts {:num-tests 100}})
         failures (->> result
                       (filter #(-> %1
                                    (get-in [:clojure.spec.test.check/ret :result])
@@ -60,25 +61,25 @@
                   (is true))))))
 
 (deftest should-shrink-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes [1] [])))))
+  (is (= 0 (first (undertaker/shrink-bytes (byte-array [1]) [])))))
 
 (deftest should-shrink-negative-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes [-1] [])))))
+  (is (= 0 (first (undertaker/shrink-bytes (byte-array [-1]) [])))))
 
 (deftest should-not-further-shrink-0
-  (is (= 0 (first (undertaker/shrink-bytes [0] [])))))
+  (is (= 0 (first (undertaker/shrink-bytes (byte-array [0]) [])))))
 
 (deftest should-shrink-two-steps
-  (is (= [0] (proto/get-sourced-bytes (undertaker/shrink [2] [] (fn [_] false))))))
+  (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (fn [_] false)))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= [1] (proto/get-sourced-bytes (undertaker/shrink [2] [] (fn [source] (not= 0 (proto/get-byte source))))))))
+  (is (= [1] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (fn [source] (not= 0 (proto/get-byte source)))))))))
 
 (deftest can-run-prop
-  (is (true? (undertaker/run-prop {} (constantly true)))))
+  (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (first (:shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int-gen %1))))))))
+  (is (= 0 (first (::undertaker/shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int-gen %1))))))))
 
 (deftest should-show-failing-values
   (let [expanded (macroexpand-1 '(undertaker/defprop should-show-failing-values {}
@@ -86,4 +87,4 @@
     (is (= 3 (count (last (last expanded)))))))
 
 (deftest can-fail-prop
-  (is (false? (:result (undertaker/prop {} (is false))))))
+  (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
