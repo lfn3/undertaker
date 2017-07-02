@@ -1,5 +1,6 @@
 (ns undertaker.core
   (:gen-class)
+  (:refer-clojure :exclude [int])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
@@ -323,7 +324,10 @@
        (chosen-generator source)))))
 
 (s/fdef any
-  :args (s/cat :source (s/? ::source) :exclusions (s/or :fn fn? :set set?))
+  :args (s/cat :source (s/? ::source)
+               :exclusions (s/or :fn (s/fspec :args (s/cat :item any?)
+                                              :ret boolean?)
+                                 :set set?))
   :ret any?)
 
 (defmacro prop
