@@ -81,10 +81,5 @@
 (deftest should-shrink-to-zero
   (is (= 0 (first (::undertaker/shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int %1))))))))
 
-(deftest should-show-failing-values
-  (let [expanded (macroexpand-1 '(undertaker/defprop should-show-failing-values {}
-                                   (is (not (empty? (undertaker/vec-of undertaker/int))))))]
-    (is (= 3 (count (last (last expanded)))))))
-
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
