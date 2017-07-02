@@ -9,5 +9,7 @@
                  [org.clojure/test.check "0.9.0"]
                  [criterium "0.4.4"]]
   :main ^:skip-aot undertaker.core
+  :source-paths ["src/main/clojure"]
+  :test-paths ["src/test/clojure"]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
