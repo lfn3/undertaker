@@ -7,6 +7,8 @@
             [undertaker.proto :as proto]
             [clojure.test :as t]
             [undertaker.source :as source]
+            [undertaker.source.wrapped-random :as wrapped-random-source]
+            [undertaker.source.fixed :as fixed-source]
             [clojure.test.check.generators :as gen])
   (:import (java.util Random)
            (java.nio ByteBuffer)))
@@ -23,7 +25,7 @@
   :args (s/cat :seed integer?)
   :ret integer?)
 
-(def ^:dynamic *source* (source/make-source (next-seed (System/nanoTime))))
+(def ^:dynamic *source* (wrapped-random-source/make-source (next-seed (System/nanoTime))))
 
 (defn move-into-range
   ([byte min max]
@@ -69,7 +71,7 @@
        raw))))
 
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteSource) class)
-                            #(s.gen/fmap source/make-source (s.gen/int))))
+                            #(s.gen/fmap wrapped-random-source/make-source (s.gen/int))))
 
 (s/fdef take-byte
   :args (s/cat :source ::source
@@ -188,12 +190,12 @@
   ([bytes intervals fn]
    (if-not (empty? bytes)
      (loop [shrunk-bytes (shrink-bytes bytes intervals)]
-       (let [source (source/make-fixed-source shrunk-bytes intervals)]
+       (let [source (fixed-source/make-fixed-source shrunk-bytes intervals)]
          (if (and (false? (fn source))
                   (can-shrink-more? shrunk-bytes))
            (recur (shrink-bytes shrunk-bytes intervals))
            source)))
-     (source/make-fixed-source bytes intervals))))
+     (fixed-source/make-fixed-source bytes intervals))))
 
 (s/fdef shrink
   :args (s/cat :bytes bytes?
@@ -232,7 +234,7 @@
                 fn]
   (loop [iterations-left iterations
          seed seed]
-    (let [source (source/make-source seed)
+    (let [source (wrapped-random-source/make-source seed)
           run-data (-> (run-prop-1 source fn)
                        (assoc ::seed seed))]
       (if (and (-> run-data
@@ -344,5 +346,5 @@
        (t/is (:result prop-result#) prop-result#))))
 
 (defn fixture [f]
-  (with-bindings {#'*source* (source/make-source (System/nanoTime))}
+  (with-bindings {#'*source* (wrapped-random-source/make-source (System/nanoTime))}
     (f)))
