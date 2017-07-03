@@ -4,8 +4,8 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
-            [undertaker.proto :as proto]
             [clojure.test :as t]
+            [undertaker.proto :as proto]
             [undertaker.source :as source]
             [undertaker.source.wrapped-random :as wrapped-random-source]
             [undertaker.source.fixed :as fixed-source]
@@ -61,63 +61,13 @@
           (<= (:min inner-args) ret)
           (>= (:max inner-args) ret))))
 
-(defn take-byte
-  ([source] (take-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
-  ([source ^Byte max] (take-byte source Byte/MIN_VALUE max))
-  ([source ^Byte min ^Byte max]
-   (let [raw (proto/get-byte source)]
-     (if-not (and (= Byte/MIN_VALUE min) (= Byte/MAX_VALUE max))
-       (move-into-range raw min max)
-       raw))))
-
-(s/def ::source (s/with-gen (comp (partial extends? proto/ByteSource) class)
-                            #(s.gen/fmap wrapped-random-source/make-source (s.gen/int))))
-
-(s/fdef take-byte
-  :args (s/cat :source ::source
-               :min (s/? ::byte)
-               :max (s/? ::byte))
-  :ret ::byte
-  :fn (fn [{:keys [args ret]}]
-        (<= (:min args) ret)
-        (>= (:max args) ret)))
-
-(defn take-bytes
-  ([source number] (take-bytes source number Byte/MIN_VALUE Byte/MAX_VALUE))
-  ([source number ^Byte max] (take-bytes source number Byte/MIN_VALUE max))
-  ([source number ^Byte min ^Byte max]
-   (->> (proto/get-bytes source number)
-        (map #(move-into-range %1 min max))
-        (byte-array))))
-
-(s/fdef take-bytes
-  :args (s/or
-          :no-min-or-max (s/cat :source ::source
-                                :number pos-int?)
-          :min-only (s/cat :source ::source
-                           :number pos-int?
-                           :max-val ::byte)
-          :min-and-max (s/cat :source ::source
-                              :number pos-int?
-                              :min-val ::byte
-                              :max-val ::byte))
-  :ret bytes?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min-val max-val number]
-               :or   {min-val Byte/MIN_VALUE
-                      max-val Byte/MAX_VALUE}} (last args)]
-          (and
-            (= number (count ret))
-            (<= min-val (reduce min ret))
-            (>= max-val (reduce max ret))))))
-
 (defn format-interval-name [name & args]
   (str name " [" (str/join args " ") "]"))
 
 (defmacro with-interval [source name & body]
-  `(let [interval-token# (proto/push-interval ~source ~name)
+  `(let [interval-token# (source/push-interval ~source ~name)
          result# (do ~@body)]
-     (proto/pop-interval ~source interval-token# result#)
+     (source/pop-interval ~source interval-token# result#)
      result#))
 
 (defn check-result [result]
@@ -169,7 +119,7 @@
 
 (s/fdef shrink-bytes
   :args (s/cat :byte-array bytes?
-               :intervals (s/coll-of ::source/interval))
+               :intervals (s/coll-of ::proto/interval))
   :ret bytes?
   :fn (fn [{:keys [args ret]}]
         (let [arg-bytes (:byte-array args)]
@@ -199,18 +149,18 @@
 
 (s/fdef shrink
   :args (s/cat :bytes bytes?
-               :intervals (s/coll-of ::source/interval)
+               :intervals (s/coll-of ::proto/interval)
                :fn fn?)
-  :ret ::source)
+  :ret ::source/source)
 
 (defn run-prop-1 [source fn]
   (if (fn source)
     {::result           true
-     ::generated-values (map last (proto/get-intervals source))}
-    (let [shrunk-source (shrink (proto/get-sourced-bytes source) (proto/get-intervals source) fn)]
+     ::generated-values (map last (source/get-intervals source))}
+    (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) fn)]
       {::result           false
-       ::generated-values (map last (proto/get-intervals source))
-       ::shrunk-values    (map last (proto/get-intervals shrunk-source))})))
+       ::generated-values (map last (source/get-intervals source))
+       ::shrunk-values    (map last (source/get-intervals shrunk-source))})))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
@@ -219,11 +169,11 @@
 (s/def ::results-map (s/keys :req [::result ::generated-values]
                              :opt [::shrunk-values ::seed]))
 
-(s/def ::prop-fn (s/fspec :args (s/cat :source ::source)
+(s/def ::prop-fn (s/fspec :args (s/cat :source ::source/source)
                           :ret boolean?))
 
 (s/fdef run-prop-1
-  :args (s/cat :source ::source
+  :args (s/cat :source ::source/source
                :fn ::prop-fn)
   :ret ::results-map)
 
@@ -264,11 +214,11 @@
   ([source min] (int source min Integer/MAX_VALUE))
   ([source min max]
    (with-interval source (format-interval-name "int" min max)
-     (let [^ByteBuffer buffer (ByteBuffer/wrap (take-bytes source 4))]
+     (let [^ByteBuffer buffer (ByteBuffer/wrap (source/get-bytes source 4))]
        (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)))))
 
 (s/fdef int
-  :args (s/cat :source (s/? ::source)
+  :args (s/cat :source (s/? ::source/source)
                :min (s/? int?)
                :max (s/? int?))
   :ret int?
@@ -294,12 +244,13 @@
   ([] (bool *source*))
   ([source]
    (with-interval source (format-interval-name "bool")
-     (if (= 1 (take-byte source 0 1))
+     (if (= 1 (-> (source/get-byte source)
+                  (move-into-range 0 1)))
        true
        false))))
 
 (s/fdef bool
-  :args (s/cat :source (s/? ::source))
+  :args (s/cat :source (s/? ::source/source))
   :ret boolean?)
 
 (defn from

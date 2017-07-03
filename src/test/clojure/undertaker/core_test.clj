@@ -9,7 +9,7 @@
             [clojure.test.check.clojure-test :as tcheck-test]
             [clojure.test.check.properties :as tcheck-prop]
             [clojure.test.check.generators :as tcheck-gen]
-            [undertaker.source :as source]
+            [undertaker.source.wrapped-random :as source]
             [undertaker.proto :as proto]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
@@ -19,7 +19,7 @@
 
 (def this-ns *ns*)
 
-(def ignored #{`undertaker/from `undertaker/bool `undertaker/take-byte `undertaker/take-bytes})
+(def ignored #{`undertaker/from `undertaker/bool})
 
 (deftest check-core
   (let [target-namespace (first (str/split (str this-ns) #"-test"))

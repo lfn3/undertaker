@@ -29,17 +29,16 @@
       byte))
   proto/BytesSource
   (get-bytes [_ number]
-    (let [bytes (->> (::bytes @state-atom)
+    (let [bytes-vec (->> (::bytes @state-atom)
                      (drop (::cursor @state-atom))
                      (take number))]
       (swap! state-atom update ::cursor + number)
-      bytes))
+      (byte-array bytes-vec)))
   proto/Interval
   (push-interval [_ interval-name]
-    (::interval-id-counter (swap! state-atom push-interval* ::cursor interval-name)))
+    (::interval-id-counter (swap! state-atom push-interval* interval-name)))
   (pop-interval [_ interval-id generated-value]
-    (swap! state-atom pop-interval* ::cursor interval-id generated-value))
-  (current-stack [_] (::interval-stack @state-atom))
+    (swap! state-atom pop-interval* interval-id generated-value))
   (get-intervals [_] (::completed-intervals @state-atom))
   proto/Recall
   (get-sourced-bytes [_]

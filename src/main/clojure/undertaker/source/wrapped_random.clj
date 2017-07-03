@@ -1,7 +1,6 @@
 (ns undertaker.source.wrapped-random
   (:require [undertaker.proto :as proto]
-            [clojure.spec.alpha :as s]
-            [undertaker.source :as source])
+            [clojure.spec.alpha :as s])
   (:import (java.util Random)))
 
 (extend-type Random
@@ -14,12 +13,12 @@
   (get-bytes [this number]
     (let [output (byte-array number)]
       (.nextBytes this output)
-      (vec output))))
+      output)))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
-(s/def ::interval-stack (s/coll-of ::source/wip-interval))
-(s/def ::completed-intervals (s/coll-of ::source/interval))
+(s/def ::interval-stack (s/coll-of ::proto/wip-interval))
+(s/def ::completed-intervals (s/coll-of ::proto/interval))
 (s/def ::frozen boolean?)
 (s/def ::source-state (s/keys :req [::interval-id-counter
                                     ::bytes-counter
@@ -74,23 +73,8 @@
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
-  (current-stack [_] (::interval-stack @state-atom))
   (get-intervals [_] (::completed-intervals @state-atom))
   proto/Recall
-  (freeze [_]
-    (let [current-state @state-atom]
-      (if (empty? (::interval-stack current-state))
-        (do
-          (let [frozen-state (swap! state-atom assoc ::frozen true)]
-            (set-validator! state-atom (fn [intended-state]
-                                         (if (not= frozen-state intended-state)
-                                           (throw (ex-info "Source has been frozen" {:state @state-atom}))
-                                           true))))
-          (::bytes current-state))
-        (throw (ex-info "Not all intervals have been popped, cannot freeze yet" {:state current-state})))))
-  (reset [_]
-    (set-validator! state-atom nil)
-    (reset! state-atom initial-state))
   (get-sourced-bytes [_]
     (-> state-atom
         deref
