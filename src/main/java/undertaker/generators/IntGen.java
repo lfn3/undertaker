@@ -32,12 +32,21 @@ public interface IntGen {
             return min;
         }
 
-        long range = max - min;
-        long fixedOffset = Integer.MIN_VALUE;
-        double divisor = (Integer.MAX_VALUE / range) - (Integer.MIN_VALUE / range);
-        long adjustedNumber = i - fixedOffset;
+        final boolean positive = i >= 0; //i.e. will be in the upper half of the range.
+        int halfOfRange = max / 2 + min / 2;
+        final int floor;
+        if (positive)
+        {
+            floor = max - halfOfRange;
+        }
+        else
+        {
+            floor = min;
+        }
 
-        return (int)Math.round(min + adjustedNumber / divisor);
+        double divisor = ((Integer.MAX_VALUE / 2) - (Integer.MIN_VALUE / 2)) / halfOfRange;
+
+        return (int)Math.round(floor + (i / divisor));
     }
 
     static int getRawInt(Source source)

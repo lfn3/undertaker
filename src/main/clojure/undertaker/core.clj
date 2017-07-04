@@ -58,8 +58,8 @@
   :ret integer?
   :fn (fn [{:keys [args ret]}]
         (let [inner-args (last args)]
-          (<= (:min inner-args) ret)
-          (>= (:max inner-args) ret))))
+          (and (<= (:min inner-args) ret)
+               (>= (:max inner-args) ret)))))
 
 (defn format-interval-name [name & args]
   (str name " [" (str/join args " ") "]"))
