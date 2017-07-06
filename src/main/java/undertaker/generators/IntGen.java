@@ -33,20 +33,16 @@ public interface IntGen {
         }
 
         final boolean positive = i >= 0; //i.e. will be in the upper half of the range.
-        int halfOfRange = max / 2 + min / 2;
-        final int floor;
+        double halfOfRange = max / 2 + min / 2;
+        double divisor = ((Integer.MAX_VALUE / 2) - (Integer.MIN_VALUE / 2)) / halfOfRange;
         if (positive)
         {
-            floor = max - halfOfRange;
+            return (int)Math.round(max - (i / divisor));
         }
         else
         {
-            floor = min;
+            return (int)Math.round(min + (i / divisor));
         }
-
-        double divisor = ((Integer.MAX_VALUE / 2) - (Integer.MIN_VALUE / 2)) / halfOfRange;
-
-        return (int)Math.round(floor + (i / divisor));
     }
 
     static int getRawInt(Source source)
