@@ -13,10 +13,17 @@
         {:seed   seed
          :source (undertaker.source.wrapped-random/make-source seed)})])
 
-(defn ^Statement -apply [{:keys [source]} ^Statement base ^Description description]
-  (proxy [Statement] []
-    (evaluate []
-      (undertaker/run-prop {} (fn [_] (.evaluate base))))))
+(defn ^Statement -apply [this ^Statement base ^Description description]
+  (let [state (.state this)]
+    (proxy [Statement] []
+      (evaluate []
+        (let [{:keys [source seed]} state]
+          (undertaker/run-prop {::undertaker/seed seed} source (fn [_] (.evaluate base))))))))
 
-(defn ^int -getInt [{:keys [source]} min max]
-  (undertaker/int source min max))
+(defn ^int -getInt
+  ([this] (let [{:keys [source seed]} (.state this)]
+            (undertaker/int source Integer/MIN_VALUE Integer/MAX_VALUE)))
+  ([this max] (let [{:keys [source seed]} (.state this)]
+                (undertaker/int source Integer/MIN_VALUE max)))
+  ([this min max] (let [{:keys [source seed]} (.state this)]
+                    (undertaker/int source min max))))
