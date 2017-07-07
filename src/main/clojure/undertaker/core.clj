@@ -206,6 +206,7 @@
 
 (s/fdef run-prop
   :args (s/cat :opts-map ::prop-opts-map
+               :source (s/? ::source/source)
                :fn ::prop-fn)
   :ret ::results-map)
 
