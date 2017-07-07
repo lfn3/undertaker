@@ -1,6 +1,7 @@
 package undertaker;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import undertaker.SourceRule;
@@ -23,11 +24,17 @@ public class SourceRuleTest {
         Assert.assertTrue(anInt <= Integer.MAX_VALUE);
     }
 
-
     @Test
     public void canGetAnBetweenMaxAndMin()
     {
         int anInt = source.getInt(0, 1);
         Assert.assertTrue(anInt == 0 || anInt == 1);
+    }
+
+    @Test
+    @Ignore
+    public void canFail()
+    {
+        Assert.assertTrue(false);
     }
 }

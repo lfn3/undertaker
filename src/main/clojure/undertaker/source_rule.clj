@@ -17,8 +17,10 @@
   (let [state (.state this)]
     (proxy [Statement] []
       (evaluate []
-        (let [{:keys [source seed]} state]
-          (undertaker/run-prop {::undertaker/seed seed} source (fn [_] (.evaluate base))))))))
+        (let [{:keys [source seed]} state
+              result (undertaker/run-prop {::undertaker/seed seed} source (fn [_] (.evaluate base)))]
+          (when (false? (::undertaker/result result))
+            (throw (ex-info "Test failed" result (::undertaker/ex result)))))))))
 
 (defn ^int -getInt
   ([this] (let [{:keys [source seed]} (.state this)]
