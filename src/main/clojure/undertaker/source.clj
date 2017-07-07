@@ -25,4 +25,6 @@
 (defn push-interval [source interval-name] (proto/push-interval source interval-name))
 (defn pop-interval [source interval-id generated-value] (proto/pop-interval source interval-id generated-value))
 (defn get-intervals [source] (proto/get-intervals source))
+
 (defn get-sourced-bytes [source] (proto/get-sourced-bytes source))
+(defn reset [source] (proto/reset source))

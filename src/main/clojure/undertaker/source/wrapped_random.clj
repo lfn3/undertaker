@@ -79,7 +79,9 @@
     (-> state-atom
         deref
         ::bytes
-        (byte-array))))
+        (byte-array)))
+  (reset [_]
+    (swap! state-atom update ::bytes empty)))
 
 (defn make-source [seed]
   (let [rnd (Random. seed)

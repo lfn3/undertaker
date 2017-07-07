@@ -177,24 +177,29 @@
                :fn ::prop-fn)
   :ret ::results-map)
 
-(defn run-prop [{:keys [::seed ::iterations]
-                 :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
-                        iterations 1000}
-                 :as   opts-map}
-                fn]
-  (loop [iterations-left iterations
-         seed seed]
-    (let [source (wrapped-random-source/make-source seed)
-          run-data (-> (run-prop-1 source fn)
-                       (assoc ::seed seed))]
-      (if (and (-> run-data
-                   ::result
-                   (true?))
-               (> iterations-left 0))
-        (recur
-          (dec iterations-left)
-          (next-seed seed))
-        run-data))))
+(defn run-prop
+  ([{:keys [::seed ::iterations]
+     :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
+            iterations 1000}
+     :as   opts-map}
+    fn]
+    (run-prop opts-map (wrapped-random-source/make-source seed) fn))
+  ([{:keys [::seed ::iterations]
+     :or   {iterations 1000}
+     :as   opts-map}
+    source
+    fn]
+   (loop [iterations-left iterations]
+     (let [run-data (run-prop-1 source fn)]
+       (if (and (-> run-data
+                    ::result
+                    (true?))
+                (> iterations-left 0))
+         (do
+           (source/reset source)
+           (recur (dec iterations-left)))
+         (cond-> run-data
+                 seed (assoc ::seed seed)))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))

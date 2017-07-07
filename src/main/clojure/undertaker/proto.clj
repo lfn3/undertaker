@@ -21,5 +21,6 @@
   (get-intervals [this]))
 
 (defprotocol Recall
-  "Allows you to get the sequence of bytes this source of randomness has emitted."
-  (get-sourced-bytes [this]))
+  "Allows you to get the sequence of bytes this source of randomness has emitted since the last reset."
+  (get-sourced-bytes [this])
+  (reset [this]))
