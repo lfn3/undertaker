@@ -9,9 +9,14 @@
                  [org.clojure/test.check "0.9.0"]
                  [criterium "0.4.4"]
                  [junit/junit "4.12"]]
-  :main ^:skip-aot undertaker.core
   :source-paths ["src/main/clojure"]
-  :java-source-paths ["src/main/java"]
+  :prep-tasks ^:replace [["with-profile" "java-interfaces" "javac"]
+                         "compile"
+                         "javac"]
+  :java-source-paths ["src/main/java" "src/test/java"]
   :test-paths ["src/test/clojure"]
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :aot [undertaker.source-rule]
+  :profiles {:uberjar {:aot :all}
+             :java-interfaces {:java-source-paths ^:replace ["src/main/java"]}
+            })
