@@ -10,4 +10,3 @@
           result (undertaker/run-prop {} (fn [source] (throw ex)))]
         (is (false? (::undertaker/result result)))
         (is (= ex (::undertaker/cause result)))))
-

@@ -139,12 +139,16 @@
 (defn shrink
   ([bytes intervals fn]
    (if-not (empty? bytes)
-     (loop [shrunk-bytes (shrink-bytes bytes intervals)]
-       (let [source (fixed-source/make-fixed-source shrunk-bytes intervals)]
-         (if (and (false? (::result (fn source)))
-                  (can-shrink-more? shrunk-bytes))
-           (recur (shrink-bytes shrunk-bytes intervals))
-           source)))
+     (loop [last-bytes bytes]
+       (let [shrunk-bytes (shrink-bytes last-bytes intervals)
+             source (fixed-source/make-fixed-source shrunk-bytes intervals)]
+         (if (true? (::result (fn source)))                 ;If the test hasn't failed, return last failing result.
+           (let [source (fixed-source/make-fixed-source last-bytes intervals)]
+             (fn source)                                    ;TODO: this is so we get the right values in the intervals.
+             source)                                        ;Shouldn't be necessary if we carry the last source around.
+           (if (can-shrink-more? shrunk-bytes)
+             (recur shrunk-bytes)
+             source))))
      (fixed-source/make-fixed-source bytes intervals))))
 
 (s/fdef shrink

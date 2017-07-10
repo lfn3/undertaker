@@ -45,7 +45,9 @@
     (-> state-atom
         deref
         ::bytes
-        (byte-array))))
+        (byte-array)))
+  (reset [_]
+    (swap! state-atom update ::cursor (constantly 0))))
 
 (defn make-fixed-source [bytes intervals]
   (let [state (atom {::cursor              0

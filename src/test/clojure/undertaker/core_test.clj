@@ -9,7 +9,9 @@
             [clojure.test.check.clojure-test :as tcheck-test]
             [clojure.test.check.properties :as tcheck-prop]
             [clojure.test.check.generators :as tcheck-gen]
-            [undertaker.source.wrapped-random :as source]
+            [undertaker.source :as source]
+            [undertaker.source.fixed :as source.fixed]
+            [undertaker.source.wrapped-random :as source.wrapped]
             [undertaker.proto :as proto]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
@@ -50,12 +52,12 @@
 
 (deftest test-run-and-report
   (t/testing "Failure"
-    (is (false? (undertaker/run-and-report (source/make-source 1) (is false)))))
+    (is (false? (undertaker/run-and-report (source.wrapped/make-source 1) (is false)))))
   (t/testing "Success"
-    (is (true? (undertaker/run-and-report (source/make-source 1) (is true)))))
+    (is (true? (undertaker/run-and-report (source.wrapped/make-source 1) (is true)))))
   (t/testing "Handles multiple statements"
     (is (false? (undertaker/run-and-report
-                  (source/make-source 1)
+                  (source.wrapped/make-source 1)
                   (is true)
                   (is false)
                   (is true))))))
@@ -70,10 +72,19 @@
   (is (= 0 (first (undertaker/shrink-bytes (byte-array [0]) [])))))
 
 (deftest should-shrink-two-steps
-  (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (constantly {::undertaker/result false})))))))
+  (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
+                                                              []
+                                                              (constantly {::undertaker/result false})))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= [1] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (fn [source] (not= 0 (proto/get-byte source)))))))))
+  (is (= [1] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
+                                                              []
+                                                              (fn [source] {::undertaker/result (= 0 (proto/get-byte source))})))))))
+
+(deftest should-not-shrink-past-1                           ;at the moment...
+  (is (= [2] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
+                                                              []
+                                                              (fn [source] {::undertaker/result (= 1 (proto/get-byte source))})))))))
 
 (deftest can-run-prop
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
