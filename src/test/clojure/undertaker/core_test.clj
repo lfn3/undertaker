@@ -70,7 +70,7 @@
   (is (= 0 (first (undertaker/shrink-bytes (byte-array [0]) [])))))
 
 (deftest should-shrink-two-steps
-  (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (fn [_] false)))))))
+  (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (constantly {::undertaker/result false})))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
   (is (= [1] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2]) [] (fn [source] (not= 0 (proto/get-byte source)))))))))

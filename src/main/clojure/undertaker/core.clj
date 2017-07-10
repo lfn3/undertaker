@@ -141,7 +141,7 @@
    (if-not (empty? bytes)
      (loop [shrunk-bytes (shrink-bytes bytes intervals)]
        (let [source (fixed-source/make-fixed-source shrunk-bytes intervals)]
-         (if (and (false? (fn source))
+         (if (and (false? (::result (fn source)))
                   (can-shrink-more? shrunk-bytes))
            (recur (shrink-bytes shrunk-bytes intervals))
            source)))
@@ -153,14 +153,24 @@
                :fn fn?)
   :ret ::source/source)
 
-(defn run-prop-1 [source fn]
-  (if (fn source)
-    {::result           true
-     ::generated-values (map last (source/get-intervals source))}
-    (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) fn)]
-      {::result           false
-       ::generated-values (map last (source/get-intervals source))
-       ::shrunk-values    (map last (source/get-intervals shrunk-source))})))
+(defn wrap-with-catch [f]
+  (fn [source]
+    (try {::result (f source)}
+         (catch Exception e
+           {::result false
+            ::cause e})
+         (catch AssertionError e
+           {::result false
+            ::cause e}))))
+
+(defn run-prop-1 [source f]
+  (let [f (wrap-with-catch f)
+        result-map (-> (f source)
+                       (assoc ::generated-values (map last (source/get-intervals source))))]
+    (if (::result result-map)
+      result-map
+      (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
+        (assoc result-map ::shrunk-values (map last (source/get-intervals shrunk-source)))))))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
@@ -183,7 +193,7 @@
             iterations 1000}
      :as   opts-map}
     fn]
-    (run-prop opts-map (wrapped-random-source/make-source seed) fn))
+   (run-prop opts-map (wrapped-random-source/make-source seed) fn))
   ([{:keys [::seed ::iterations]
      :or   {iterations 1000}
      :as   opts-map}
