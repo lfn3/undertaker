@@ -35,7 +35,7 @@
                                    (get-in [:clojure.spec.test.check/ret :result])
                                    (not)
                                    (true?))))]
-    (println (str "Checked following specs in " target-namespace ": " ))
+    (println (str "Checked following specs in " target-namespace ": "))
     (dorun (map println targets))
     (is (empty? failures))))
 
@@ -77,14 +77,28 @@
                                                               (constantly {::undertaker/result false})))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= [1] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
-                                                              []
-                                                              (fn [source] {::undertaker/result (= 0 (proto/get-byte source))})))))))
+  (is (= [1] (-> (undertaker/shrink (byte-array [2])
+                                    []
+                                    (fn [source] {::undertaker/result (= 0 (proto/get-byte source))}))
+                 (proto/get-sourced-bytes)
+                 (vec)))))
 
-(deftest should-not-shrink-past-1                           ;at the moment...
-  (is (= [2] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
-                                                              []
-                                                              (fn [source] {::undertaker/result (= 1 (proto/get-byte source))})))))))
+(deftest should-shrink-past-1
+  (is (= [0] (-> (undertaker/shrink (byte-array [2])
+                                    []
+                                    (fn [source] {::undertaker/result (= 1 (proto/get-byte source))}))
+                 (proto/get-sourced-bytes)
+                 (vec)))))
+
+(deftest should-shrink-to-2
+  (is (= [2] (-> (undertaker/shrink (byte-array [2])
+                                    []
+                                    (fn [source] {::undertaker/result (let [value (proto/get-byte source)]
+                                                                        (if (not= 0 value)
+                                                                          (odd? value)
+                                                                          true))}))
+                 (proto/get-sourced-bytes)
+                 (vec)))))
 
 (deftest can-run-prop
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))

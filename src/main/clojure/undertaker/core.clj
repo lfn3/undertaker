@@ -155,17 +155,24 @@
         (= ret (= (vec (:arr0 args))
                   (vec (:arr1 args))))))
 
+;; We only care about failed shrinks that are less complex than the current shrunk-bytes.
 (defn shrink
   ([bytes intervals fn]
    (if-not (empty? bytes)
-     (loop [prev-source (fixed-source/make-fixed-source bytes intervals)]
-       (let [shrunk-bytes (shrink-bytes (source/get-sourced-bytes prev-source) intervals)
-             shrunk-source (fixed-source/make-fixed-source shrunk-bytes intervals)]
-         (if (true? (::result (fn shrunk-source)))
-           prev-source                                      ;If the test hasn't failed, return last failing result.
-           (if (can-shrink-more? shrunk-bytes)
-             (recur shrunk-source)
-             shrunk-source))))
+     (loop [prev-source (fixed-source/make-fixed-source bytes intervals)
+            failed-shrinks []]
+       (let [shrunk-bytes (shrink-bytes (if (last failed-shrinks)
+                                          (last failed-shrinks)
+                                          (source/get-sourced-bytes prev-source)) intervals)
+             shrunk-source (fixed-source/make-fixed-source shrunk-bytes intervals)
+             continue? (can-shrink-more? shrunk-bytes)
+             result-map (fn shrunk-source)
+             passed? (true? (::result result-map))]
+         (cond
+           (and continue? passed?) (recur prev-source (conj failed-shrinks shrunk-bytes))
+           (and continue? (not passed?)) (recur shrunk-source [])
+           passed? prev-source                              ;If the test hasn't failed, return last failing result.
+           (not passed?) shrunk-source)))
      (fixed-source/make-fixed-source bytes intervals))))
 
 (s/fdef shrink
