@@ -9,7 +9,8 @@
             [undertaker.source :as source]
             [undertaker.source.wrapped-random :as wrapped-random-source]
             [undertaker.source.fixed :as fixed-source]
-            [clojure.test.check.generators :as gen])
+            [clojure.test.check.generators :as gen]
+            [undertaker.util :as util])
   (:import (java.util Random)
            (java.nio ByteBuffer)))
 
@@ -40,16 +41,11 @@
              adjusted-number (+ fixed-offset number)]
          (Math/round (double (+ min (/ adjusted-number divisor)))))))))
 
-(s/def ::byte (s/with-gen (s/and integer?
-                                 (partial >= Byte/MAX_VALUE)
-                                 (partial <= Byte/MIN_VALUE))
-                          #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
-
 (s/fdef move-into-range
   :args (s/alt
-          :byte (s/cat :byte ::byte
-                       :min ::byte
-                       :max ::byte)
+          :byte (s/cat :byte ::util/byte
+                       :min ::util/byte
+                       :max ::util/byte)
           :integer (s/cat :integer integer?
                           :min integer?
                           :max integer?
@@ -95,9 +91,9 @@
   (if (neg-int? i) (- i) i))
 
 (s/fdef move-towards-0
-  :args (s/cat :byte ::byte)
-  :ret ::byte
-  :fn (fn [{:keys [args ret]}]
+        :args (s/cat :byte ::util/byte)
+        :ret ::util/byte
+        :fn (fn [{:keys [args ret]}]
         (or (= 0 ret)
             (< (abs ret)
                (abs (:byte args))))))
@@ -288,8 +284,7 @@
   ([] (bool *source*))
   ([source]
    (with-interval source (format-interval-name "bool")
-     (if (= 1 (-> (source/get-byte source)
-                  (move-into-range 0 1)))
+     (if (= 1 (source/get-byte source 0 2))
        true
        false))))
 

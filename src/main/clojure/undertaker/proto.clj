@@ -10,7 +10,7 @@
 (s/def ::interval (s/tuple ::interval-name ::interval-id ::interval-start ::interval-end ::generated-value))
 
 (defprotocol ByteSource
-  (get-byte [this]))
+  (get-byte [this min max]))
 
 (defprotocol BytesSource
   (get-bytes [this number]))

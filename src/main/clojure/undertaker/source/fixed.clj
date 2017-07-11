@@ -23,10 +23,12 @@
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
   proto/ByteSource
-  (get-byte [_]
+  (get-byte [_ min max]
     (let [byte (nth (::bytes @state-atom) (::cursor @state-atom))]
       (swap! state-atom update ::cursor inc)
-      byte))
+      (-> byte                                              ;Most of the time the ranges should remain constant?
+          (min max)
+          (max min))))
   proto/BytesSource
   (get-bytes [_ number]
     (let [bytes-vec (->> (::bytes @state-atom)

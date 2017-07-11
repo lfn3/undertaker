@@ -5,10 +5,14 @@
 
 (extend-type Random
   proto/ByteSource
-  (get-byte [this]
+  (get-byte [this min max]                                  ;result will be [min, max)
     (let [output (byte-array 1)]
       (.nextBytes this output)
-      (aget output 0)))
+      (loop [val (aget output 0)]
+        (if (and (< val max)
+                 (>= val min))
+          val
+          (recur (byte (+ min (mod val max))))))))
   proto/BytesSource
   (get-bytes [this number]
     (let [output (byte-array number)]
@@ -55,8 +59,8 @@
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteSource
-  (get-byte [_]
-    (let [byte (proto/get-byte rnd)]
+  (get-byte [_ min max]
+    (let [byte (proto/get-byte rnd min max)]
       (swap! state-atom #(-> %1
                              (update ::bytes-counter inc)
                              (update ::bytes conj byte)))

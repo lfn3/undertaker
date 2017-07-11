@@ -2,21 +2,26 @@
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
-            [undertaker.source.wrapped-random])
+            [undertaker.source.wrapped-random]
+            [undertaker.util :as util])
   (:import (java.util Random)))
 
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteSource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
 
-(defn get-byte ([source] (proto/get-byte source)))
+(defn get-byte
+  ([source] (proto/get-byte source Byte/MIN_VALUE (inc Byte/MAX_VALUE)))
+  ([source min] (proto/get-byte source min (inc Byte/MAX_VALUE)))
+  ([source min max] (proto/get-byte source min max)))
 
 (s/fdef get-byte
-  :args (s/cat :source ::source)
-  :ret (s/and integer?
+  :args (s/cat :source ::source :min (s/? ::util/byte) :max (s/? ::util/byte))
+  :ret (s/and ::util/byte
               (partial >= Byte/MAX_VALUE)
               (partial <= Byte/MIN_VALUE)))
 
-(defn get-bytes ([source number] (proto/get-bytes source number)))
+(defn get-bytes
+  ([source number] (proto/get-bytes source number)))
 
 (s/fdef get-bytes
   :args (s/cat :source ::source :number integer?)

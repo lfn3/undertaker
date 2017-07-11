@@ -77,23 +77,23 @@
                                                               (constantly {::undertaker/result false})))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= [1] (-> (undertaker/shrink (byte-array [2])
+  (is (= [0 0 0 1] (-> (undertaker/shrink (byte-array [0 0 0 2])
                                     []
-                                    (fn [source] {::undertaker/result (= 0 (proto/get-byte source))}))
+                                    (fn [source] {::undertaker/result (= 0 (undertaker/int source))}))
                  (proto/get-sourced-bytes)
                  (vec)))))
 
 (deftest should-shrink-past-1
-  (is (= [0] (-> (undertaker/shrink (byte-array [2])
+  (is (= [0 0 0 0] (-> (undertaker/shrink (byte-array [0 0 0 2])
                                     []
-                                    (fn [source] {::undertaker/result (= 1 (proto/get-byte source))}))
+                                    (fn [source] {::undertaker/result (= 1 (undertaker/int source))}))
                  (proto/get-sourced-bytes)
                  (vec)))))
 
 (deftest should-shrink-to-2
-  (is (= [2] (-> (undertaker/shrink (byte-array [2])
+  (is (= [0 0 0 2] (-> (undertaker/shrink (byte-array [0 0 0 80])
                                     []
-                                    (fn [source] {::undertaker/result (let [value (proto/get-byte source)]
+                                    (fn [source] {::undertaker/result (let [value (undertaker/int source)]
                                                                         (if (not= 0 value)
                                                                           (odd? value)
                                                                           true))}))
