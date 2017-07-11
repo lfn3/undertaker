@@ -136,6 +136,25 @@
   :args (s/cat :byte-array bytes?)
   :ret boolean?)
 
+(defn byte-array-eq [arr0 arr1]
+  (if-not (= (count arr0) (count arr1))
+    false
+    (loop [arr0 arr0
+           arr1 arr1]
+      (let [first-arr0 (first arr0)
+            first-arr1 (first arr1)]
+        (cond
+          (nil? first-arr0) true                            ;Must have reached end
+          (zero? (bit-xor first-arr0 first-arr1)) (recur (rest arr0) (rest arr1))
+          :default false)))))
+
+(s/fdef byte-array-eq
+  :args (s/cat :arr1 bytes? :arr2 bytes?)
+  :ret boolean?
+  :fn (fn [{:keys [args ret]}]
+        (= ret (= (vec (:arr0 args))
+                  (vec (:arr1 args))))))
+
 (defn shrink
   ([bytes intervals fn]
    (if-not (empty? bytes)
