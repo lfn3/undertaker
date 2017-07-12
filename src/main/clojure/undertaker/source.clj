@@ -21,10 +21,14 @@
               (partial <= Byte/MIN_VALUE)))
 
 (defn get-bytes
-  ([source number] (proto/get-bytes source number)))
+  ([source number] (proto/get-bytes source number
+                                    (byte-array (repeat number Integer/MIN_VALUE))
+                                    (byte-array (repeat number (inc Integer/MAX_VALUE)))))
+  ([source number mins] (proto/get-bytes source number mins (byte-array (repeat number (inc Integer/MAX_VALUE)))))
+  ([source number mins maxes] (proto/get-bytes source number mins maxes)))
 
 (s/fdef get-bytes
-  :args (s/cat :source ::source :number integer?)
+  :args (s/cat :source ::source :number integer? :mins (s/? bytes?) :maxes (s/? bytes?))
   :ret bytes?)
 
 (defn push-interval [source interval-name] (proto/push-interval source interval-name))

@@ -104,7 +104,16 @@
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (first (::undertaker/shrunk-values (undertaker/run-prop {} #(boolean? (undertaker/int %1))))))))
+  (is (= 0 (->> #(boolean? (undertaker/int %1))
+                (undertaker/run-prop {})
+                ::undertaker/shrunk-values
+                (first)))))
+
+(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
+  (is (= 1 (->> (fn [source] (= 0 (undertaker/int source)))
+                (undertaker/run-prop {})
+                ::undertaker/shrunk-values
+                (first)))))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))

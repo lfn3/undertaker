@@ -1,5 +1,6 @@
 (ns undertaker.util
-  (:require [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s])
+  (:import (java.nio ByteBuffer)))
 
 (defn byte? [b]
   (and (integer? b)
@@ -14,3 +15,13 @@
                 (s/and integer?
                        byte?)
                 #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
+
+(defn get-bytes-from-int [^Integer i]
+  (let [out (byte-array 4)
+        wrapped (ByteBuffer/wrap out)]
+    (.putInt wrapped i)
+    out))
+
+(s/fdef get-bytes-from-int
+        :args (s/cat :i integer?)
+        :ret bytes?)

@@ -13,7 +13,7 @@
   (get-byte [this min max]))
 
 (defprotocol BytesSource
-  (get-bytes [this number]))
+  (get-bytes [this number mins maxes]))
 
 (defprotocol Interval
   (push-interval [this interval-name])

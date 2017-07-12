@@ -254,8 +254,15 @@
   ([source min] (int source min Integer/MAX_VALUE))
   ([source min max]
    (with-interval source (format-interval-name "int" min max)
-     (let [^ByteBuffer buffer (ByteBuffer/wrap (source/get-bytes source 4))]
-       (move-into-range (.getInt buffer) min max Integer/MIN_VALUE Integer/MAX_VALUE)))))
+     (let [mins (util/get-bytes-from-int min)
+           maxes (util/get-bytes-from-int max)
+           _ (prn (map identity mins))
+           _ (prn (map identity maxes))
+           ^ByteBuffer buffer (ByteBuffer/wrap (source/get-bytes source
+                                                                 4
+                                                                 mins
+                                                                 maxes))]
+       (.getInt buffer)))))
 
 (s/fdef int
   :args (s/cat :source (s/? ::source/source)
@@ -266,7 +273,8 @@
         (let [{:keys [min max]
                :or   {min Integer/MIN_VALUE
                       max Integer/MAX_VALUE}} args]
-          (and (<= min ret)
+          (and (<= min max)
+               (<= min ret)
                (>= max ret)))))
 
 (def default-max-size 64)
