@@ -17,6 +17,7 @@
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
                            (orchestra.test/unstrument)))
+
 (t/use-fixtures :each undertaker/fixture)
 
 (def this-ns *ns*)
@@ -48,7 +49,7 @@
 (deftest test-vec-gen
   (is (vector? (undertaker/vec-of undertaker/int)))
   (is (every? int? (undertaker/vec-of undertaker/int)))
-  (is (not-empty (undertaker/vec-of undertaker/int))))
+  (is (not-empty (undertaker/vec-of undertaker/*source* undertaker/byte 1))))
 
 (deftest test-run-and-report
   (t/testing "Failure"
@@ -77,43 +78,59 @@
                                                               (constantly {::undertaker/result false})))))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= [0 0 0 1] (-> (undertaker/shrink (byte-array [0 0 0 2])
-                                    []
-                                    (fn [source] {::undertaker/result (= 0 (undertaker/int source))}))
-                 (proto/get-sourced-bytes)
-                 (vec)))))
+  (is (not (zero? (-> (undertaker/shrink (byte-array [2])
+                                         []
+                                         (fn [source] {::undertaker/result (= 0 (undertaker/byte source))}))
+                      (proto/get-sourced-bytes)
+                      (first))))))
 
 (deftest should-shrink-past-1
-  (is (= [0 0 0 0] (-> (undertaker/shrink (byte-array [0 0 0 2])
-                                    []
-                                    (fn [source] {::undertaker/result (= 1 (undertaker/int source))}))
-                 (proto/get-sourced-bytes)
-                 (vec)))))
+  (is (= [0] (-> (undertaker/shrink (byte-array [2])
+                                          []
+                                          (fn [source] {::undertaker/result (= 1 (undertaker/byte source))}))
+                       (proto/get-sourced-bytes)
+                       (vec)))))
 
 (deftest should-shrink-to-2
-  (is (= [0 0 0 2] (-> (undertaker/shrink (byte-array [0 0 0 80])
-                                    []
-                                    (fn [source] {::undertaker/result (let [value (undertaker/int source)]
-                                                                        (if (not= 0 value)
-                                                                          (odd? value)
-                                                                          true))}))
-                 (proto/get-sourced-bytes)
-                 (vec)))))
+  (is (= [2] (-> (undertaker/shrink (byte-array [80])
+                                          []
+                                          (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
+                                                                              (if (not= 0 value)
+                                                                                (odd? value)
+                                                                                true))}))
+                       (proto/get-sourced-bytes)
+                       (vec)))))
 
 (deftest can-run-prop
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (->> #(boolean? (undertaker/int %1))
+  (is (= 0 (->> #(boolean? (undertaker/byte %1))
                 (undertaker/run-prop {})
                 ::undertaker/shrunk-values
                 (first)))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (is (= 1 (->> (fn [source] (= 0 (undertaker/int source)))
+  (is (= 1 (->> (fn [source] (= 0 (undertaker/byte source)))
                 (undertaker/run-prop {})
                 ::undertaker/shrunk-values
                 (first)))))
+
+(deftest byte-gen-test
+  (is (= 1 (undertaker/byte undertaker/*source* 1 1)))
+  (let [results (repeatedly 10 #(undertaker/byte undertaker/*source* -1 0))]
+    (is (not-every? (partial = 0) results))
+    (is (not-every? (partial = -1) results))
+    (is (every? #(or (= 0 %1) (= -1 %1)) results))))
+
+(undertaker/defprop byte-gen-should-emit-negative-values {}
+  (is (neg-int? (undertaker/byte undertaker/*source* -128 -1))))
+
+(undertaker/defprop byte-gen-should-emit-positive-values {}
+  (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
+
+(undertaker/defprop should-generate-bytes-over-discontinuity {}
+  (is true))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))

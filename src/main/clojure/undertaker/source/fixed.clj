@@ -22,8 +22,10 @@
 
 (defn squish-byte [b floor ceiling]
   (-> b                                                     ;Most of the time the ranges should remain constant?
+      (bit-and 0xff)
       (min ceiling)
-      (max floor)))
+      (max floor)
+      (unchecked-byte)))
 
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
@@ -32,15 +34,6 @@
     (let [byte (nth (::bytes @state-atom) (::cursor @state-atom))]
       (swap! state-atom update ::cursor inc)
       (squish-byte byte floor ceiling)))
-  proto/BytesSource
-  (get-bytes [_ number mins maxes]
-    (let [bytes (->> (::bytes @state-atom)
-                     (drop (::cursor @state-atom))
-                     (take number)
-                     (map squish-byte mins maxes)
-                     (byte-array))]
-      (swap! state-atom update ::cursor + number)
-      bytes))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

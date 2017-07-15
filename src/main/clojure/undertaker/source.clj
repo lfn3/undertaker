@@ -10,26 +10,15 @@
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
 
 (defn get-byte
-  ([source] (proto/get-byte source Byte/MIN_VALUE (inc Byte/MAX_VALUE)))
-  ([source min] (proto/get-byte source min (inc Byte/MAX_VALUE)))
-  ([source min max] (proto/get-byte source min max)))
+  ([source] (proto/get-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([source min] (proto/get-byte source min Byte/MAX_VALUE))
+  ([source min max] (proto/get-byte source (bit-and 0xff min) (bit-and 0xff max))))
 
 (s/fdef get-byte
   :args (s/cat :source ::source :min (s/? ::util/byte) :max (s/? ::util/byte))
   :ret (s/and ::util/byte
               (partial >= Byte/MAX_VALUE)
               (partial <= Byte/MIN_VALUE)))
-
-(defn get-bytes
-  ([source number] (proto/get-bytes source number
-                                    (byte-array (repeat number Integer/MIN_VALUE))
-                                    (byte-array (repeat number (inc Integer/MAX_VALUE)))))
-  ([source number mins] (proto/get-bytes source number mins (byte-array (repeat number (inc Integer/MAX_VALUE)))))
-  ([source number mins maxes] (proto/get-bytes source number mins maxes)))
-
-(s/fdef get-bytes
-  :args (s/cat :source ::source :number integer? :mins (s/? bytes?) :maxes (s/? bytes?))
-  :ret bytes?)
 
 (defn push-interval [source interval-name] (proto/push-interval source interval-name))
 (defn pop-interval [source interval-id generated-value] (proto/pop-interval source interval-id generated-value))

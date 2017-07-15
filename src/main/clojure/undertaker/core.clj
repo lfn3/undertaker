@@ -91,9 +91,9 @@
   (if (neg-int? i) (- i) i))
 
 (s/fdef move-towards-0
-        :args (s/cat :byte ::util/byte)
-        :ret ::util/byte
-        :fn (fn [{:keys [args ret]}]
+  :args (s/cat :byte ::util/byte)
+  :ret ::util/byte
+  :fn (fn [{:keys [args ret]}]
         (or (= 0 ret)
             (< (abs ret)
                (abs (:byte args))))))
@@ -151,6 +151,15 @@
         (= ret (= (vec (:arr0 args))
                   (vec (:arr1 args))))))
 
+(defn unsigned [byte]
+  (bit-and byte 0xff))
+
+(s/fdef unsigned
+  :args (s/cat :byte ::util/byte)
+  :ret (s/and integer?
+              (partial < 0)
+              (partial > 256)))
+
 ;; We only care about failed shrinks that are less complex than the current shrunk-bytes.
 (defn shrink
   ([bytes intervals fn]
@@ -182,10 +191,10 @@
     (try {::result (f source)}
          (catch Exception e
            {::result false
-            ::cause e})
+            ::cause  e})
          (catch AssertionError e
            {::result false
-            ::cause e}))))
+            ::cause  e}))))
 
 (defn run-prop-1 [source f]
   (let [f (wrap-with-catch f)
@@ -233,7 +242,7 @@
            (source/reset source)
            (recur (dec iterations-left)))
          (cond-> run-data
-                 seed (assoc ::seed seed)))))))
+           seed (assoc ::seed seed)))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
@@ -248,20 +257,41 @@
 ;; Public api
 ;; === === === === === === === ===
 
+(defn bool
+  ([] (bool *source*))
+  ([source]
+   (with-interval source (format-interval-name "bool")
+     (if (= 1 (source/get-byte source 0 2))
+       true
+       false))))
+
+(s/fdef bool
+  :args (s/cat :source (s/? ::source/source))
+  :ret boolean?)
+
+(defn byte
+  ([] (byte *source*))
+  ([source] (byte source Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([source min] (byte source min Byte/MAX_VALUE))
+  ([source min max]
+    (with-interval source (format-interval-name "byte" min max)
+      (cond
+        (= (Integer/signum min) (Integer/signum max)) (source/get-byte source min max)
+        (and (= Byte/MAX_VALUE max) (= Byte/MIN_VALUE min)) (source/get-byte source 0 -1)
+        :default (let [range (- max min)
+                       result (source/get-byte source 0 (inc range))]
+                   (+ min result))))))
+
 (defn int
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
   ([source min] (int source min Integer/MAX_VALUE))
   ([source min max]
    (with-interval source (format-interval-name "int" min max)
-     (let [mins (util/get-bytes-from-int min)
-           maxes (util/get-bytes-from-int max)
-           _ (prn (map identity mins))
-           _ (prn (map identity maxes))
-           ^ByteBuffer buffer (ByteBuffer/wrap (source/get-bytes source
-                                                                 4
-                                                                 mins
-                                                                 maxes))]
+     (let [^ByteBuffer buffer (ByteBuffer/wrap (byte-array 4))
+           mins (util/get-bytes-from-int min)
+           maxes (util/get-bytes-from-int max)]
+
        (.getInt buffer)))))
 
 (s/fdef int
@@ -285,20 +315,8 @@
   ([source elem-gen min] (vec-of source elem-gen min default-max-size))
   ([source elem-gen min max]
    (with-interval source (format-interval-name "vec" min max)
-     (let [length (int source min max)]
+     (let [length (byte source min max)]
        (vec (repeatedly length #(elem-gen source)))))))
-
-(defn bool
-  ([] (bool *source*))
-  ([source]
-   (with-interval source (format-interval-name "bool")
-     (if (= 1 (source/get-byte source 0 2))
-       true
-       false))))
-
-(s/fdef bool
-  :args (s/cat :source (s/? ::source/source))
-  :ret boolean?)
 
 (defn from
   ([coll] (from *source* coll))
@@ -341,7 +359,7 @@
   [name opts & body]
   `(t/deftest ~name
      (let [prop-result# (prop ~opts ~@body)]
-       (t/is (:result prop-result#) prop-result#))))
+       (t/is (::result prop-result#) prop-result#))))
 
 (defn fixture [f]
   (with-bindings {#'*source* (wrapped-random-source/make-source (System/nanoTime))}

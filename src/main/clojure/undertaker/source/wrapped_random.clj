@@ -4,25 +4,20 @@
   (:import (java.util Random)))
 
 (defn squish-byte [b floor ceiling]
-  (let [[floor ceiling] [(min floor ceiling) (max floor ceiling)]
+  (let [b (bit-and 0xff b)
+        [floor ceiling] [(min floor ceiling) (max floor ceiling)]
         range (- ceiling floor)]
-    (cond
-      (= ceiling floor) ceiling
-      (and (< b ceiling) (>= b floor)) b
-      :default (+ floor (mod b range)))))
+    (unchecked-byte (cond
+                      (= ceiling floor) ceiling
+                      (and (< b ceiling) (>= b floor)) b
+                      :default (+ floor (mod b range))))))
 
 (extend-type Random
   proto/ByteSource
   (get-byte [this min max]                                  ;result will be [min, max)
     (let [output (byte-array 1)]
       (.nextBytes this output)
-      (squish-byte (aget output 0) min max)))
-  proto/BytesSource
-  (get-bytes [this number mins maxes]
-    (let [output (byte-array number)]
-      (.nextBytes this output)
-      (->> (map squish-byte output mins maxes)
-           (byte-array)))))
+      (squish-byte (aget output 0) min max))))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -70,13 +65,6 @@
                              (update ::bytes-counter inc)
                              (update ::bytes conj byte)))
       byte))
-  proto/BytesSource
-  (get-bytes [_ number mins maxes]
-    (let [bytes (proto/get-bytes rnd number mins maxes)]
-      (swap! state-atom #(-> %1
-                             (update ::bytes-counter + number)
-                             (update ::bytes concat bytes)))
-      bytes))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
@@ -98,5 +86,5 @@
     (->WrappedRandomSource rnd state)))
 
 (s/fdef make-source
-        :args (s/cat :seed integer?)
-        :ret (comp (partial extends? proto/BytesSource) class))
+  :args (s/cat :seed integer?)
+  :ret (comp (partial extends? proto/ByteSource) class))

@@ -12,9 +12,6 @@
 (defprotocol ByteSource
   (get-byte [this min max]))
 
-(defprotocol BytesSource
-  (get-bytes [this number mins maxes]))
-
 (defprotocol Interval
   (push-interval [this interval-name])
   (pop-interval [this interval-id generated-value])
