@@ -21,6 +21,8 @@
 
 (t/use-fixtures :each undertaker/fixture)
 
+(def forgetful-source (source.forgetful/make-source (System/nanoTime)))
+
 (def this-ns *ns*)
 
 (def ignored #{`undertaker/from `undertaker/bool})
@@ -131,7 +133,9 @@
   (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
 
 (undertaker/defprop should-generate-bytes-over-discontinuity {}
-  (is true))
+  (let [generated (repeatedly 1000 #(undertaker/byte forgetful-source -127 127))]
+    (is (not-every? neg-int? generated))
+    (is (not-every? pos-int? generated))))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
