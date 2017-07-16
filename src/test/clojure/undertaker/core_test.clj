@@ -12,7 +12,8 @@
             [undertaker.source :as source]
             [undertaker.source.fixed :as source.fixed]
             [undertaker.source.wrapped-random :as source.wrapped]
-            [undertaker.proto :as proto]))
+            [undertaker.proto :as proto]
+            [undertaker.source.forgetful :as source.forgetful]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)

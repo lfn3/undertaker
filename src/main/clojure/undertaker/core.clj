@@ -282,6 +282,7 @@
                        result (source/get-byte source 0 (inc range))]
                    (+ min result))))))
 
+;TODO: broken as.
 (defn int
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
