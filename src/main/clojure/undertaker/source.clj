@@ -12,7 +12,7 @@
 (defn get-byte
   ([source] (proto/get-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
   ([source min] (proto/get-byte source min Byte/MAX_VALUE))
-  ([source min max] (bit-and 0xff (proto/get-byte source (bit-and 0xff min) (bit-and 0xff max)))))
+  ([source min max] (proto/get-byte source min max)))
 
 (s/fdef get-byte
   :args (s/cat :source ::source :min (s/? ::util/byte) :max (s/? ::util/byte))

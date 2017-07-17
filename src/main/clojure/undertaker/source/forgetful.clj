@@ -6,7 +6,7 @@
 (defn squish-byte [b floor ceiling]
   (let [b (bit-and 0xff b)
         [floor ceiling] [(min floor ceiling) (max floor ceiling)]
-        range (- ceiling floor)]
+        range (inc (- ceiling floor))]
     (unchecked-byte (cond
                       (= ceiling floor) ceiling
                       (and (< b ceiling) (>= b floor)) b
@@ -14,7 +14,7 @@
 
 (extend-type Random
   proto/ByteSource
-  (get-byte [this min max]                                  ;result will be [min, max)
+  (get-byte [this min max]
     (let [output (byte-array 1)]
       (.nextBytes this output)
       (squish-byte (aget output 0) min max))))

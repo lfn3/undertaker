@@ -98,7 +98,7 @@
   (is (= [2] (-> (undertaker/shrink (byte-array [80])
                                           []
                                           (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
-                                                                              (prn value)
+                                                                              ;(prn value)
                                                                               (if (= 0 value)
                                                                                 true
                                                                                 (odd? value)))}))

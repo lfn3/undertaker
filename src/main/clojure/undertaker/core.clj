@@ -173,10 +173,10 @@
              continue? (can-shrink-more? shrunk-bytes)
              result-map (fn shrunk-source)
              passed? (true? (::result result-map))]
-         (prn (map identity shrunk-bytes))
-         (prn continue?)
-         (prn passed?)
-         (prn result-map)
+         ;(prn (map identity shrunk-bytes))
+         ;(prn continue?)
+         ;(prn passed?)
+         ;(prn result-map)
          (cond
            (and continue? passed?) (recur prev-source (conj failed-shrinks shrunk-bytes))
            (and continue? (not passed?)) (recur shrunk-source [])
@@ -280,7 +280,7 @@
   ([source min max]
    (with-interval source (format-interval-name "byte" min max)
      (let [range (- max min)
-           result (source/get-byte source 0 (inc range))]
+           result (source/get-byte source 0 range)]
        (+ min result)))))
 
 ;TODO: broken as.
