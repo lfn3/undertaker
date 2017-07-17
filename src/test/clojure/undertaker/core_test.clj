@@ -80,10 +80,10 @@
                                                               []
                                                               (constantly {::undertaker/result false})))))))
 
-(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
+(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-shrinker
   (is (not (zero? (-> (undertaker/shrink (byte-array [2])
                                          []
-                                         (fn [source] {::undertaker/result (= 0 (undertaker/byte source))}))
+                                         (fn [source] {::undertaker/result (not= 0 (undertaker/byte source))}))
                       (proto/get-sourced-bytes)
                       (first))))))
 
@@ -98,9 +98,10 @@
   (is (= [2] (-> (undertaker/shrink (byte-array [80])
                                           []
                                           (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
-                                                                              (if (not= 0 value)
-                                                                                (odd? value)
-                                                                                true))}))
+                                                                              (prn value)
+                                                                              (if (= 0 value)
+                                                                                true
+                                                                                (odd? value)))}))
                        (proto/get-sourced-bytes)
                        (vec)))))
 
@@ -113,7 +114,7 @@
                 ::undertaker/shrunk-values
                 (first)))))
 
-(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
+(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-prop
   (is (= 1 (->> (fn [source] (= 0 (undertaker/byte source)))
                 (undertaker/run-prop {})
                 ::undertaker/shrunk-values
@@ -126,16 +127,16 @@
     (is (not-every? (partial = -1) results))
     (is (every? #(or (= 0 %1) (= -1 %1)) results))))
 
+(deftest should-generate-bytes-over-discontinuity
+  (let [generated (repeatedly 1000 #(undertaker/byte forgetful-source -127 127))]
+    (is (not-every? neg-int? generated))
+    (is (not-every? pos-int? generated))))
+
 (undertaker/defprop byte-gen-should-emit-negative-values {}
   (is (neg-int? (undertaker/byte undertaker/*source* -128 -1))))
 
 (undertaker/defprop byte-gen-should-emit-positive-values {}
   (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
-
-(undertaker/defprop should-generate-bytes-over-discontinuity {}
-  (let [generated (repeatedly 1000 #(undertaker/byte forgetful-source -127 127))]
-    (is (not-every? neg-int? generated))
-    (is (not-every? pos-int? generated))))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
