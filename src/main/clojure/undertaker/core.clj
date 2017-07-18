@@ -90,6 +90,10 @@
 (defn abs [i]
   (if (neg-int? i) (- i) i))
 
+(s/fdef abs
+  :args (s/cat :i integer?)
+  :ret (s/or :pos pos-int? :zero zero?))
+
 (s/fdef move-towards-0
   :args (s/cat :byte ::util/byte)
   :ret ::util/byte
@@ -279,9 +283,7 @@
   ([source min] (byte source min Byte/MAX_VALUE))
   ([source min max]
    (with-interval source (format-interval-name "byte" min max)
-     (let [range (- max min)
-           result (source/get-byte source 0 range)]
-       (+ min result)))))
+     (source/get-byte source min max))))
 
 ;TODO: broken as.
 (defn int

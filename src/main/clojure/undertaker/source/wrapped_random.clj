@@ -4,12 +4,10 @@
   (:import (java.util Random)))
 
 (defn squish-byte [b floor ceiling]
-  (let [b (bit-and 0xff b)
-        [floor ceiling] [(min floor ceiling) (max floor ceiling)]
-        range (inc (- ceiling floor))]
+  (let [range (inc (- ceiling floor))]
     (unchecked-byte (cond
                       (= ceiling floor) ceiling
-                      (and (< b ceiling) (>= b floor)) b
+                      (and (<= b ceiling) (>= b floor)) b
                       :default (+ floor (mod b range))))))
 
 (extend-type Random

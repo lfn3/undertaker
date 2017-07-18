@@ -20,12 +20,6 @@
               (partial >= Byte/MAX_VALUE)
               (partial <= Byte/MIN_VALUE)))
 
-(s/fdef get-byte
-        :args (s/cat :source ::source
-                     :min (s/? (s/and integer? (partial <= 0)))
-                     :max (s/? (s/and integer? (partial >= 256))))
-        :ret integer?)
-
 (defn push-interval [source interval-name] (proto/push-interval source interval-name))
 (defn pop-interval [source interval-id generated-value] (proto/pop-interval source interval-id generated-value))
 (defn get-intervals [source] (proto/get-intervals source))

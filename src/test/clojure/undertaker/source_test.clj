@@ -33,4 +33,9 @@
     (is (not-every? (partial = 1) values))
     (is (seq (filter zero? values)))
     (is (seq (filter (partial = -1) values)))
-    (is (seq (filter (partial = 1) values)))))
+    (is (seq (filter (partial = 1) values))))
+  (let [values (repeatedly 100000 #(source/get-byte forgetful-source -128 127))]
+    (is (->> values
+             (map (fn [val] [((set (range -128 128)) val) val]))
+             (filter (comp nil? first))
+             (empty?)))))

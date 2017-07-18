@@ -83,7 +83,7 @@
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-shrinker
   (is (not (zero? (-> (undertaker/shrink (byte-array [2])
                                          []
-                                         (fn [source] {::undertaker/result (not= 0 (undertaker/byte source))}))
+                                         (fn [source] {::undertaker/result (= 0 (undertaker/byte source))}))
                       (proto/get-sourced-bytes)
                       (first))))))
 
@@ -98,7 +98,6 @@
   (is (= [2] (-> (undertaker/shrink (byte-array [80])
                                           []
                                           (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
-                                                                              ;(prn value)
                                                                               (if (= 0 value)
                                                                                 true
                                                                                 (odd? value)))}))
@@ -115,10 +114,12 @@
                 (first)))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-prop
-  (is (= 1 (->> (fn [source] (= 0 (undertaker/byte source)))
-                (undertaker/run-prop {})
-                ::undertaker/shrunk-values
-                (first)))))
+  (is (->> (fn [source] (= 0 (undertaker/byte source)))
+           (undertaker/run-prop {})
+           ::undertaker/shrunk-values
+           (first)
+           (zero?)
+           (not))))
 
 (deftest byte-gen-test
   (is (= 1 (undertaker/byte undertaker/*source* 1 1)))

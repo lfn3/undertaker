@@ -22,10 +22,8 @@
 
 (defn squish-byte [b floor ceiling]
   (-> b                                                     ;Most of the time the ranges should remain constant?
-      (bit-and 0xff)
       (min ceiling)
-      (max floor)
-      (unchecked-byte)))
+      (max floor)))
 
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
