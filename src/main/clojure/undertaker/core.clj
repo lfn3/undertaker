@@ -285,18 +285,18 @@
    (with-interval source (format-interval-name "byte" min max)
      (source/get-byte source min max))))
 
-;TODO: broken as.
 (defn int
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
   ([source min] (int source min Integer/MAX_VALUE))
   ([source min max]
    (with-interval source (format-interval-name "int" min max)
-     (let [^ByteBuffer buffer (ByteBuffer/wrap (byte-array 4))
-           mins (util/get-bytes-from-int min)
+     (let [mins (util/get-bytes-from-int min)
            maxes (util/get-bytes-from-int max)]
-
-       (.getInt buffer)))))
+       (-> (map (partial source/get-byte source) mins maxes)
+           (byte-array)
+           (ByteBuffer/wrap)
+           (.getInt))))))
 
 (s/fdef int
   :args (s/cat :source (s/? ::source/source)

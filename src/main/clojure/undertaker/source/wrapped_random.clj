@@ -5,6 +5,8 @@
 
 (defn squish-byte [b floor ceiling]
   (let [range (inc (- ceiling floor))]
+    (prn ceiling floor)
+    (prn range)
     (unchecked-byte (+ floor (mod b range)))))
 
 (extend-type Random

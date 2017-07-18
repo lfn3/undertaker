@@ -139,5 +139,12 @@
 (undertaker/defprop byte-gen-should-emit-positive-values {}
   (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
 
+(deftest int-gen-test
+  (is (= 1 (undertaker/int undertaker/*source* 1 1))))
+
+(undertaker/defprop int-gen-should-equals-signums-from--1-to-+1 {}
+  (let [val (undertaker/int undertaker/*source* -1 1)]
+    (is (= (Integer/signum val) val))))
+
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
