@@ -5,9 +5,7 @@
 
 (defn squish-byte [b floor ceiling]
   (let [range (inc (- ceiling floor))]
-    (unchecked-byte (cond
-                      (= ceiling floor) ceiling
-                      :default (+ floor (mod b range))))))
+    (unchecked-byte (+ floor (mod b range)))))
 
 (extend-type Random
   proto/ByteSource
