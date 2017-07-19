@@ -298,15 +298,17 @@
 ;                       (nth maxes 2)))
 ;    ()))
 
-(defn generate-next-byte-for-int [source negative? all-maxes? mins maxes]
+(defn generate-next-byte-for-int [source idx negative? all-maxes? mins maxes]
   (cond
-    (and all-maxes? negative?) (source/get-byte source)     ;TODO!
+    (and all-maxes? negative?) (source/get-byte source
+                                                (min Byte/MIN_VALUE (nth mins idx))
+                                                (nth mins idx))
     all-maxes? (source/get-byte source
-                                (min 0 (nth maxes 2))       ;Max might be -ve (> 127)
-                                (if (neg? (nth maxes 2))
+                                (min 0 (nth maxes idx))       ;Max might be -ve (> 127)
+                                (if (neg? (nth maxes idx))
                                   Byte/MAX_VALUE
-                                  (nth maxes 2)))
-    (source/get-byte source)))
+                                  (nth maxes idx)))
+    :default (source/get-byte source)))
 
 (defn is-max? [val idx mins maxes]
   (let [target-array (if (neg? val)
@@ -340,7 +342,7 @@
        (aset output-arr 0 first-genned)
        (loop [idx 1
               all-maxes (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int source negative? all-maxes mins maxes)]
+         (let [next-val (generate-next-byte-for-int source idx negative? all-maxes mins maxes)]
            (aset output-arr idx next-val)
            (when (> idx (count output-arr))
              (recur (inc idx)

@@ -148,3 +148,6 @@
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
+
+(deftest next-byte-for-int-should-emit-only-number-in-range
+  (is (= 1 (undertaker/generate-next-byte-for-int forgetful-source 3 false true (byte-array [0 0 0 1]) (byte-array [0 0 0 1])))))
