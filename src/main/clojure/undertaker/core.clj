@@ -81,6 +81,7 @@
        (do ~@body))
      (check-result @result#)))
 
+;TODO should be able to use (bit-and 0xff) and dec?
 (defn move-towards-0 [byte]
   (cond
     (= 0 byte) byte
@@ -250,7 +251,7 @@
            (source/reset source)
            (recur (dec iterations-left)))
          (cond-> run-data
-           seed (assoc ::seed seed)))))))
+                 seed (assoc ::seed seed)))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
@@ -285,6 +286,46 @@
    (with-interval source (format-interval-name "byte" min max)
      (source/get-byte source min max))))
 
+;; This is here for Rich-ean posterity: how I arrived at the fn below, and commentary explaining bits.
+;(if (neg? first-genned)                              ;We know it's going to be in the negative part of the range (and that that part of the range exists)
+;  (if (= first-genned (first mins))                  ;Only generate up to the limit
+;    )
+;  (if (= first-genned (first maxes))                 ;If first genned = max then we can only generate up to the limit.
+;    (source/get-byte source
+;                     (min 0 (nth maxes 2))           ;Max might be -ve (> 127)
+;                     (if (neg? (nth maxes 2))
+;                       Byte/MAX_VALUE
+;                       (nth maxes 2)))
+;    ()))
+
+(defn generate-next-byte-for-int [source negative? all-maxes? mins maxes]
+  (cond
+    (and all-maxes? negative?) (source/get-byte source)     ;TODO!
+    all-maxes? (source/get-byte source
+                                (min 0 (nth maxes 2))       ;Max might be -ve (> 127)
+                                (if (neg? (nth maxes 2))
+                                  Byte/MAX_VALUE
+                                  (nth maxes 2)))
+    (source/get-byte source)))
+
+(defn is-max? [val idx mins maxes]
+  (let [target-array (if (neg? val)
+                       mins
+                       maxes)]
+    (= val (aget target-array idx))))
+
+;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
+;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
+;the range of allowed bytes in this case is actually 127 127 127 127 -> -128 -128 -128 -128
+;can special case max and min, but I still have to deal with larger ints.
+;i.e. 2027483647 -> 120 -40 -15 -1, -2027483647 -> -121 39 14 1, we'd want to generate 119 40 ... (1999113729),
+;so just working off the range wouldn't work.
+
+; -1 -> +1 = [-1 -1 -1 -1] -> [0 0 0 1]
+; generate first byte. If it's -1 then the rest of the options are fixed?
+; not quite - there's the zero case.
+; can split into -ve and
+
 (defn int
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
@@ -292,9 +333,19 @@
   ([source min max]
    (with-interval source (format-interval-name "int" min max)
      (let [mins (util/get-bytes-from-int min)
-           maxes (util/get-bytes-from-int max)]
-       (-> (map (partial source/get-byte source) mins maxes)
-           (byte-array)
+           maxes (util/get-bytes-from-int max)
+           first-genned (source/get-byte source (first mins) (first maxes))
+           output-arr (byte-array 4)
+           negative? (neg? first-genned)]
+       (aset output-arr 0 first-genned)
+       (loop [idx 1
+              all-maxes (is-max? first-genned 0 mins maxes)]
+         (let [next-val (generate-next-byte-for-int source negative? all-maxes mins maxes)]
+           (aset output-arr idx next-val)
+           (when (> idx (count output-arr))
+             (recur (inc idx)
+                    (and all-maxes (is-max? next-val idx mins maxes))))))
+       (-> output-arr
            (ByteBuffer/wrap)
            (.getInt))))))
 
@@ -307,7 +358,7 @@
         (let [{:keys [min max]
                :or   {min Integer/MIN_VALUE
                       max Integer/MAX_VALUE}} args]
-          (and (<= min max)
+          (and                                              ;(<= min max)
                (<= min ret)
                (>= max ret)))))
 
