@@ -304,7 +304,9 @@
                                                 (min Byte/MIN_VALUE (nth mins idx))
                                                 (nth mins idx))
     all-maxes? (source/get-byte source
-                                (min 0 (nth maxes idx))       ;Max might be -ve (> 127)
+                                (-> (nth mins idx)
+                                    (max 0)
+                                    (min (nth maxes idx)))    ;Min might be -ve (> 127)
                                 (if (neg? (nth maxes idx))
                                   Byte/MAX_VALUE
                                   (nth maxes idx)))
@@ -315,6 +317,12 @@
                        mins
                        maxes)]
     (= val (aget target-array idx))))
+
+(defn bytes->int [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getInt)))
 
 ;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
 ;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
@@ -336,20 +344,18 @@
    (with-interval source (format-interval-name "int" min max)
      (let [mins (util/get-bytes-from-int min)
            maxes (util/get-bytes-from-int max)
-           first-genned (source/get-byte source (first mins) (first maxes))
+           first-genned (generate-next-byte-for-int source 0 false true mins maxes)
            output-arr (byte-array 4)
            negative? (neg? first-genned)]
        (aset output-arr 0 first-genned)
        (loop [idx 1
-              all-maxes (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int source idx negative? all-maxes mins maxes)]
+              all-maxes? (is-max? first-genned 0 mins maxes)]
+         (let [next-val (generate-next-byte-for-int source idx negative? all-maxes? mins maxes)]
            (aset output-arr idx next-val)
-           (when (> idx (count output-arr))
+           (when (< (inc idx) (count output-arr))
              (recur (inc idx)
-                    (and all-maxes (is-max? next-val idx mins maxes))))))
-       (-> output-arr
-           (ByteBuffer/wrap)
-           (.getInt))))))
+                    (and all-maxes? (is-max? next-val idx mins maxes))))))
+       (bytes->int output-arr)))))
 
 (s/fdef int
   :args (s/cat :source (s/? ::source/source)

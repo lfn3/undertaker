@@ -150,4 +150,10 @@
   (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
 
 (deftest next-byte-for-int-should-emit-only-number-in-range
-  (is (= 1 (undertaker/generate-next-byte-for-int forgetful-source 3 false true (byte-array [0 0 0 1]) (byte-array [0 0 0 1])))))
+  (let [values (repeatedly 10 #(undertaker/generate-next-byte-for-int forgetful-source
+                                                                      0
+                                                                      false
+                                                                      true
+                                                                      (byte-array [1])
+                                                                      (byte-array [1])))]
+    (is (every? (partial = 1) values))))
