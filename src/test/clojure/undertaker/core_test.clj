@@ -140,7 +140,11 @@
   (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
 
 (deftest int-gen-test
-  (is (= 1 (undertaker/int undertaker/*source* 1 1))))
+  (is (= 1 (undertaker/int undertaker/*source* 1 1)))
+  (let [results (repeatedly 10 #(undertaker/int undertaker/*source* -1 0))]
+    (is (not-every? (partial = 0) results))
+    (is (not-every? (partial = -1) results))
+    (is (every? #(or (= 0 %1) (= -1 %1)) results))))
 
 (undertaker/defprop int-gen-should-equals-signums-from--1-to-+1 {}
   (let [val (undertaker/int undertaker/*source* -1 1)]
