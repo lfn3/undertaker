@@ -182,3 +182,7 @@
     (is (every? #(or (= -2 %1)
                      (= -1 %1))
                 values))))
+
+(undertaker/defprop from-gen-test {}
+  (let [values (set (repeatedly 3 undertaker/int))]
+    (is (values (undertaker/from values)))))
