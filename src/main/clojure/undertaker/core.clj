@@ -255,6 +255,49 @@
                :fn ::prop-fn)
   :ret ::results-map)
 
+;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
+;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
+;the range of allowed bytes in this case is actually 127 127 127 127 -> -128 -128 -128 -128
+;can special case max and min, but I still have to deal with larger ints.
+;i.e. 2027483647 -> 120 -40 -15 -1, -2027483647 -> -121 39 14 1, we'd want to generate 119 40 ... (1999113729),
+;so just working off the range wouldn't work.
+
+; -1 -> +1 = [-1 -1 -1 -1] -> [0 0 0 1]
+; generate first byte. If it's -1 then the rest of the options are fixed?
+; not quite - there's the zero case.
+; can split into -ve and
+
+;; This is here for Rich-ean posterity: how I arrived at the fn below, and commentary explaining bits.
+;(if (neg? first-genned)                              ;We know it's going to be in the negative part of the range (and that that part of the range exists)
+;  (if (= first-genned (first mins))                  ;Only generate up to the limit
+;    )
+;  (if (= first-genned (first maxes))                 ;If first genned = max then we can only generate up to the limit.
+;    (source/get-byte source
+;                     (min 0 (nth maxes 2))           ;Max might be -ve (> 127)
+;                     (if (neg? (nth maxes 2))
+;                       Byte/MAX_VALUE
+;                       (nth maxes 2)))
+;    ()))
+
+(defn generate-next-byte-for-int [source idx all-maxes? mins maxes]
+  (let [floor (nth mins idx)
+        ceiling (nth maxes idx)
+        flip? (= 1 (Integer/compareUnsigned floor ceiling))
+        [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
+    (if all-maxes? (source/get-byte source floor ceiling) (source/get-byte source))))
+
+(defn is-max? [val idx mins maxes]
+  (let [target-array (if (neg? val)
+                       mins
+                       maxes)]
+    (= val (aget target-array idx))))
+
+(defn bytes->int [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getInt)))
+
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -279,62 +322,6 @@
    (with-interval source (format-interval-name "byte" min max)
      (source/get-byte source min max))))
 
-;; This is here for Rich-ean posterity: how I arrived at the fn below, and commentary explaining bits.
-;(if (neg? first-genned)                              ;We know it's going to be in the negative part of the range (and that that part of the range exists)
-;  (if (= first-genned (first mins))                  ;Only generate up to the limit
-;    )
-;  (if (= first-genned (first maxes))                 ;If first genned = max then we can only generate up to the limit.
-;    (source/get-byte source
-;                     (min 0 (nth maxes 2))           ;Max might be -ve (> 127)
-;                     (if (neg? (nth maxes 2))
-;                       Byte/MAX_VALUE
-;                       (nth maxes 2)))
-;    ()))
-
-(defn remap-into-range [number min]
-  number)                                                   ;TODO
-
-(defn generate-next-byte-for-int [source idx negative? all-maxes? mins maxes]
-  (let [floor (nth mins idx)
-        ceiling (nth maxes idx)
-        flip? (= 1 (Integer/compareUnsigned floor ceiling))
-        [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
-        ]
-    (cond
-      ;(and all-maxes? negative?) (source/get-byte source
-      ;                                                             (-> (nth maxes idx)
-      ;                                                                 (min -1) ;-1
-      ;                                                                 (max (nth mins idx)))
-      ;                                                             (if (neg? (nth mins idx))
-      ;                                                               Byte/MIN_VALUE
-      ;                                                               (nth mins idx)))
-      all-maxes? (source/get-byte source floor ceiling)
-      :default (source/get-byte source))))
-
-(defn is-max? [val idx mins maxes]
-  (let [target-array (if (neg? val)
-                       mins
-                       maxes)]
-    (= val (aget target-array idx))))
-
-(defn bytes->int [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getInt)))
-
-;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
-;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
-;the range of allowed bytes in this case is actually 127 127 127 127 -> -128 -128 -128 -128
-;can special case max and min, but I still have to deal with larger ints.
-;i.e. 2027483647 -> 120 -40 -15 -1, -2027483647 -> -121 39 14 1, we'd want to generate 119 40 ... (1999113729),
-;so just working off the range wouldn't work.
-
-; -1 -> +1 = [-1 -1 -1 -1] -> [0 0 0 1]
-; generate first byte. If it's -1 then the rest of the options are fixed?
-; not quite - there's the zero case.
-; can split into -ve and
-
 (defn int
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
@@ -344,7 +331,6 @@
      (let [mins (util/get-bytes-from-int floor)
            maxes (util/get-bytes-from-int ceiling)
            first-genned (source/get-byte source (first mins) (first maxes))
-           ;_ (prn (map identity mins) (map identity maxes) "=>" first-genned)
            output-arr (byte-array 4)
            negative? (neg? first-genned)
            maxes (if (and negative? (not (neg? ceiling)))
@@ -356,8 +342,7 @@
        (aset output-arr 0 first-genned)
        (loop [idx 1
               all-maxes? (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int source idx negative? all-maxes? mins maxes)]
-           ;(prn idx negative? all-maxes? (map identity mins) (map identity maxes) "=>" next-val)
+         (let [next-val (generate-next-byte-for-int source idx all-maxes? mins maxes)]
            (aset output-arr idx next-val)
            (when (< (inc idx) (count output-arr))
              (recur (inc idx)

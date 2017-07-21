@@ -156,14 +156,12 @@
 (deftest next-byte-for-int-should-emit-only-number-in-range
   (let [values (repeatedly 10 #(undertaker/generate-next-byte-for-int forgetful-source
                                                                       0
-                                                                      false
                                                                       true
                                                                       (byte-array [1])
                                                                       (byte-array [1])))]
     (is (every? (partial = 1) values)))
   (let [values (repeatedly 10 #(undertaker/generate-next-byte-for-int forgetful-source
                                                                       0
-                                                                      false
                                                                       true
                                                                       (byte-array [-1])
                                                                       (byte-array [-2])))]
