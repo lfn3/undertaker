@@ -146,6 +146,20 @@
     (is (not-every? (partial = -1) results))
     (is (every? #(or (= 0 %1) (= -1 %1)) results))))
 
+(deftest should-generate-ints-over-discontinuity
+  (let [generated (repeatedly 1000 #(undertaker/int forgetful-source -10 10))]
+    (is (every? (set generated) (set (range -10 11))))))
+
+(undertaker/defprop int-gen-should-emit--ve-values {}
+  (let [val (undertaker/int forgetful-source Integer/MIN_VALUE -1)]
+    (is (neg-int? val))))
+
+(deftest can-generate-max-int
+  (is (= Integer/MAX_VALUE (undertaker/int forgetful-source Integer/MAX_VALUE Integer/MAX_VALUE))))
+
+(deftest can-generate-min-int
+  (is (= Integer/MIN_VALUE (undertaker/int forgetful-source Integer/MIN_VALUE Integer/MIN_VALUE))))
+
 (undertaker/defprop int-gen-should-equals-signums-from--1-to-+1 {}
   (let [val (undertaker/int undertaker/*source* -1 1)]
     (is (= (Integer/signum val) val))))
