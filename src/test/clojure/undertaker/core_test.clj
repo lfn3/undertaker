@@ -89,20 +89,20 @@
 
 (deftest should-shrink-past-1
   (is (= [0] (-> (undertaker/shrink (byte-array [2])
-                                          []
-                                          (fn [source] {::undertaker/result (= 1 (undertaker/byte source))}))
-                       (proto/get-sourced-bytes)
-                       (vec)))))
+                                    []
+                                    (fn [source] {::undertaker/result (= 1 (undertaker/byte source))}))
+                 (proto/get-sourced-bytes)
+                 (vec)))))
 
 (deftest should-shrink-to-2
   (is (= [2] (-> (undertaker/shrink (byte-array [80])
-                                          []
-                                          (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
-                                                                              (if (= 0 value)
-                                                                                true
-                                                                                (odd? value)))}))
-                       (proto/get-sourced-bytes)
-                       (vec)))))
+                                    []
+                                    (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
+                                                                        (if (= 0 value)
+                                                                          true
+                                                                          (odd? value)))}))
+                 (proto/get-sourced-bytes)
+                 (vec)))))
 
 (deftest can-run-prop
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
@@ -160,4 +160,13 @@
                                                                       true
                                                                       (byte-array [1])
                                                                       (byte-array [1])))]
-    (is (every? (partial = 1) values))))
+    (is (every? (partial = 1) values)))
+  (let [values (repeatedly 10 #(undertaker/generate-next-byte-for-int forgetful-source
+                                                                      0
+                                                                      false
+                                                                      true
+                                                                      (byte-array [-1])
+                                                                      (byte-array [-2])))]
+    (is (every? #(or (= -2 %1)
+                     (= -1 %1))
+                values))))

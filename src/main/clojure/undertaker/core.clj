@@ -88,20 +88,13 @@
     (neg-int? byte) (inc byte)
     (pos-int? byte) (dec byte)))
 
-(defn abs [i]
-  (if (neg-int? i) (- i) i))
-
-(s/fdef abs
-  :args (s/cat :i integer?)
-  :ret (s/or :pos pos-int? :zero zero?))
-
 (s/fdef move-towards-0
   :args (s/cat :byte ::util/byte)
   :ret ::util/byte
   :fn (fn [{:keys [args ret]}]
         (or (= 0 ret)
-            (< (abs ret)
-               (abs (:byte args))))))
+            (< (util/abs ret)
+               (util/abs (:byte args))))))
 
 (defn shrink-bytes [bytes intervals]
   (let [already-zero (vec (take-while zero? bytes))
@@ -115,7 +108,7 @@
 
 (defn sum-abs [coll]
   (->> coll
-       (map abs)
+       (map util/abs)
        (reduce +)))
 
 (s/fdef shrink-bytes
@@ -298,23 +291,25 @@
 ;                       (nth maxes 2)))
 ;    ()))
 
+(defn remap-into-range [number min]
+  number)                                                   ;TODO
+
 (defn generate-next-byte-for-int [source idx negative? all-maxes? mins maxes]
-  (cond
-    (and all-maxes? negative?) (source/get-byte source
-                                                (-> (nth maxes idx)
-                                                    (min 0)
-                                                    (max (nth mins idx)))
-                                                (if (neg? (nth mins idx))
-                                                  Byte/MIN_VALUE
-                                                  (nth mins idx)))
-    all-maxes? (source/get-byte source
-                                (-> (nth mins idx)
-                                    (max 0)
-                                    (min (nth maxes idx)))
-                                (if (neg? (nth maxes idx))
-                                  Byte/MAX_VALUE
-                                  (nth maxes idx)))
-    :default (source/get-byte source)))
+  (let [floor (nth mins idx)
+        ceiling (nth maxes idx)
+        flip? (= 1 (Integer/compareUnsigned floor ceiling))
+        [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
+        ]
+    (cond
+      ;(and all-maxes? negative?) (source/get-byte source
+      ;                                                             (-> (nth maxes idx)
+      ;                                                                 (min -1) ;-1
+      ;                                                                 (max (nth mins idx)))
+      ;                                                             (if (neg? (nth mins idx))
+      ;                                                               Byte/MIN_VALUE
+      ;                                                               (nth mins idx)))
+      all-maxes? (source/get-byte source floor ceiling)
+      :default (source/get-byte source))))
 
 (defn is-max? [val idx mins maxes]
   (let [target-array (if (neg? val)
@@ -344,18 +339,25 @@
   ([] (int *source*))
   ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
   ([source min] (int source min Integer/MAX_VALUE))
-  ([source min max]
-   (with-interval source (format-interval-name "int" min max)
-     (let [mins (util/get-bytes-from-int min)
-           maxes (util/get-bytes-from-int max)
+  ([source floor ceiling]
+   (with-interval source (format-interval-name "int" floor ceiling)
+     (let [mins (util/get-bytes-from-int floor)
+           maxes (util/get-bytes-from-int ceiling)
            first-genned (source/get-byte source (first mins) (first maxes))
+           ;_ (prn (map identity mins) (map identity maxes) "=>" first-genned)
            output-arr (byte-array 4)
-           negative? (neg? first-genned)]
+           negative? (neg? first-genned)
+           maxes (if (and negative? (not (neg? ceiling)))
+                   (util/get-bytes-from-int (min -1 ceiling))   ;If we've already generated a -ve number, then the max is actually -1
+                   maxes)
+           mins (if (and (not negative?) (neg? floor))
+                  (util/get-bytes-from-int (max 0 floor))     ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+                  mins)]
        (aset output-arr 0 first-genned)
        (loop [idx 1
               all-maxes? (is-max? first-genned 0 mins maxes)]
          (let [next-val (generate-next-byte-for-int source idx negative? all-maxes? mins maxes)]
-           (prn idx negative? all-maxes? (map identity mins) (map identity maxes) "=>" next-val)
+           ;(prn idx negative? all-maxes? (map identity mins) (map identity maxes) "=>" next-val)
            (aset output-arr idx next-val)
            (when (< (inc idx) (count output-arr))
              (recur (inc idx)
@@ -372,8 +374,8 @@
                :or   {min Integer/MIN_VALUE
                       max Integer/MAX_VALUE}} args]
           (and                                              ;(<= min max)
-               (<= min ret)
-               (>= max ret)))))
+            (<= min ret)
+            (>= max ret)))))
 
 (def default-max-size 64)
 

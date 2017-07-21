@@ -25,3 +25,10 @@
 (s/fdef get-bytes-from-int
         :args (s/cat :i integer?)
         :ret bytes?)
+
+(defn abs [i]
+  (if (neg-int? i) (- i) i))
+
+(s/fdef abs
+  :args (s/cat :i integer?)
+  :ret (s/or :pos pos-int? :zero zero?))

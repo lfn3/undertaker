@@ -1,10 +1,11 @@
 (ns undertaker.source.forgetful
   (:require [undertaker.proto :as proto]
-            [clojure.spec.alpha :as s])
+            [clojure.spec.alpha :as s]
+            [undertaker.util :as util])
   (:import (java.util Random)))
 
 (defn squish-byte [b floor ceiling]
-  (let [range (inc (- ceiling floor))]
+  (let [range (inc (util/abs (- ceiling floor)))]
     (unchecked-byte (+ floor (mod b range)))))
 
 (extend-type Random
