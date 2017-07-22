@@ -364,14 +364,25 @@
 
 (def default-max-size 64)
 
+(defn should-generate-elem? [source min max len]
+  (with-interval source (format-interval-name "should-generate-elem" min max len)
+    (let [sourced (bool source)]
+      (or (> min len)
+        (and source (> max len))))))
+
 (defn vec-of
   ([elem-gen] (vec-of *source* elem-gen))
   ([source elem-gen] (vec-of source elem-gen 0))
   ([source elem-gen min] (vec-of source elem-gen min default-max-size))
   ([source elem-gen min max]
    (with-interval source (format-interval-name "vec" min max)
-     (let [length (byte source min max)]
-       (vec (repeatedly length #(elem-gen source)))))))
+     (loop [result []]
+       (let [i (count result)]
+         (if-let [next (with-interval source (format-interval-name "chunk for vector" i)
+                           (let [gen-next? (should-generate-elem? source min max i)]
+                             (when gen-next? (elem-gen source))))]
+           (recur (conj result next))
+           result))))))
 
 (defn from
   ([coll] (from *source* coll))
