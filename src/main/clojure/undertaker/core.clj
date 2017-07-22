@@ -11,8 +11,9 @@
             [undertaker.source.fixed :as fixed-source]
             [clojure.test.check.generators :as gen]
             [undertaker.util :as util])
-  (:import (java.util Random)
-           (java.nio ByteBuffer)))
+  (:import (java.util Random Arrays)
+           (java.nio ByteBuffer)
+           (undertaker OverrunException)))
 
 (defonce seed-uniquifier* (volatile! (long 8682522807148012)))
 
@@ -158,29 +159,59 @@
               (partial < 0)
               (partial > 256)))
 
-;; We only care about failed shrinks that are less complex than the current shrunk-bytes.
+(defn wrap-with-overrun-protection [f]
+  (fn [source]
+    (try (f source)
+         (catch OverrunException e
+           {::result false
+            ::cause  e}))))
+
+(defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
+  (let [range (inc (- interval-end interval-start))
+        output (byte-array (- (count bytes) range))]
+    (System/arraycopy bytes 0 output 0 interval-start)
+    (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
+    output))
+
+(defn snip-intervals [bytes intervals fn]
+  (let [fn (wrap-with-overrun-protection fn)]
+    (loop [current-interval (first intervals)
+           remaining-intervals (rest intervals)
+           bytes bytes]
+      (let [shrunk-bytes (snip-interval bytes current-interval)
+            source (fixed-source/make-fixed-source shrunk-bytes)
+            result (fn source)
+            passed? (::result source)
+            overrun? (instance? OverrunException (::cause result))
+            continue? (seq remaining-intervals)]
+        (cond
+          (and continue? (or overrun? passed?)) (recur (first remaining-intervals)
+                                                       (rest remaining-intervals)
+                                                       bytes)
+          (and continue? (not passed?) (not overrun?)) (recur (first remaining-intervals)
+                                                              (rest remaining-intervals)
+                                                              shrunk-bytes)
+          (and (not continue?) (or overrun? passed?)) (fixed-source/make-fixed-source bytes)
+          (and (not continue?) (not overrun?) (not passed?)) (fixed-source/make-fixed-source shrunk-bytes))))))
+
 (defn shrink
   ([bytes intervals fn]
    (if-not (empty? bytes)
-     (loop [prev-source (fixed-source/make-fixed-source bytes intervals)
+     (loop [prev-source (fixed-source/make-fixed-source bytes)
             failed-shrinks []]
        (let [shrunk-bytes (shrink-bytes (if (last failed-shrinks)
                                           (last failed-shrinks)
                                           (source/get-sourced-bytes prev-source)) intervals)
-             shrunk-source (fixed-source/make-fixed-source shrunk-bytes intervals)
+             shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
              continue? (can-shrink-more? shrunk-bytes)
              result-map (fn shrunk-source)
              passed? (true? (::result result-map))]
-         ;(prn (map identity shrunk-bytes))
-         ;(prn continue?)
-         ;(prn passed?)
-         ;(prn result-map)
          (cond
            (and continue? passed?) (recur prev-source (conj failed-shrinks shrunk-bytes))
-           (and continue? (not passed?)) (recur shrunk-source [])
+           (and continue? (not passed?)) (recur shrunk-source []) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
            passed? prev-source                              ;If the test hasn't failed, return last failing result.
            (not passed?) shrunk-source)))
-     (fixed-source/make-fixed-source bytes intervals))))
+     (fixed-source/make-fixed-source bytes))))
 
 (s/fdef shrink
   :args (s/cat :bytes bytes?
@@ -191,10 +222,7 @@
 (defn wrap-with-catch [f]
   (fn [source]
     (try {::result (f source)}
-         (catch Exception e
-           {::result false
-            ::cause  e})
-         (catch AssertionError e
+         (catch Throwable e
            {::result false
             ::cause  e}))))
 
@@ -244,7 +272,7 @@
            (source/reset source)
            (recur (dec iterations-left)))
          (cond-> run-data
-                 seed (assoc ::seed seed)))))))
+           seed (assoc ::seed seed)))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
@@ -334,10 +362,10 @@
            output-arr (byte-array 4)
            negative? (neg? first-genned)
            maxes (if (and negative? (not (neg? ceiling)))
-                   (util/get-bytes-from-int (min -1 ceiling))   ;If we've already generated a -ve number, then the max is actually -1
+                   (util/get-bytes-from-int (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
                    maxes)
            mins (if (and (not negative?) (neg? floor))
-                  (util/get-bytes-from-int (max 0 floor))     ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+                  (util/get-bytes-from-int (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
                   mins)]
        (aset output-arr 0 first-genned)
        (loop [idx 1
@@ -368,7 +396,7 @@
   (with-interval source (format-interval-name "should-generate-elem" min max len)
     (let [sourced (bool source)]
       (or (> min len)
-        (and source (> max len))))))
+          (and source (> max len))))))
 
 (defn vec-of
   ([elem-gen] (vec-of *source* elem-gen))
@@ -379,8 +407,8 @@
      (loop [result []]
        (let [i (count result)]
          (if-let [next (with-interval source (format-interval-name "chunk for vector" i)
-                           (let [gen-next? (should-generate-elem? source min max i)]
-                             (when gen-next? (elem-gen source))))]
+                         (let [gen-next? (should-generate-elem? source min max i)]
+                           (when gen-next? (elem-gen source))))]
            (recur (conj result next))
            result))))))
 

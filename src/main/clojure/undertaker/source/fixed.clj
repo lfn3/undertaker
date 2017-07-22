@@ -1,5 +1,6 @@
 (ns undertaker.source.fixed
-  (:require [undertaker.proto :as proto]))
+  (:require [undertaker.proto :as proto])
+  (:import (undertaker OverrunException)))
 
 (defn- push-interval* [state interval-name]
   (let [id (inc (::interval-id-counter state))]
@@ -25,11 +26,16 @@
       (min ceiling)
       (max floor)))
 
+(defn byte-or-throw-overrun [state]
+  (try (nth (::bytes state) (::cursor state))
+       (catch IndexOutOfBoundsException e
+         (throw (OverrunException. e)))))
+
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
   proto/ByteSource
   (get-byte [_ floor ceiling]
-    (let [byte (nth (::bytes @state-atom) (::cursor @state-atom))]
+    (let [byte (byte-or-throw-overrun @state-atom)]
       (swap! state-atom update ::cursor inc)
       (squish-byte byte floor ceiling)))
   proto/Interval
@@ -47,11 +53,10 @@
   (reset [_]
     (swap! state-atom update ::cursor (constantly 0))))
 
-(defn make-fixed-source [bytes intervals]
+(defn make-fixed-source [bytes]
   (let [state (atom {::cursor              0
                      ::interval-id-counter 0
                      ::bytes               bytes
                      ::interval-stack      []
-                     ::completed-intervals []
-                     ::expected-intervals  intervals})]
+                     ::completed-intervals []})]
     (->FixedSource state)))

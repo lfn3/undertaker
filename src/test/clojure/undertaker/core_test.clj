@@ -186,3 +186,7 @@
 (undertaker/defprop from-gen-test {}
   (let [values (set (repeatedly 3 undertaker/int))]
     (is (values (undertaker/from values)))))
+
+(deftest snip-interval-test
+  (is (= [0 0] (vec (undertaker/snip-interval (byte-array [0 1 1 0]) {::proto/interval-start 1
+                                                                      ::proto/interval-end   2})))))
