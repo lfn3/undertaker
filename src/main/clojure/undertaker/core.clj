@@ -349,7 +349,7 @@
   ([] (bool *source*))
   ([source]
    (with-interval source (format-interval-name "bool")
-     (if (= 1 (source/get-byte source 0 2))
+     (if (= 1 (source/get-byte source 0 1))
        true
        false))))
 
