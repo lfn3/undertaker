@@ -239,12 +239,16 @@
 
 (defn run-prop-1 [source f]
   (let [f (wrap-with-catch f)
+        top-level-intervals (->> (source/get-intervals source)
+                                 (filter (comp nil? ::proto/interval-parent-id)))
         result-map (-> (f source)
-                       (assoc ::generated-values (map ::proto/generated-value (source/get-intervals source))))]
+                       (assoc ::generated-values (map ::proto/generated-value top-level-intervals)))]
     (if (::result result-map)
       result-map
       (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
-        (assoc result-map ::shrunk-values (map ::proto/generated-value (source/get-intervals shrunk-source)))))))
+        (assoc result-map ::shrunk-values (->> (source/get-intervals shrunk-source)
+                                               (filter (comp nil? ::proto/interval-parent-id))
+                                               (map ::proto/generated-value)))))))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
