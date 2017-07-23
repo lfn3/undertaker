@@ -188,17 +188,19 @@
     (is (values (undertaker/from values)))))
 
 (deftest snip-interval-test
-  (is (= [0 0] (vec (undertaker/snip-interval (byte-array [0 1 1 0]) 1 3)))))
+  (is (= [0 0] (vec (undertaker/snip-interval (byte-array [0 1 1 0]) {::proto/interval-start 1
+                                                                      ::proto/interval-end   3})))))
 
 (deftest snip-intervals-should-handle-overrun-exceptions
   (is (= [0] (-> (byte-array [0])
-                 (undertaker/snip-intervals
-                   [[nil nil 0 0 nil]]
-                   (fn [source] (undertaker/int source)))
+                 (undertaker/snip-intervals [{::proto/interval-start 0
+                                              ::proto/interval-end   0}]
+                                            (fn [source] (undertaker/int source)))
                  (vec)))))
 
 (deftest snip-intervals-handles-single-byte-failure
   (is (= [-19] (-> (byte-array [-19])
-                   (undertaker/snip-intervals [[nil nil 0 1 nil]]
+                   (undertaker/snip-intervals [{::proto/interval-start 0
+                                                ::proto/interval-end 1}]
                                               #(boolean? (undertaker/byte %1)))
                    (vec)))))

@@ -165,7 +165,7 @@
            {::result false
             ::cause  e}))))
 
-(defn snip-interval [bytes interval-start interval-end]
+(defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
         output (byte-array (- (count bytes) range))]
     (System/arraycopy bytes 0 output 0 interval-start)
@@ -179,7 +179,7 @@
              intervals intervals
              bytes bytes]
         (let [interval (nth intervals index)
-              shrunk-bytes (snip-interval bytes (nth interval 2) (nth interval 3))
+              shrunk-bytes (snip-interval bytes interval)
               source (fixed-source/make-fixed-source shrunk-bytes)
               result (fn source)
               passed? (::result result)
@@ -240,11 +240,11 @@
 (defn run-prop-1 [source f]
   (let [f (wrap-with-catch f)
         result-map (-> (f source)
-                       (assoc ::generated-values (map last (source/get-intervals source))))]
+                       (assoc ::generated-values (map ::proto/generated-value (source/get-intervals source))))]
     (if (::result result-map)
       result-map
       (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
-        (assoc result-map ::shrunk-values (map last (source/get-intervals shrunk-source)))))))
+        (assoc result-map ::shrunk-values (map ::proto/generated-value (source/get-intervals shrunk-source)))))))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)

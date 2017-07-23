@@ -2,13 +2,15 @@
   (:require [clojure.spec.alpha :as s]))
 
 (s/def ::interval-name string?)
+(s/def ::interval-parent-id (s/or :nil nil? :id int?))
 (s/def ::interval-id int?)
 (s/def ::interval-start int?)
 (s/def ::interval-end int?)
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
-;TODO: change these to maps rather than tuples.
-(s/def ::wip-interval (s/tuple ::interval-name ::interval-id ::interval-start))
-(s/def ::interval (s/tuple ::interval-name ::interval-id ::interval-start ::interval-end ::generated-value))
+(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start]
+                              :opt [::interval-parent-id]))
+(s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value]
+                          :opt [::interval-parent-id]))
 
 (defprotocol ByteSource
   (get-byte [this min max]))

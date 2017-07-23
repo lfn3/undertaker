@@ -6,11 +6,17 @@
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
-        (update ::interval-stack conj [interval-name id (get state ::cursor)]))))
+        (update ::interval-stack conj {::proto/interval-name      interval-name
+                                       ::proto/interval-id        id
+                                       ::proto/interval-start     (get state ::cursor)
+                                       ::proto/interval-parent-id (-> state
+                                                                      ::interval-stack
+                                                                      (last)
+                                                                      ::proto/interval-id)}))))
 
 (defn- pop-interval* [state interval-id generated-value]
   (let [interval-to-update (last (::interval-stack state))]
-    (when (not= (nth interval-to-update 1) interval-id)
+    (when (not= (::proto/interval-id interval-to-update) interval-id)
       (throw (ex-info "Popped interval without matching id"
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
@@ -18,8 +24,8 @@
     (-> state
         (update ::interval-stack pop)
         (update ::completed-intervals conj (-> interval-to-update
-                                               (conj (get state ::cursor))
-                                               (conj generated-value))))))
+                                               (assoc ::proto/interval-end (get state ::cursor))
+                                               (assoc ::proto/generated-value generated-value))))))
 
 (defn squish-byte [b floor ceiling]
   (-> b                                                     ;Most of the time the ranges should remain constant?
