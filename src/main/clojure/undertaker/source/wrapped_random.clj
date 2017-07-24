@@ -80,11 +80,24 @@
         ::bytes
         (byte-array)))
   (reset [_]
-    (swap! state-atom update ::bytes empty)))
+    (reset! state-atom initial-state)))
+
+(defn state-validator [state]
+  (when-not (s/valid? ::source-state state)
+    (throw (ex-info "Did not match spec" {:explained (s/explain ::source-state state)})))
+  (when-not (= (::bytes-counter state) (count (::bytes state)))
+    (throw (ex-info "Bytes counter out of step with array" {:counter (::bytes-counter state)
+                                                            :bytes (vec (::bytes state))})))
+  (->> state
+       (map ::completed-intervals)
+       (filter #(>= (::bytes-counter state) (::proto/interval-start %1))))
+  (->> state
+       (map ::completed-intervals)
+       (filter #(>= (::bytes-counter state) (::proto/interval-end %1)))))
 
 (defn make-source [seed]
   (let [rnd (Random. seed)
-        state (atom initial-state :validator (partial s/valid? ::source-state))]
+        state (atom initial-state :validator state-validator)]
     (->WrappedRandomSource rnd state)))
 
 (s/fdef make-source

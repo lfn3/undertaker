@@ -37,6 +37,13 @@
        (catch IndexOutOfBoundsException e
          (throw (OverrunException. e)))))
 
+(defn reset-state [state]
+  (-> state
+      (assoc ::cursor 0)
+      (assoc ::completed-intervals [])
+      (assoc ::interval-stack [])
+      (assoc ::interval-id-counter 0)))
+
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
   proto/ByteSource
@@ -57,7 +64,7 @@
         ::bytes
         (byte-array)))
   (reset [_]
-    (swap! state-atom update ::cursor (constantly 0))))
+    (swap! state-atom reset-state)))
 
 (defn make-fixed-source [bytes]
   (let [state (atom {::cursor              0
