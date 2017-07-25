@@ -88,7 +88,7 @@
                       (first))))))
 
 (deftest should-shrink-past-1
-  (is (= [0] (-> (undertaker/shrink (byte-array [2])
+  (is (= [0] (-> (undertaker/shrink (byte-array [5])
                                     []
                                     (fn [source] {::undertaker/result (= 1 (undertaker/byte source))}))
                  (proto/get-sourced-bytes)
@@ -199,7 +199,7 @@
                  (vec)))))
 
 (deftest snip-intervals-handles-single-byte-failure
-  (is (= [-19] (-> (byte-array [-19])
+  (is (= [-19] (-> (byte-array [1 -19])
                    (undertaker/snip-intervals [{::proto/interval-start 0
                                                 ::proto/interval-end   1}]
                                               #(boolean? (undertaker/byte %1)))
@@ -210,7 +210,7 @@
                                    (every? even? values)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
-                   ::undertaker/shrunk-values
-                   (first))]
+                           ::undertaker/shrunk-values
+                           (first))]
     (is (or (= [1] shrunk-vector)
-            (= [-1] shrunk-vector)))))
+            (= [-1] shrunk-vector)) result)))

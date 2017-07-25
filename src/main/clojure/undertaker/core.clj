@@ -198,20 +198,19 @@
 
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
-    (loop [prev-source (fixed-source/make-fixed-source bytes)
+    (loop [last-failure-bytes bytes
            failed-shrinks []]
-      (let [prev-bytes (source/get-sourced-bytes prev-source)
-            shrunk-bytes (shrink-bytes (if (last failed-shrinks)
+      (let [shrunk-bytes (shrink-bytes (if (last failed-shrinks)
                                          (last failed-shrinks)
-                                         prev-bytes))
+                                         last-failure-bytes))
             shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
             continue? (can-shrink-more? shrunk-bytes)
             result-map (fn shrunk-source)
             passed? (true? (::result result-map))]
         (cond
-          (and continue? passed?) (recur prev-source (conj failed-shrinks shrunk-bytes))
-          (and continue? (not passed?)) (recur shrunk-source []) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
-          passed? prev-bytes                                ;If the test hasn't failed, return last failing result.
+          (and continue? passed?) (recur last-failure-bytes (conj failed-shrinks shrunk-bytes))
+          (and continue? (not passed?)) (recur shrunk-bytes []) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
+          passed? last-failure-bytes                                ;If the test hasn't failed, return last failing result.
           (not passed?) shrunk-bytes)))
     bytes))
 
@@ -408,6 +407,7 @@
 
 (def default-max-size 64)
 
+;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [source min max len]
   (with-interval source (format-interval-name "should-generate-elem" min max len)
     (= 1 (cond
