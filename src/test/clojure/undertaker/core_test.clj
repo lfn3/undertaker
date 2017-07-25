@@ -67,13 +67,13 @@
                   (is true))))))
 
 (deftest should-shrink-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes (byte-array [1]))))))
+  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [1]) 0)))))
 
 (deftest should-shrink-negative-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes (byte-array [-1]))))))
+  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [-1]) 0)))))
 
 (deftest should-not-further-shrink-0
-  (is (= 0 (first (undertaker/shrink-bytes (byte-array [0]))))))
+  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [0]) 0)))))
 
 (deftest should-shrink-two-steps
   (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
@@ -195,14 +195,14 @@
   (is (= [0] (-> (byte-array [0])
                  (undertaker/snip-intervals [{::proto/interval-start 0
                                               ::proto/interval-end   0}]
-                                            (fn [source] (undertaker/int source)))
+                                            (undertaker/wrap-with-catch (fn [source] (undertaker/int source))))
                  (vec)))))
 
 (deftest snip-intervals-handles-single-byte-failure
   (is (= [-19] (-> (byte-array [1 -19])
                    (undertaker/snip-intervals [{::proto/interval-start 0
                                                 ::proto/interval-end   1}]
-                                              #(boolean? (undertaker/byte %1)))
+                                              (undertaker/wrap-with-catch #(boolean? (undertaker/byte %1))))
                    (vec)))))
 
 (deftest should-shrink-middle-byte

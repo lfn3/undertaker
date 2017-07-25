@@ -97,15 +97,16 @@
             (< (util/abs ret)
                (util/abs (:byte args))))))
 
-(defn shrink-bytes [bytes]
-  (let [already-zero (vec (take-while zero? bytes))
-        not-yet-zero (drop-while zero? bytes)
-        target (first not-yet-zero)]
-    (byte-array
-      (into (if target
-              (conj already-zero (move-towards-0 target))
-              already-zero)
-            (rest not-yet-zero)))))
+(defn shrink-bytes [shrink-target last-failed-case index]
+  (let [shrink-target (or shrink-target last-failed-case)]  ;shrink-target might be nil, but last failed case should never be.
+    (let [already-zero (vec (take-while zero? shrink-target))
+          not-yet-zero (drop-while zero? shrink-target)
+          target (first not-yet-zero)]
+      (byte-array
+        (into (if target
+                (conj already-zero (move-towards-0 target))
+                already-zero)
+              (rest not-yet-zero))))))
 
 (defn sum-abs [coll]
   (->> coll
@@ -113,10 +114,10 @@
        (reduce +)))
 
 (s/fdef shrink-bytes
-  :args (s/cat :byte-array bytes?)
+  :args (s/cat :shrink-target (s/nilable bytes?) :last-failed-case bytes? :index int?)
   :ret bytes?
   :fn (fn [{:keys [args ret]}]
-        (let [arg-bytes (:byte-array args)]
+        (let [arg-bytes (or (:shrink-target args) (:last-failed-case args))]
           (and (= (count arg-bytes)
                   (count ret))
                (>= (sum-abs arg-bytes)
@@ -149,22 +150,6 @@
         (= ret (= (vec (:arr0 args))
                   (vec (:arr1 args))))))
 
-(defn unsigned [byte]
-  (bit-and byte 0xff))
-
-(s/fdef unsigned
-  :args (s/cat :byte ::util/byte)
-  :ret (s/and integer?
-              (partial < 0)
-              (partial > 256)))
-
-(defn wrap-with-overrun-protection [f]
-  (fn [source]
-    (try (f source)
-         (catch OverrunException e
-           {::result false
-            ::cause  e}))))
-
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
         output (byte-array (- (count bytes) range))]
@@ -173,43 +158,41 @@
     output))
 
 (defn snip-intervals [bytes intervals fn]
-  (let [fn (wrap-with-overrun-protection fn)]
-    (if (seq intervals)
-      (loop [index 0
-             intervals intervals
-             bytes bytes]
-        (let [interval (nth intervals index)
-              shrunk-bytes (snip-interval bytes interval)
-              source (fixed-source/make-fixed-source shrunk-bytes)
-              result (fn source)
-              passed? (::result result)
-              overrun? (instance? OverrunException (::cause result))
-              continue? (< (inc index) (count intervals))]
-          (cond
-            (and continue? (or overrun? passed?)) (recur (inc index)
-                                                         intervals
-                                                         bytes)
-            (and continue? (not passed?) (not overrun?)) (recur index ;We've moved the end of the intervals array closer by removing one.
-                                                                (source/get-intervals source)
-                                                                shrunk-bytes)
-            (and (not continue?) (or overrun? passed?)) bytes
-            (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes)))
-      bytes)))
+  (if (seq intervals)
+    (loop [index 0
+           intervals intervals
+           bytes bytes]
+      (let [interval (nth intervals index)
+            shrunk-bytes (snip-interval bytes interval)
+            source (fixed-source/make-fixed-source shrunk-bytes)
+            result (fn source)
+            passed? (::result result)
+            overrun? (instance? OverrunException (::cause result))
+            continue? (< (inc index) (count intervals))]
+        (cond
+          (and continue? (or overrun? passed?)) (recur (inc index)
+                                                       intervals
+                                                       bytes)
+          (and continue? (not passed?) (not overrun?)) (recur index ;We've moved the end of the intervals array closer by removing one.
+                                                              (source/get-intervals source)
+                                                              shrunk-bytes)
+          (and (not continue?) (or overrun? passed?)) bytes
+          (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes)))
+    bytes))
 
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
     (loop [last-failure-bytes bytes
-           failed-shrinks []]
-      (let [shrunk-bytes (shrink-bytes (if (last failed-shrinks)
-                                         (last failed-shrinks)
-                                         last-failure-bytes))
+           failed-shrinks []
+           working-on 0]
+      (let [shrunk-bytes (shrink-bytes (last failed-shrinks) last-failure-bytes working-on)
             shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
             continue? (can-shrink-more? shrunk-bytes)
             result-map (fn shrunk-source)
             passed? (true? (::result result-map))]
         (cond
-          (and continue? passed?) (recur last-failure-bytes (conj failed-shrinks shrunk-bytes))
-          (and continue? (not passed?)) (recur shrunk-bytes []) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
+          (and continue? passed?) (recur last-failure-bytes (conj failed-shrinks shrunk-bytes) working-on)
+          (and continue? (not passed?)) (recur shrunk-bytes [] working-on) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
           passed? last-failure-bytes                                ;If the test hasn't failed, return last failing result.
           (not passed?) shrunk-bytes)))
     bytes))
