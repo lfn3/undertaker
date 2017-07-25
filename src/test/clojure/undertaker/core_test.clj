@@ -205,6 +205,16 @@
                                               #(boolean? (undertaker/byte %1)))
                    (vec)))))
 
+(deftest should-shrink-middle-byte
+  (let [result (->> #(let [bool-1 (undertaker/bool %1)
+                           a-number (undertaker/int %1)
+                           bool-2 (undertaker/bool %1)]
+                       (not bool-1))
+                    (undertaker/run-prop {}))]
+    (is (= [true 0 true] (-> result
+                             ::undertaker/shrunk-values
+                             (vec))))))
+
 (deftest should-shrink-vec-to-smallest-failing-case
   (let [result (->> (fn [source] (let [values (undertaker/vec-of source undertaker/byte)]
                                    (every? even? values)))
