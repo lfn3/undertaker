@@ -201,6 +201,16 @@
 (deftest snip-intervals-handles-single-byte-failure
   (is (= [-19] (-> (byte-array [-19])
                    (undertaker/snip-intervals [{::proto/interval-start 0
-                                                ::proto/interval-end 1}]
+                                                ::proto/interval-end   1}]
                                               #(boolean? (undertaker/byte %1)))
                    (vec)))))
+
+(deftest should-shrink-vec-to-smallest-failing-case
+  (let [result (->> (fn [source] (let [values (undertaker/vec-of source undertaker/byte)]
+                                   (every? even? values)))
+                    (undertaker/run-prop {}))
+        shrunk-vector (->> result
+                   ::undertaker/shrunk-values
+                   (first))]
+    (is (or (= [1] shrunk-vector)
+            (= [-1] shrunk-vector)))))

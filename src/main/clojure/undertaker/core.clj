@@ -239,10 +239,11 @@
 
 (defn run-prop-1 [source f]
   (let [f (wrap-with-catch f)
-        top-level-intervals (->> (source/get-intervals source)
-                                 (filter (comp nil? ::proto/interval-parent-id)))
         result-map (-> (f source)
-                       (assoc ::generated-values (map ::proto/generated-value top-level-intervals)))]
+                       (assoc ::generated-values (map ::proto/generated-value
+                                                      (->> source
+                                                           (source/get-intervals)
+                                                           (filter (comp nil? ::proto/interval-parent-id))))))]
     (if (::result result-map)
       result-map
       (let [shrunk-source (shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
@@ -409,9 +410,10 @@
 
 (defn should-generate-elem? [source min max len]
   (with-interval source (format-interval-name "should-generate-elem" min max len)
-    (let [sourced (bool source)]
-      (or (> min len)
-          (and source (> max len))))))
+    (= 1 (cond
+           (> min len) (source/get-byte source 1 1)
+           (< max (inc len)) (source/get-byte source 0 0)
+           :default (source/get-byte source 0 1)))))
 
 (defn vec-of
   ([elem-gen] (vec-of *source* elem-gen))
@@ -422,8 +424,8 @@
      (loop [result []]
        (let [i (count result)]
          (if-let [next (with-interval source (format-interval-name "chunk for vector" i)
-                         (let [gen-next? (should-generate-elem? source min max i)]
-                           (when gen-next? (elem-gen source))))]
+                         (when-let [gen-next? (should-generate-elem? source min max i)]
+                           (elem-gen source)))]
            (recur (conj result next))
            result))))))
 
