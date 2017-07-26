@@ -66,15 +66,6 @@
                   (is false)
                   (is true))))))
 
-(deftest should-shrink-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [1]) 0)))))
-
-(deftest should-shrink-negative-1-to-0
-  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [-1]) 0)))))
-
-(deftest should-not-further-shrink-0
-  (is (= 0 (first (undertaker/shrink-bytes nil (byte-array [0]) 0)))))
-
 (deftest should-shrink-two-steps
   (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
                                                               []

@@ -97,59 +97,6 @@
             (< (util/abs ret)
                (util/abs (:byte args))))))
 
-(defn shrink-bytes [shrink-target last-failed-case index]
-  (let [shrink-target (or shrink-target last-failed-case)]  ;shrink-target might be nil, but last failed case should never be.
-    (let [already-zero (vec (take-while zero? shrink-target))
-          not-yet-zero (drop-while zero? shrink-target)
-          target (first not-yet-zero)]
-      (byte-array
-        (into (if target
-                (conj already-zero (move-towards-0 target))
-                already-zero)
-              (rest not-yet-zero))))))
-
-(defn sum-abs [coll]
-  (->> coll
-       (map util/abs)
-       (reduce +)))
-
-(s/fdef shrink-bytes
-  :args (s/cat :shrink-target (s/nilable bytes?) :last-failed-case bytes? :index int?)
-  :ret bytes?
-  :fn (fn [{:keys [args ret]}]
-        (let [arg-bytes (or (:shrink-target args) (:last-failed-case args))]
-          (and (= (count arg-bytes)
-                  (count ret))
-               (>= (sum-abs arg-bytes)
-                   (sum-abs ret))))))
-
-;TODO feed this intervals, have it make decisions based on those.
-(defn can-shrink-more? [bytes]
-  (not-every? zero? bytes))
-
-(s/fdef can-shrink-more?
-  :args (s/cat :byte-array bytes?)
-  :ret boolean?)
-
-(defn byte-array-eq [arr0 arr1]
-  (if-not (= (count arr0) (count arr1))
-    false
-    (loop [arr0 arr0
-           arr1 arr1]
-      (let [first-arr0 (first arr0)
-            first-arr1 (first arr1)]
-        (cond
-          (nil? first-arr0) true                            ;Must have reached end
-          (zero? (bit-xor first-arr0 first-arr1)) (recur (rest arr0) (rest arr1))
-          :default false)))))
-
-(s/fdef byte-array-eq
-  :args (s/cat :arr1 bytes? :arr2 bytes?)
-  :ret boolean?
-  :fn (fn [{:keys [args ret]}]
-        (= ret (= (vec (:arr0 args))
-                  (vec (:arr1 args))))))
-
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
         output (byte-array (- (count bytes) range))]
@@ -186,11 +133,34 @@
    (aset-byte bytes idx (move-towards-0 (aget bytes idx)))
    bytes))
 
+(defn sum-abs [coll]
+  (->> coll
+       (map util/abs)
+       (reduce +)))
+
+(s/fdef shrink-at!
+  :args (s/with-gen (s/cat :bytes (s/and bytes?
+                                         not-empty)
+                           :index integer?)
+                    #(gen/bind (s/gen (s/and bytes?
+                                             not-empty))
+                               (fn [byte-arr]
+                                 (gen/tuple (gen/return byte-arr)
+                                            (gen/choose 0 (dec (count byte-arr)))))))
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [bytes index]} args]
+          (and (< index (count bytes))
+               (= (count bytes)
+                  (count ret))
+               (>= (sum-abs bytes)
+                   (sum-abs ret))))))
+
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
     (loop [last-failure-bytes bytes
            working-on 0
-           shrunk-bytes (-> (byte-array bytes)     ;;clone it so we can mutate it safely.
+           shrunk-bytes (-> (byte-array bytes)              ;;clone it so we can mutate it safely.
                             (shrink-at! working-on))]
       (let [shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
             keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
@@ -281,7 +251,7 @@
            (source/reset source)
            (recur (dec iterations-left)))
          (cond-> run-data
-           seed (assoc ::seed seed)))))))
+                 seed (assoc ::seed seed)))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
