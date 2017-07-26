@@ -183,16 +183,16 @@
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
     (loop [last-failure-bytes bytes
-           failed-shrinks []
+           last-attempted-shrink bytes
            working-on 0]
-      (let [shrunk-bytes (shrink-bytes (last failed-shrinks) last-failure-bytes working-on)
+      (let [shrunk-bytes (shrink-bytes last-attempted-shrink last-failure-bytes working-on)
             shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
             continue? (can-shrink-more? shrunk-bytes)
             result-map (fn shrunk-source)
             passed? (true? (::result result-map))]
         (cond
-          (and continue? passed?) (recur last-failure-bytes (conj failed-shrinks shrunk-bytes) working-on)
-          (and continue? (not passed?)) (recur shrunk-bytes [] working-on) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
+          (and continue? passed?) (recur last-failure-bytes shrunk-bytes working-on)
+          (and continue? (not passed?)) (recur shrunk-bytes shrunk-bytes working-on) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
           passed? last-failure-bytes                                ;If the test hasn't failed, return last failing result.
           (not passed?) shrunk-bytes)))
     bytes))
