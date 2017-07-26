@@ -202,7 +202,7 @@
                            bool-2 (undertaker/bool %1)]
                        (not bool-1))
                     (undertaker/run-prop {}))]
-    (is (= [true 0 true] (-> result
+    (is (= [true 0 false] (-> result
                              ::undertaker/shrunk-values
                              (vec))))))
 

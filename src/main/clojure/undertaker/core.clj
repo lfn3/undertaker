@@ -166,15 +166,17 @@
             keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
             result-map (fn shrunk-source)
             passed? (true? (::result result-map))
-            working-on (if keep-trying-current-byte?
+            work-on-next (if keep-trying-current-byte?
                          working-on
                          (inc working-on))
-            continue? (< working-on (count shrunk-bytes))
+            continue? (< work-on-next (count shrunk-bytes))
             last-failure-bytes (if passed?
                                  last-failure-bytes
-                                 (byte-array shrunk-bytes))] ;Defensive clone
+                                 (byte-array shrunk-bytes))]  ;Defensive clone
+        (when (and (not keep-trying-current-byte?) continue?) ;If we're about to move on, put the last failing byte back in.
+          (aset-byte shrunk-bytes working-on (aget last-failure-bytes working-on)))
         (if continue?
-          (recur last-failure-bytes working-on (shrink-at! shrunk-bytes working-on))
+          (recur last-failure-bytes work-on-next (shrink-at! shrunk-bytes work-on-next))
           last-failure-bytes)))
     bytes))
 
