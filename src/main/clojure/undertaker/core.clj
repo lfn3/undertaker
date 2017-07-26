@@ -180,21 +180,32 @@
           (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes)))
     bytes))
 
+(defn shrink-at!
+  "MUTATES!"
+  ([bytes idx]
+   (aset-byte bytes idx (move-towards-0 (aget bytes idx)))
+   bytes))
+
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
     (loop [last-failure-bytes bytes
-           last-attempted-shrink bytes
-           working-on 0]
-      (let [shrunk-bytes (shrink-bytes last-attempted-shrink last-failure-bytes working-on)
-            shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
-            continue? (can-shrink-more? shrunk-bytes)
+           working-on 0
+           shrunk-bytes (-> (byte-array bytes)     ;;clone it so we can mutate it safely.
+                            (shrink-at! working-on))]
+      (let [shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
+            keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
             result-map (fn shrunk-source)
-            passed? (true? (::result result-map))]
-        (cond
-          (and continue? passed?) (recur last-failure-bytes shrunk-bytes working-on)
-          (and continue? (not passed?)) (recur shrunk-bytes shrunk-bytes working-on) ; We only care about failed shrinks that are less complex than the current shrunk-bytes.
-          passed? last-failure-bytes                                ;If the test hasn't failed, return last failing result.
-          (not passed?) shrunk-bytes)))
+            passed? (true? (::result result-map))
+            working-on (if keep-trying-current-byte?
+                         working-on
+                         (inc working-on))
+            continue? (< working-on (count shrunk-bytes))
+            last-failure-bytes (if passed?
+                                 last-failure-bytes
+                                 (byte-array shrunk-bytes))] ;Defensive clone
+        (if continue?
+          (recur last-failure-bytes working-on (shrink-at! shrunk-bytes working-on))
+          last-failure-bytes)))
     bytes))
 
 (defn shrink
