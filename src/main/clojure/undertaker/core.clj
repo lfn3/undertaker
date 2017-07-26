@@ -82,20 +82,22 @@
        (do ~@body))
      (check-result @result#)))
 
-;TODO should be able to use (bit-and 0xff) and dec?
 (defn move-towards-0 [byte]
-  (cond
-    (= 0 byte) byte
-    (neg-int? byte) (inc byte)
-    (pos-int? byte) (dec byte)))
+  (if (zero? byte)
+    0
+    (-> byte
+        (bit-and 0xff)
+        (dec)
+        (unchecked-byte))))
 
 (s/fdef move-towards-0
   :args (s/cat :byte ::util/byte)
   :ret ::util/byte
   :fn (fn [{:keys [args ret]}]
-        (or (= 0 ret)
-            (< (util/abs ret)
-               (util/abs (:byte args))))))
+        (let [{:keys [byte]} args]
+          (or (= 0 ret)
+              (< (bit-and 0xff ret)
+                 (bit-and 0xff (:byte args)))))))
 
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
