@@ -1,4 +1,4 @@
-(ns undertaker.source-rule
+(ns undertaker.junit.source-rule
   (:gen-class
     :name undertaker.SourceRule
     :state state

@@ -1,4 +1,4 @@
-package undertaker;
+package undertaker.junit;
 
 import org.junit.Assert;
 import org.junit.Ignore;

@@ -1,6 +1,6 @@
 (def version "0.1.0-SNAPSHOT")
 
-(defproject undertaker version
+(defproject undertaker-junit version
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -10,9 +10,12 @@
                  [orchestra "0.3.0"]
                  [org.clojure/test.check "0.9.0"]
                  [criterium "0.4.4"]
-                 [junit/junit "4.12"]]
+                 [junit/junit "4.12"]
+                 [undertaker ~version]]
 
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
-  :test-paths ["src/test/clojure" "src/test/java"]
-  :target-path "target/%s")
+  :test-paths ["src/test/java"]
+  :target-path "target/%s"
+
+  :aot [undertaker.junit.source-rule])
