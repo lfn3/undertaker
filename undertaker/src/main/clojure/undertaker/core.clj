@@ -107,10 +107,10 @@
     output))
 
 (defn snip-intervals [bytes intervals fn]
-  (if (seq intervals)
-    (loop [index 0
-           intervals intervals
-           bytes bytes]
+  (loop [index 0
+         intervals intervals
+         bytes bytes]
+    (if (seq? intervals)
       (let [interval (nth intervals index)
             shrunk-bytes (snip-interval bytes interval)
             source (fixed-source/make-fixed-source shrunk-bytes)
@@ -122,12 +122,13 @@
           (and continue? (or overrun? passed?)) (recur (inc index)
                                                        intervals
                                                        bytes)
-          (and continue? (not passed?) (not overrun?)) (recur index ;We've moved the end of the intervals array closer by removing one.
+          ;TODO: figure out if I can optimize this a bit.
+          (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
                                                               (source/get-intervals source)
                                                               shrunk-bytes)
           (and (not continue?) (or overrun? passed?)) bytes
-          (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes)))
-    bytes))
+          (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes))
+      bytes)))
 
 (defn shrink-at!
   "MUTATES!"
