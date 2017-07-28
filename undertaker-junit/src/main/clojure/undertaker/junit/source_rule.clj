@@ -4,6 +4,7 @@
     :state state
     :init init
     :implements [org.junit.rules.TestRule
+                 undertaker.junit.generators.ByteGen
                  undertaker.junit.generators.IntGen
                  undertaker.junit.generators.BoolGen])
   (:import (org.junit.runners.model Statement)
@@ -28,6 +29,13 @@
   (-> this
       (.state)
       :source))
+
+(defn ^byte -getByte
+  ([this] (-getByte this Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([this max] (-getByte this Byte/MIN_VALUE max))
+  ([this min max] (-> this
+                      (get-source)
+                      (undertaker/byte min max))))
 
 (defn ^int -getInt
   ([this] (-getInt this Integer/MIN_VALUE Integer/MAX_VALUE))

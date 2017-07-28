@@ -53,4 +53,12 @@ public class SourceRuleTest {
         final boolean bool = source.getBool();
         Assert.assertTrue(bool || !bool);
     }
+
+    @Test
+    public void canGetAByte()
+    {
+        final byte aByte = source.getByte();
+        Assert.assertTrue(aByte >= Byte.MIN_VALUE);
+        Assert.assertTrue(aByte <= Byte.MAX_VALUE);
+    }
 }
