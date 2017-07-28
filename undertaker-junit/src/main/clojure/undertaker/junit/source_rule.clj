@@ -3,7 +3,9 @@
     :name undertaker.junit.SourceRule
     :state state
     :init init
-    :implements [org.junit.rules.TestRule undertaker.junit.generators.IntGen])
+    :implements [org.junit.rules.TestRule
+                 undertaker.junit.generators.IntGen
+                 undertaker.junit.generators.BoolGen])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description))
   (:require [undertaker.core :as undertaker]))
@@ -22,8 +24,19 @@
           (when (false? (::undertaker/result result))
             (throw (ex-info "Test failed" result (::undertaker/ex result)))))))))
 
+(defn get-source [this]
+  (-> this
+      (.state)
+      :source))
+
 (defn ^int -getInt
   ([this] (-getInt this Integer/MIN_VALUE Integer/MAX_VALUE))
   ([this max] (-getInt this Integer/MIN_VALUE max))
-  ([this min max] (let [{:keys [source seed]} (.state this)]
-                    (undertaker/int source min max))))
+  ([this min max] (-> this
+                      (get-source)
+                      (undertaker/int min max))))
+
+(defn ^boolean -getBool
+  ([this] (-> this
+              (get-source)
+              (undertaker/bool))))

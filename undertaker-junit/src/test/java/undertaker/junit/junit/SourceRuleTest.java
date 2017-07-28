@@ -46,4 +46,11 @@ public class SourceRuleTest {
     {
         Assert.assertTrue(false);
     }
+
+    @Test
+    public void canGetABoolean()
+    {
+        final boolean bool = source.getBool();
+        Assert.assertTrue(bool || !bool);
+    }
 }
