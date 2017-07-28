@@ -1,9 +1,10 @@
-package undertaker.junit;
+package undertaker.junit.junit;
 
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import undertaker.junit.SourceRule;
 
 public class SourceRuleTest {
     @Rule

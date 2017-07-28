@@ -1,4 +1,4 @@
-package undertaker;
+package undertaker.junit;
 
 public interface Source {
     byte getByte();

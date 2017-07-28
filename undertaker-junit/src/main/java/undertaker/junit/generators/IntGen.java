@@ -1,4 +1,4 @@
-package undertaker.generators;
+package undertaker.junit.generators;
 
 public interface IntGen {
     default int getInt()
