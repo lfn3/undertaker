@@ -1,6 +1,6 @@
 (ns undertaker.junit.source-rule
   (:gen-class
-    :name undertaker.SourceRule
+    :name undertaker.junit.SourceRule
     :state state
     :init init
     :implements [org.junit.rules.TestRule undertaker.generators.IntGen])
@@ -23,9 +23,5 @@
             (throw (ex-info "Test failed" result (::undertaker/ex result)))))))))
 
 (defn ^int -getInt
-  ([this] (let [{:keys [source seed]} (.state this)]
-            (undertaker/int source Integer/MIN_VALUE Integer/MAX_VALUE)))
-  ([this max] (let [{:keys [source seed]} (.state this)]
-                (undertaker/int source Integer/MIN_VALUE max)))
   ([this min max] (let [{:keys [source seed]} (.state this)]
                     (undertaker/int source min max))))

@@ -4,7 +4,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import undertaker.SourceRule;
 
 public class SourceRuleTest {
     @Rule
@@ -22,6 +21,15 @@ public class SourceRuleTest {
         int anInt = source.getInt();
         Assert.assertTrue(anInt >= Integer.MIN_VALUE);
         Assert.assertTrue(anInt <= Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void canGetIntInRange()
+    {
+        int anInt = source.getInt(1, 10);
+
+        Assert.assertTrue(anInt >= 1);
+        Assert.assertTrue(anInt<= 10);
     }
 
     @Test
