@@ -170,12 +170,12 @@
             result-map (fn shrunk-source)
             passed? (true? (::result result-map))
             work-on-next (if keep-trying-current-byte?
-                         working-on
-                         (inc working-on))
+                           working-on
+                           (inc working-on))
             continue? (< work-on-next (count shrunk-bytes))
             last-failure-bytes (if passed?
                                  last-failure-bytes
-                                 (byte-array shrunk-bytes))]  ;Defensive clone
+                                 (byte-array shrunk-bytes))] ;Defensive clone
         (when (and (not keep-trying-current-byte?) continue?) ;If we're about to move on, put the last failing byte back in.
           (aset-byte shrunk-bytes working-on (aget last-failure-bytes working-on)))
         (if continue?
@@ -251,12 +251,16 @@
        (if (and (-> run-data
                     ::result
                     (true?))
-                (> iterations-left 0))
-         (do
+                (> iterations-left 0)
+                (source/used? source))                      ;If a source is unused, there isn't much point in rerunning
+         (do                                                ;the test, since nothing will change
            (source/reset source)
            (recur (dec iterations-left)))
-         (cond-> run-data
-                 seed (assoc ::seed seed)))))))
+         (-> run-data
+             (assoc ::source-used (source/used? source))
+             (assoc ::iterations-run (- iterations (dec iterations-left)))
+             (cond->
+               seed (assoc ::seed seed))))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))

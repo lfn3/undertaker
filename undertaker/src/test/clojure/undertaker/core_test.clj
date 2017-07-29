@@ -204,7 +204,8 @@
                     (undertaker/run-prop {}))]
     (is (= [true 0 false] (-> result
                              ::undertaker/shrunk-values
-                             (vec))))))
+                             (vec))
+           result))))
 
 (deftest should-shrink-vec-to-smallest-failing-case
   (let [result (->> (fn [source] (let [values (undertaker/vec-of source undertaker/byte)]
@@ -215,3 +216,8 @@
                            (first))]
     (is (or (= [1] shrunk-vector)
             (= [-1] shrunk-vector)) result)))
+
+(deftest should-only-run-once-since-source-is-unused
+  (let [result (->> (fn [source] true)
+                    (undertaker/run-prop {}))]
+    (is (= 1 (::undertaker/iterations-run result)))))
