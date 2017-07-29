@@ -27,7 +27,7 @@
   :args (s/cat :seed integer?)
   :ret integer?)
 
-(def ^:dynamic *source* (wrapped-random-source/make-source (next-seed (System/nanoTime))))
+(def ^:dynamic *source* nil)
 
 (defn move-into-range
   ([byte min max]
@@ -61,10 +61,10 @@
 (defn format-interval-name [name & args]
   (str name " [" (str/join " " args) "]"))
 
-(defmacro with-interval [source name & body]
-  `(let [interval-token# (source/push-interval ~source ~name)
+(defmacro with-interval [name & body]
+  `(let [interval-token# (source/push-interval *source* ~name)
          result# (do ~@body)]
-     (source/pop-interval ~source interval-token# result#)
+     (source/pop-interval *source* interval-token# result#)
      result#))
 
 (defn check-result [result]
@@ -73,14 +73,6 @@
 (defn make-report-fn [an-atom]
   (fn [msg]
     (swap! an-atom conj msg)))
-
-(defmacro run-and-report [source & body]
-  `(let [result# (atom [])
-         report-fn# (make-report-fn result#)]
-     (with-bindings {#'t/report report-fn#
-                     #'*source* ~source}
-       (do ~@body))
-     (check-result @result#)))
 
 (defn move-towards-0 [byte]
   (if (zero? byte)
@@ -198,15 +190,25 @@
                :fn fn?)
   :ret ::source/source)
 
-(defn wrap-with-catch [f]
+(defn wrap-fn [f]
   (fn [source]
-    (try {::result (f source)}
-         (catch Throwable e
-           {::result false
-            ::cause  e}))))
+    (let [result (atom [])
+          report-fn (make-report-fn result)]
+      (with-bindings {#'t/report report-fn
+                      #'*source* source}
+        (try
+          (f)
+          {::result (check-result @result)
+           ::reported @result}
+          (catch Throwable e
+            {::result false
+             ::cause  e
+             ::reported @result})
+          (finally
+            (reset! result [])))))))
 
 (defn run-prop-1 [source f]
-  (let [f (wrap-with-catch f)
+  (let [f (wrap-fn f)
         result-map (-> (f source)
                        (assoc ::generated-values (map ::proto/generated-value
                                                       (->> source
@@ -231,7 +233,7 @@
 
 (s/fdef run-prop-1
   :args (s/cat :source ::source/source
-               :fn ::prop-fn)
+               :fn fn?)
   :ret ::results-map)
 
 (defn run-prop
@@ -239,36 +241,30 @@
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
             iterations 1000}
      :as   opts-map}
-    fn]
-   (run-prop opts-map (wrapped-random-source/make-source seed) fn))
-  ([{:keys [::seed ::iterations]
-     :or   {iterations 1000}
-     :as   opts-map}
-    source
-    fn]
-   (loop [iterations-left iterations]
-     (let [run-data (run-prop-1 source fn)]
-       (if (and (-> run-data
-                    ::result
-                    (true?))
-                (> iterations-left 0)
-                (source/used? source))                      ;If a source is unused, there isn't much point in rerunning
-         (do                                                ;the test, since nothing will change
-           (source/reset source)
-           (recur (dec iterations-left)))
-         (-> run-data
-             (assoc ::source-used (source/used? source))
-             (assoc ::iterations-run (- iterations (dec iterations-left)))
-             (cond->
-               seed (assoc ::seed seed))))))))
+    f]
+   (let [source (wrapped-random-source/make-source seed)]
+     (loop [iterations-left iterations]
+       (let [run-data (run-prop-1 source f)]
+         (if (and (-> run-data
+                      ::result
+                      (true?))
+                  (> iterations-left 0)
+                  (source/used? source))                  ;If a source is unused, there isn't much point in rerunning
+           (do                                            ;the test, since nothing will change
+             (source/reset source)
+             (recur (dec iterations-left)))
+           (-> run-data
+               (assoc ::source-used (source/used? source))
+               (assoc ::iterations-run (- iterations (dec iterations-left)))
+               (cond->
+                 seed (assoc ::seed seed)))))))))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
 
 (s/fdef run-prop
   :args (s/cat :opts-map ::prop-opts-map
-               :source (s/? ::source/source)
-               :fn ::prop-fn)
+               :fn fn?)
   :ret ::results-map)
 
 ;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
@@ -319,34 +315,31 @@
 ;; === === === === === === === ===
 
 (defn bool
-  ([] (bool *source*))
-  ([source]
-   (with-interval source (format-interval-name "bool")
-     (if (= 1 (source/get-byte source 0 1))
+  ([]
+   (with-interval (format-interval-name "bool")
+     (if (= 1 (source/get-byte *source* 0 1))
        true
        false))))
 
 (s/fdef bool
-  :args (s/cat :source (s/? ::source/source))
+  :args (s/cat)
   :ret boolean?)
 
 (defn byte
-  ([] (byte *source*))
-  ([source] (byte source Byte/MIN_VALUE Byte/MAX_VALUE))
-  ([source min] (byte source min Byte/MAX_VALUE))
-  ([source min max]
-   (with-interval source (format-interval-name "byte" min max)
-     (source/get-byte source min max))))
+  ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
+  ([min] (byte min Byte/MAX_VALUE))
+  ([min max]
+   (with-interval (format-interval-name "byte" min max)
+     (source/get-byte *source* min max))))
 
 (defn int
-  ([] (int *source*))
-  ([source] (int source Integer/MIN_VALUE Integer/MAX_VALUE))
-  ([source min] (int source min Integer/MAX_VALUE))
-  ([source floor ceiling]
-   (with-interval source (format-interval-name "int" floor ceiling)
+  ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
+  ([min] (int min Integer/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "int" floor ceiling)
      (let [mins (util/get-bytes-from-int floor)
            maxes (util/get-bytes-from-int ceiling)
-           first-genned (source/get-byte source (first mins) (first maxes))
+           first-genned (source/get-byte *source* (first mins) (first maxes))
            output-arr (byte-array 4)
            negative? (neg? first-genned)
            maxes (if (and negative? (not (neg? ceiling)))
@@ -358,7 +351,7 @@
        (aset output-arr 0 first-genned)
        (loop [idx 1
               all-maxes? (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int source idx all-maxes? mins maxes)]
+         (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
            (aset output-arr idx next-val)
            (when (< (inc idx) (count output-arr))
              (recur (inc idx)
@@ -366,8 +359,7 @@
        (bytes->int output-arr)))))
 
 (s/fdef int
-  :args (s/cat :source (s/? ::source/source)
-               :min (s/? int?)
+  :args (s/cat :min (s/? int?)
                :max (s/? int?))
   :ret int?
   :fn (fn [{:keys [args ret]}]
@@ -382,35 +374,33 @@
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [source min max len]
-  (with-interval source (format-interval-name "should-generate-elem" min max len)
+  (with-interval (format-interval-name "should-generate-elem" min max len)
     (= 1 (cond
            (> min len) (source/get-byte source 1 1)
            (< max (inc len)) (source/get-byte source 0 0)
            :default (source/get-byte source 0 1)))))
 
 (defn vec-of
-  ([elem-gen] (vec-of *source* elem-gen))
-  ([source elem-gen] (vec-of source elem-gen 0))
-  ([source elem-gen min] (vec-of source elem-gen min default-max-size))
-  ([source elem-gen min max]
-   (with-interval source (format-interval-name "vec" min max)
+  ([elem-gen] (vec-of elem-gen 0))
+  ([elem-gen min] (vec-of elem-gen min default-max-size))
+  ([elem-gen min max]
+   (with-interval (format-interval-name "vec" min max)
      (loop [result []]
        (let [i (count result)]
-         (if-let [next (with-interval source (format-interval-name "chunk for vector" i)
-                         (when-let [gen-next? (should-generate-elem? source min max i)]
-                           (elem-gen source)))]
+         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+                         (when-let [gen-next? (should-generate-elem? *source* min max i)]
+                           (elem-gen)))]
            (recur (conj result next))
            result))))))
 
 (defn from
-  ([coll] (from *source* coll))
-  ([source coll]
-   (with-interval source (format-interval-name "from" coll)
-     (let [target-idx (int source 0 (dec (count coll)))]
+  ([coll]
+   (with-interval (format-interval-name "from" coll)
+     (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
 
 (s/fdef from
-  :args (s/cat :source (s/? ::source) :coll (s/coll-of any?))
+  :args (s/cat :coll (s/coll-of any?))
   :ret any?
   :fn (fn [{:keys [args ret]}] (contains? (set (:coll args)) ret)))
 
@@ -418,33 +408,18 @@
                 int})
 
 (defn any
-  ([] (any *source*))
-  ([source] (any source #{}))
-  ([source exclusions]
-   (with-interval source (format-interval-name "any")
+  ([] (any #{}))
+  ([exclusions]
+   (with-interval (format-interval-name "any")
      (let [chosen-generator (from (remove exclusions any-gens))]
-       (chosen-generator source)))))
+       (chosen-generator)))))
 
 (s/fdef any
-  :args (s/cat :source (s/? ::source)
-               :exclusions (s/or :fn (s/fspec :args (s/cat :item any?)
+  :args (s/cat :exclusions (s/or :fn (s/fspec :args (s/cat :item any?)
                                               :ret boolean?)
                                  :set set?))
   :ret any?)
 
-(defmacro prop
-  [opts & body]
-  `(let [result# (atom [])
-         report-fn# (make-report-fn result#)
-         wrapped-body# (fn [source#] (run-and-report source# ~@body))]
-     (run-prop ~opts wrapped-body#)))
-
-(defmacro defprop
-  [name opts & body]
-  `(t/deftest ~name
-     (let [prop-result# (prop ~opts ~@body)]
-       (t/is (::result prop-result#) prop-result#))))
-
 (defn fixture [f]
-  (with-bindings {#'*source* (wrapped-random-source/make-source (System/nanoTime))}
-    (f)))
+  (let [seed (next-seed (System/nanoTime))]
+    (run-prop {::seed seed} f)))

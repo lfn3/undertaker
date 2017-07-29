@@ -27,5 +27,5 @@
 (defn get-sourced-bytes [source] (proto/get-sourced-bytes source))
 (defn reset [source] (proto/reset source))
 
-(defn used? [source] (seq? (proto/get-intervals source)))
+(defn used? [source] (not (empty? (proto/get-intervals source))))
 

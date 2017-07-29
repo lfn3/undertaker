@@ -54,18 +54,6 @@
   (is (every? int? (undertaker/vec-of undertaker/int)))
   (is (not-empty (undertaker/vec-of undertaker/*source* undertaker/byte 1))))
 
-(deftest test-run-and-report
-  (t/testing "Failure"
-    (is (false? (undertaker/run-and-report (source.wrapped/make-source 1) (is false)))))
-  (t/testing "Success"
-    (is (true? (undertaker/run-and-report (source.wrapped/make-source 1) (is true)))))
-  (t/testing "Handles multiple statements"
-    (is (false? (undertaker/run-and-report
-                  (source.wrapped/make-source 1)
-                  (is true)
-                  (is false)
-                  (is true))))))
-
 (deftest should-shrink-two-steps
   (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
                                                               []
@@ -99,13 +87,13 @@
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (->> #(boolean? (undertaker/byte %1))
+  (is (= 0 (->> #(boolean? (undertaker/byte))
                 (undertaker/run-prop {})
                 ::undertaker/shrunk-values
                 (first)))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-prop
-  (is (->> (fn [source] (= 0 (undertaker/byte source)))
+  (is (->> #(= 0 (undertaker/byte))
            (undertaker/run-prop {})
            ::undertaker/shrunk-values
            (first)
@@ -113,50 +101,50 @@
            (not))))
 
 (deftest byte-gen-test
-  (is (= 1 (undertaker/byte undertaker/*source* 1 1)))
-  (let [results (repeatedly 10 #(undertaker/byte undertaker/*source* -1 0))]
+  (is (= 1 (undertaker/byte 1 1)))
+  (let [results (repeatedly 10 #(undertaker/byte -1 0))]
     (is (not-every? (partial = 0) results))
     (is (not-every? (partial = -1) results))
     (is (every? #(or (= 0 %1) (= -1 %1)) results))))
 
 (deftest should-generate-bytes-over-discontinuity
-  (let [generated (repeatedly 1000 #(undertaker/byte forgetful-source -127 127))]
+  (let [generated (repeatedly 1000 #(undertaker/byte -127 127))]
     (is (not-every? neg-int? generated))
     (is (not-every? pos-int? generated))))
 
-(undertaker/defprop byte-gen-should-emit-negative-values {}
-  (is (neg-int? (undertaker/byte undertaker/*source* -128 -1))))
+(deftest byte-gen-should-emit-negative-values
+  (is (neg-int? (undertaker/byte -128 -1))))
 
-(undertaker/defprop byte-gen-should-emit-positive-values {}
-  (is (pos-int? (undertaker/byte undertaker/*source* 1 127))))
+(deftest byte-gen-should-emit-positive-values
+  (is (pos-int? (undertaker/byte 1 127))))
 
 (deftest int-gen-test
-  (is (= 1 (undertaker/int undertaker/*source* 1 1)))
-  (let [results (repeatedly 10 #(undertaker/int undertaker/*source* -1 0))]
+  (is (= 1 (undertaker/int 1 1)))
+  (let [results (repeatedly 10 #(undertaker/int -1 0))]
     (is (not-every? (partial = 0) results))
     (is (not-every? (partial = -1) results))
     (is (every? #(or (= 0 %1) (= -1 %1)) results))))
 
 (deftest should-generate-ints-over-discontinuity
-  (let [generated (repeatedly 1000 #(undertaker/int forgetful-source -10 10))]
+  (let [generated (repeatedly 1000 #(undertaker/int -10 10))]
     (is (every? (set generated) (set (range -10 11))))))
 
-(undertaker/defprop int-gen-should-emit--ve-values {}
-  (let [val (undertaker/int forgetful-source Integer/MIN_VALUE -1)]
+(deftest int-gen-should-emit--ve-values
+  (let [val (undertaker/int Integer/MIN_VALUE -1)]
     (is (neg-int? val))))
 
 (deftest can-generate-max-int
-  (is (= Integer/MAX_VALUE (undertaker/int forgetful-source Integer/MAX_VALUE Integer/MAX_VALUE))))
+  (is (= Integer/MAX_VALUE (undertaker/int Integer/MAX_VALUE Integer/MAX_VALUE))))
 
 (deftest can-generate-min-int
-  (is (= Integer/MIN_VALUE (undertaker/int forgetful-source Integer/MIN_VALUE Integer/MIN_VALUE))))
+  (is (= Integer/MIN_VALUE (undertaker/int Integer/MIN_VALUE Integer/MIN_VALUE))))
 
-(undertaker/defprop int-gen-should-equals-signums-from--1-to-+1 {}
-  (let [val (undertaker/int undertaker/*source* -1 1)]
+(deftest int-gen-should-equals-signums-from--1-to-+1
+  (let [val (undertaker/int -1 1)]
     (is (= (Integer/signum val) val))))
 
 (deftest can-fail-prop
-  (is (false? (::undertaker/result (undertaker/prop {} (is false))))))
+  (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))
 
 (deftest next-byte-for-int-should-emit-only-number-in-range
   (let [values (repeatedly 10 #(undertaker/generate-next-byte-for-int forgetful-source
@@ -174,7 +162,7 @@
                      (= -1 %1))
                 values))))
 
-(undertaker/defprop from-gen-test {}
+(deftest from-gen-test
   (let [values (set (repeatedly 3 undertaker/int))]
     (is (values (undertaker/from values)))))
 
@@ -186,20 +174,20 @@
   (is (= [0] (-> (byte-array [0])
                  (undertaker/snip-intervals [{::proto/interval-start 0
                                               ::proto/interval-end   0}]
-                                            (undertaker/wrap-with-catch (fn [source] (undertaker/int source))))
+                                            (undertaker/wrap-fn #(undertaker/int)))
                  (vec)))))
 
 (deftest snip-intervals-handles-single-byte-failure
   (is (= [-19] (-> (byte-array [1 -19])
                    (undertaker/snip-intervals [{::proto/interval-start 0
                                                 ::proto/interval-end   1}]
-                                              (undertaker/wrap-with-catch #(boolean? (undertaker/byte %1))))
+                                              (undertaker/wrap-fn #(boolean? (undertaker/byte))))
                    (vec)))))
 
 (deftest should-shrink-middle-byte
-  (let [result (->> #(let [bool-1 (undertaker/bool %1)
-                           a-number (undertaker/int %1)
-                           bool-2 (undertaker/bool %1)]
+  (let [result (->> #(let [bool-1 (undertaker/bool)
+                           a-number (undertaker/int)
+                           bool-2 (undertaker/bool )]
                        (not bool-1))
                     (undertaker/run-prop {}))]
     (is (= [true 0 false] (-> result
@@ -208,8 +196,8 @@
            result))))
 
 (deftest should-shrink-vec-to-smallest-failing-case
-  (let [result (->> (fn [source] (let [values (undertaker/vec-of source undertaker/byte)]
-                                   (every? even? values)))
+  (let [result (->> (fn [] (let [values (undertaker/vec-of undertaker/byte)]
+                             (every? even? values)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
                            ::undertaker/shrunk-values
