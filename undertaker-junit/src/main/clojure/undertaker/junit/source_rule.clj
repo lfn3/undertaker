@@ -6,6 +6,7 @@
     :implements [org.junit.rules.TestRule
                  undertaker.junit.generators.ByteGen
                  undertaker.junit.generators.IntGen
+                 undertaker.junit.generators.LongGen
                  undertaker.junit.generators.BoolGen
                  undertaker.junit.generators.ListGen
                  undertaker.junit.Source])
@@ -37,6 +38,11 @@
   ([this] (-getInt this Integer/MIN_VALUE Integer/MAX_VALUE))
   ([this max] (-getInt this Integer/MIN_VALUE max))
   ([this min max] (undertaker/int min max)))
+
+(defn ^long -getLong
+  ([this] (-getLong this Long/MIN_VALUE Long/MAX_VALUE))
+  ([this max] (-getLong this Long/MIN_VALUE max))
+  ([this min max] (undertaker/long min max)))
 
 (defn ^boolean -getBool
   ([this] (undertaker/bool)))

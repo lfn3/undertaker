@@ -80,6 +80,14 @@ public class SourceRuleTest {
 
     }
 
+    @Test
+    public void canGetALong() throws Exception
+    {
+        final long aLong = source.getLong();
+        Assert.assertTrue(aLong >= Long.MIN_VALUE);
+        Assert.assertTrue(aLong <= Long.MAX_VALUE);
+    }
+
     public static <T, V> Supplier<V> bind(Function<T, V> f, T input)
     {
         return () -> f.apply(input);
