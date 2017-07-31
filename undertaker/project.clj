@@ -13,6 +13,6 @@
   :test-paths ["src/test/clojure" "src/test/java"]
   :target-path "target/%s"
 
-  :profiles {:test {:dependencies [[orchestra "0.3.0"]
+  :profiles {:dev {:dependencies [[orchestra "0.3.0"]
                                    [org.clojure/test.check "0.9.0"]
                                    [criterium "0.4.4"]]}})

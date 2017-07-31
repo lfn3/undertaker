@@ -310,6 +310,13 @@
       (ByteBuffer/wrap)
       (.getInt)))
 
+(defn bytes->long [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getLong)))
+
+
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -369,6 +376,45 @@
           (and                                              ;(<= min max)
             (<= min ret)
             (>= max ret)))))
+
+(defn long
+  ([] (long Long/MIN_VALUE Long/MAX_VALUE))
+  ([min] (long min Long/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "long" floor ceiling)
+     (let [mins (util/get-bytes-from-long floor)
+           maxes (util/get-bytes-from-long ceiling)
+           first-genned (source/get-byte *source* (first mins) (first maxes))
+           output-arr (byte-array 8)
+           negative? (neg? first-genned)
+           maxes (if (and negative? (not (neg? ceiling)))
+                   (util/get-bytes-from-long (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
+                   maxes)
+           mins (if (and (not negative?) (neg? floor))
+                  (util/get-bytes-from-long (max 0 floor))  ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+                  mins)]
+       (aset output-arr 0 first-genned)
+       (loop [idx 1
+              all-maxes? (is-max? first-genned 0 mins maxes)]
+         (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
+           (aset output-arr idx next-val)
+           (when (< (inc idx) (count output-arr))
+             (recur (inc idx)
+                    (and all-maxes? (is-max? next-val idx mins maxes))))))
+       (bytes->long output-arr)))))
+
+(s/fdef long
+  :args (s/cat :min (s/? int?)
+               :max (s/? int?))
+  :ret int?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min Long/MIN_VALUE
+                      max Long/MAX_VALUE}} args]
+          (and                                            ;(<= min max)
+            (<= min ret)
+            (>= max ret)))))
+
 
 (def default-max-size 64)
 

@@ -26,6 +26,12 @@
         :args (s/cat :i integer?)
         :ret bytes?)
 
+(defn get-bytes-from-long [^Long i]
+  (let [out (byte-array 8)
+        wrapped (ByteBuffer/wrap out)]
+    (.putLong wrapped i)
+    out))
+
 (defn abs [i]
   (if (neg-int? i) (- i) i))
 

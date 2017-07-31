@@ -7,7 +7,6 @@ import org.junit.Test;
 import undertaker.junit.Source;
 import undertaker.junit.SourceRule;
 import undertaker.junit.generators.ByteGen;
-import undertaker.junit.generators.ListGen;
 
 import java.time.Instant;
 import java.util.Date;
