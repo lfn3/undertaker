@@ -4,11 +4,20 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import undertaker.junit.Source;
 import undertaker.junit.SourceRule;
+import undertaker.junit.generators.ByteGen;
+import undertaker.junit.generators.ListGen;
+
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SourceRuleTest {
     @Rule
-    public SourceRule source = new SourceRule();
+    public Source source = new SourceRule();
 
     @Test
     public void compilesAndRuns()
@@ -60,5 +69,25 @@ public class SourceRuleTest {
         final byte aByte = source.getByte();
         Assert.assertTrue(aByte >= Byte.MIN_VALUE);
         Assert.assertTrue(aByte <= Byte.MAX_VALUE);
+    }
+
+    @Test
+    public void canGetAList() throws Exception
+    {
+        final List<Date> list = source.getList(SourceRuleTest::generateDate);
+        Assert.assertTrue(list != null);
+        final List<Byte> aListAOfBytes = source.getList(ByteGen::getByte);
+        Assert.assertTrue(aListAOfBytes != null);
+
+    }
+
+    public static <T, V> Supplier<V> bind(Function<T, V> f, T input)
+    {
+        return () -> f.apply(input);
+    }
+
+    public static Date generateDate(Source s)
+    {
+        return Date.from(Instant.ofEpochSecond(s.getInt()));
     }
 }
