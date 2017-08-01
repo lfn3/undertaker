@@ -26,7 +26,7 @@
     (proxy [Statement] []
       (evaluate []
         (let [{:keys [source seed]} state
-              result (undertaker/run-prop {::undertaker/seed seed} (fn [] (.evaluate base)))]
+              result (undertaker/run-prop {::undertaker/seed seed} #(.evaluate base))]
           (when (false? (::undertaker/result result))
             (throw (ex-info "Test failed" result (::undertaker/ex result)))))))))
 

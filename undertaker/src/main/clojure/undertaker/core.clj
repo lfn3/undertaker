@@ -190,10 +190,23 @@
                :fn fn?)
   :ret ::source/source)
 
+(def bug-tracker-url "https://github.com/lfn3/undertaker/issues/new")
+
+(defn ^String already-bound-source-error-string []
+  (str
+    "The *source* var has already been set, and something is trying to bind another value to it.
+This probably means you're using the fixture (undertaker/fixture) and defprop in the same file.
+If so you should replace the defprop with deftest.
+
+If you're not doing that, and can't find the cause of the error, please raise an issue at "
+    bug-tracker-url))
+
 (defn wrap-fn [f]
   (fn [source]
     (let [result (atom [])
           report-fn (make-report-fn result)]
+      (when (not (nil? *source*))
+        (throw (Exception. (already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}
         (try
@@ -316,6 +329,39 @@
       (ByteBuffer/wrap)
       (.getLong)))
 
+(defn format-failed [results]
+  (format "
+  This test failed after running %d times.
+  The initial failing values were:
+  %s
+
+  These were shrunk to:
+  %s
+
+  The seed that generated the initial case was %s.
+  If you want to rerun this particular failing case, you can add this seed to the test.
+  If you're using Clojure,
+  "))
+
+(defn format-not-property-test-failed [results]
+  (format "
+  This test failed after a single run.
+  It did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk.
+  The cause of the failure was:
+  %s"))
+
+(defn format-not-property-passed [results]
+  "This test did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.")
+
+(defn format-results [results]
+  (cond
+    (and (::source-used results) (::result results)) (format-not-property-passed results)
+    (::source-used results) (format-not-property-test-failed results)
+    (::result results) (format-failed results)))
+
+(s/fdef format-results
+  :args (s/cat :results ::results-map)
+  :ret string?)
 
 ;; === === === === === === === ===
 ;; Public api
