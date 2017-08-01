@@ -94,6 +94,10 @@ public class SourceRuleTest {
 
     public static Date generateDate(Source s)
     {
-        return Date.from(Instant.ofEpochSecond(s.getInt()));
+        final long intervalId = s.pushInterval("Date");
+        final Date generatedValue = Date.from(Instant.ofEpochSecond(s.getInt()));
+        s.popInterval(intervalId, generatedValue);
+
+        return generatedValue;
     }
 }
