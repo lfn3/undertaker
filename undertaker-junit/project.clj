@@ -13,6 +13,9 @@
                  [junit/junit "4.12"]
                  [undertaker ~version]]
 
+  :plugins [[lein-junit "1.1.8"]]
+  :junit ["src/test/java"]
+
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
   :test-paths ["src/test/java"]
