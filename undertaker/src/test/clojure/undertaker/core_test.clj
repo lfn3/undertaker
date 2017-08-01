@@ -208,3 +208,8 @@
   (let [result (->> (fn [])
                     (undertaker/run-prop {}))]
     (is (= 1 (::undertaker/iterations-run result)))))
+
+(deftest long-gen-test
+  (is (instance? Long (undertaker/long)))
+  (is (>= (undertaker/long) Long/MIN_VALUE))
+  (is (<= (undertaker/long) Long/MAX_VALUE)))
