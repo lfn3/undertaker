@@ -195,10 +195,9 @@
 (defn ^String already-bound-source-error-string []
   (str
     "The *source* var has already been set, and something is trying to bind another value to it.
-This probably means you're using the fixture (undertaker/fixture) and defprop in the same file.
-If so you should replace the defprop with deftest.
+This probably means you've nested tests inside each other.
 
-If you're not doing that, and can't find the cause of the error, please raise an issue at "
+If you can't find the cause of the error, please raise an issue at "
     bug-tracker-url))
 
 (defn wrap-fn [f]
@@ -206,7 +205,7 @@ If you're not doing that, and can't find the cause of the error, please raise an
     (let [result (atom [])
           report-fn (make-report-fn result)]
       (when (not (nil? *source*))
-        (throw (Exception. (already-bound-source-error-string))))
+        (throw (IllegalStateException. (already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}
         (try
@@ -516,7 +515,3 @@ If you're not doing that, and can't find the cause of the error, please raise an
   `(t/deftest ~name
      (let [result# (run-prop ~opts (fn [] (do ~@body)))]
        (t/is (::result result#) result#))))
-
-(defn fixture [f]
-  (let [seed (next-seed (System/nanoTime))]
-    (run-prop {::seed seed} f)))

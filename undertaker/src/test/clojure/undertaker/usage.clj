@@ -2,11 +2,9 @@
   (:require [clojure.test :refer [deftest is] :as t]
             [undertaker.core :as undertaker]))
 
-(t/use-fixtures :each undertaker/fixture)
-
-(deftest vector-coll-identity
-    (let [actions (undertaker/vec-of (fn [source] (undertaker/from #{#(conj %1 (undertaker/any))
-                                                                     'pop})))]
+(undertaker/defprop vector-coll-identity {}
+    (let [actions (undertaker/vec-of (partial undertaker/from #{#(conj %1 (undertaker/any))
+                                                                'pop}))]
       (when (seq? actions)
         (loop [action (first actions)
                remaining (rest actions)

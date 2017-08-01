@@ -15,10 +15,7 @@
   This probably means you're missing part of the test setup.
 
   If you're using Clojure:
-    Either add the fixture to your test file:
-      (clojure.test/use-fixtures :each undertaker.core/fixture)
-
-    Or switch this deftest for:
+    Switch this deftest for:
       (defprop test-name {}
         test-body...)
 

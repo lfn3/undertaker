@@ -8,6 +8,6 @@
             [undertaker.source.forgetful :as source.forgetful]))
 
 (deftest benchmark-byte-gen
-  (let [source (source.forgetful/make-source (System/nanoTime))]
+  (with-bindings {#'undertaker/*source* (source.forgetful/make-source (System/nanoTime))}
     (criterium/quick-bench
-      (undertaker/byte source))))
+      (undertaker/byte))))
