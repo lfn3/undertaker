@@ -15,13 +15,12 @@
             [undertaker.proto :as proto]
             [undertaker.source.forgetful :as source.forgetful]))
 
-(t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
-                           (orchestra.test/unstrument)))
-
-(t/use-fixtures :each undertaker/fixture)
-
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
+
+(t/use-fixtures :once #(do (orchestra.test/instrument)
+                           (with-bindings {#'undertaker/*source* forgetful-source}
+                             (%1))
+                           (orchestra.test/unstrument)))
 
 (def this-ns *ns*)
 
@@ -52,7 +51,7 @@
 (deftest test-vec-gen
   (is (vector? (undertaker/vec-of undertaker/int)))
   (is (every? int? (undertaker/vec-of undertaker/int)))
-  (is (not-empty (undertaker/vec-of undertaker/*source* undertaker/byte 1))))
+  (is (not-empty (undertaker/vec-of undertaker/byte 1))))
 
 (deftest should-shrink-two-steps
   (is (= [0] (vec (proto/get-sourced-bytes (undertaker/shrink (byte-array [2])
@@ -62,24 +61,24 @@
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-shrinker
   (is (not (zero? (-> (undertaker/shrink (byte-array [2])
                                          []
-                                         (fn [source] {::undertaker/result (= 0 (undertaker/byte source))}))
+                                         (undertaker/wrap-fn (fn [] {::undertaker/result (is (= 0 (undertaker/byte)))})))
                       (proto/get-sourced-bytes)
                       (first))))))
 
 (deftest should-shrink-past-1
   (is (= [0] (-> (undertaker/shrink (byte-array [5])
                                     []
-                                    (fn [source] {::undertaker/result (= 1 (undertaker/byte source))}))
+                                    (undertaker/wrap-fn (fn [] {::undertaker/result (is (= 1 (undertaker/byte)))})))
                  (proto/get-sourced-bytes)
                  (vec)))))
 
 (deftest should-shrink-to-2
   (is (= [2] (-> (undertaker/shrink (byte-array [80])
                                     []
-                                    (fn [source] {::undertaker/result (let [value (undertaker/byte source)]
-                                                                        (if (= 0 value)
-                                                                          true
-                                                                          (odd? value)))}))
+                                    (undertaker/wrap-fn (fn [] {::undertaker/result (let [value (undertaker/byte)]
+                                                                                      (is (if (= 0 value)
+                                                                                            true
+                                                                                            (odd? value))))})))
                  (proto/get-sourced-bytes)
                  (vec)))))
 
@@ -87,13 +86,13 @@
   (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
 
 (deftest should-shrink-to-zero
-  (is (= 0 (->> #(boolean? (undertaker/byte))
+  (is (= 0 (->> #(is (boolean? (undertaker/byte)))
                 (undertaker/run-prop {})
                 ::undertaker/shrunk-values
                 (first)))))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-prop
-  (is (->> #(= 0 (undertaker/byte))
+  (is (->> #(is (= 0 (undertaker/byte)))
            (undertaker/run-prop {})
            ::undertaker/shrunk-values
            (first)
@@ -181,23 +180,23 @@
   (is (= [-19] (-> (byte-array [1 -19])
                    (undertaker/snip-intervals [{::proto/interval-start 0
                                                 ::proto/interval-end   1}]
-                                              (undertaker/wrap-fn #(boolean? (undertaker/byte))))
+                                              (undertaker/wrap-fn #(is (boolean? (undertaker/byte)))))
                    (vec)))))
 
 (deftest should-shrink-middle-byte
   (let [result (->> #(let [bool-1 (undertaker/bool)
                            a-number (undertaker/int)
-                           bool-2 (undertaker/bool )]
-                       (not bool-1))
+                           bool-2 (undertaker/bool)]
+                       (is (not bool-1)))
                     (undertaker/run-prop {}))]
     (is (= [true 0 false] (-> result
-                             ::undertaker/shrunk-values
-                             (vec))
-           result))))
+                              ::undertaker/shrunk-values
+                              (vec)))
+        result)))
 
 (deftest should-shrink-vec-to-smallest-failing-case
-  (let [result (->> (fn [] (let [values (undertaker/vec-of undertaker/byte)]
-                             (every? even? values)))
+  (let [result (->> #(let [values (undertaker/vec-of undertaker/byte)]
+                       (is (every? even? values)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
                            ::undertaker/shrunk-values
@@ -206,6 +205,6 @@
             (= [-1] shrunk-vector)) result)))
 
 (deftest should-only-run-once-since-source-is-unused
-  (let [result (->> (fn [source] true)
+  (let [result (->> (fn [])
                     (undertaker/run-prop {}))]
     (is (= 1 (::undertaker/iterations-run result)))))

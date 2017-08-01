@@ -77,7 +77,6 @@ public class SourceRuleTest {
         Assert.assertTrue(list != null);
         final List<Byte> aListAOfBytes = source.getList(ByteGen::getByte);
         Assert.assertTrue(aListAOfBytes != null);
-
     }
 
     @Test

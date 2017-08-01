@@ -102,7 +102,7 @@
   (loop [index 0
          intervals intervals
          bytes bytes]
-    (if (seq? intervals)
+    (if (not-empty intervals)
       (let [interval (nth intervals index)
             shrunk-bytes (snip-interval bytes interval)
             source (fixed-source/make-fixed-source shrunk-bytes)
@@ -465,6 +465,11 @@
                                               :ret boolean?)
                                  :set set?))
   :ret any?)
+
+(defmacro defprop [name opts & body]
+  `(t/deftest ~name
+     (let [result# (run-prop ~opts (fn [] (do ~@body)))]
+       (t/is (::result result#) result#))))
 
 (defn fixture [f]
   (let [seed (next-seed (System/nanoTime))]
