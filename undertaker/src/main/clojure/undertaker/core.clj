@@ -248,7 +248,7 @@
          (if (and (-> run-data
                       ::result
                       (true?))
-                  (> iterations-left 0)
+                  (> iterations-left 1)
                   (source/used? source))                  ;If a source is unused, there isn't much point in rerunning
            (do                                            ;the test, since nothing will change
              (source/reset source)

@@ -4,9 +4,8 @@
 
 (t/use-fixtures :each undertaker/fixture)
 
-(undertaker/defprop vector-coll-identity {}
-    (let [actions (undertaker/vec-of (fn [source] (undertaker/from source
-                                                                   #{#(conj %1 (undertaker/any source))
+(deftest vector-coll-identity
+    (let [actions (undertaker/vec-of (fn [source] (undertaker/from #{#(conj %1 (undertaker/any))
                                                                      'pop})))]
       (when (seq? actions)
         (loop [action (first actions)
