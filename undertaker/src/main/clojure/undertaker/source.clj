@@ -36,7 +36,7 @@
   ([source min] (get-byte source min Byte/MAX_VALUE))
   ([source min max]
    (throw-if-source-is-nil source)
-   (get-byte source min max)))
+   (proto/get-byte source min max)))
 
 (s/fdef get-byte
   :args (s/cat :source ::source :min (s/? ::util/byte) :max (s/? ::util/byte))
