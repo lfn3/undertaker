@@ -67,13 +67,6 @@
      (source/pop-interval *source* interval-token# result#)
      result#))
 
-(defn check-result [result]
-  (not-any? (comp (partial = :fail) :type) result))
-
-(defn make-report-fn [an-atom]
-  (fn [msg]
-    (swap! an-atom conj msg)))
-
 (defn move-towards-0 [byte]
   (if (zero? byte)
     0
@@ -200,6 +193,23 @@ This probably means you've nested tests inside each other.
 If you can't find the cause of the error, please raise an issue at "
     util/bug-tracker-url))
 
+(defn failure? [test-report]
+  (-> test-report
+      :type
+      (= :fail)))
+
+(defn get-failures-from-test-reports [test-reports]
+  (->> test-reports
+       (filter failure?)
+       (seq)))
+
+(defn check-test-reports [test-reports]
+  (not-any? failure? test-reports))
+
+(defn make-report-fn [an-atom]
+  (fn [msg]
+    (swap! an-atom conj msg)))
+
 (defn wrap-fn [f]
   (fn [source]
     (let [result (atom [])
@@ -210,7 +220,8 @@ If you can't find the cause of the error, please raise an issue at "
                       #'*source* source}
         (try
           (f)
-          {::result   (check-result @result)
+          {::result   (check-test-reports @result)
+           ::cause    (get-failures-from-test-reports @result)
            ::reported @result}
           (catch Throwable e
             {::result   false
