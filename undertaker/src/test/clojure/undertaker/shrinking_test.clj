@@ -9,9 +9,6 @@
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
                            (orchestra.test/unstrument)))
-(t/use-fixtures :each #(do (source/shrinking!)
-                           (%1)
-                           (source/done-shrinking!)))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))

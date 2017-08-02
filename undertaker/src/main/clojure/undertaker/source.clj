@@ -3,6 +3,7 @@
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [undertaker.source.wrapped-random]
+            [undertaker.source.fixed]
             [undertaker.util :as util])
   (:import (java.util Random)))
 
@@ -46,9 +47,18 @@ It might also mean you've found a bug, if so, please report it at " util/bug-tra
   (when (and (not shrinking?) (not= 1 (count (swap! source-in-use conj source))))
     (throw (IllegalStateException. (more-than-one-source-in-test-scope-err-msg)))))
 
+(defn ^String non-fixed-source-during-shrinking-error-msg []
+  (str "The source used during shrinking was not a fixed source.
+This is most likely a bug in Undertaker, please report it at " util/bug-tracker-url))
+
+(defn should-only-use-fixed-source-while-shrinking [source]
+  (when (and (shrinking?) (not (instance? undertaker.source.fixed.FixedSource source)))
+    (throw (IllegalStateException. (non-fixed-source-during-shrinking-error-msg)))))
+
 (defn check-invariants [source]
   (throw-if-source-is-nil source)
-  (every-call-in-scope-of-test-should-use-same-source source))
+  (every-call-in-scope-of-test-should-use-same-source source)
+  (should-only-use-fixed-source-while-shrinking source))
 
 (defn get-byte
   ([source] (get-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
