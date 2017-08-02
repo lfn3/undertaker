@@ -2,12 +2,16 @@
   (:require [undertaker.proto :as proto]
             [undertaker.core :as undertaker]
             [orchestra.spec.test :as orchestra.test]
-            [clojure.test :as t :refer [deftest is]]))
+            [clojure.test :as t :refer [deftest is]]
+            [undertaker.source :as source]))
 
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
                            (orchestra.test/unstrument)))
+(t/use-fixtures :each #(do (source/shrinking!)
+                           (%1)
+                           (source/done-shrinking!)))
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))

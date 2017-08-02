@@ -2,6 +2,8 @@
   (:require [clojure.spec.alpha :as s])
   (:import (java.nio ByteBuffer)))
 
+(def bug-tracker-url "https://github.com/lfn3/undertaker/issues/new")
+
 (defn byte? [b]
   (and (integer? b)
        (>= Byte/MAX_VALUE b)

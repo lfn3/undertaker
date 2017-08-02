@@ -177,11 +177,13 @@
 
 (defn shrink
   ([bytes intervals f]
+   (source/shrinking!)
    (let [shrunk-source (-> bytes
                            (snip-intervals intervals f)
                            (move-bytes-towards-zero f)
                            (fixed-source/make-fixed-source))]
      (f shrunk-source)                                      ;So we get the right intervals in place. TODO: remove this.
+     (source/done-shrinking!)
      shrunk-source)))
 
 (s/fdef shrink
@@ -190,15 +192,13 @@
                :fn fn?)
   :ret ::source/source)
 
-(def bug-tracker-url "https://github.com/lfn3/undertaker/issues/new")
-
 (defn ^String already-bound-source-error-string []
   (str
     "The *source* var has already been set, and something is trying to bind another value to it.
 This probably means you've nested tests inside each other.
 
 If you can't find the cause of the error, please raise an issue at "
-    bug-tracker-url))
+    util/bug-tracker-url))
 
 (defn wrap-fn [f]
   (fn [source]
@@ -210,11 +210,11 @@ If you can't find the cause of the error, please raise an issue at "
                       #'*source* source}
         (try
           (f)
-          {::result (check-result @result)
+          {::result   (check-result @result)
            ::reported @result}
           (catch Throwable e
-            {::result false
-             ::cause  e
+            {::result   false
+             ::cause    e
              ::reported @result})
           (finally
             (reset! result [])))))))
@@ -254,22 +254,24 @@ If you can't find the cause of the error, please raise an issue at "
             iterations 1000}
      :as   opts-map}
     f]
-   (let [source (wrapped-random-source/make-source seed)]
-     (loop [iterations-left iterations]
-       (let [run-data (run-prop-1 source f)]
-         (if (and (-> run-data
-                      ::result
-                      (true?))
-                  (> iterations-left 1)
-                  (source/used? source))                  ;If a source is unused, there isn't much point in rerunning
-           (do                                            ;the test, since nothing will change
-             (source/reset source)
-             (recur (dec iterations-left)))
-           (-> run-data
-               (assoc ::source-used (source/used? source))
-               (assoc ::iterations-run (- iterations (dec iterations-left)))
-               (cond->
-                 seed (assoc ::seed seed)))))))))
+   (let [source (wrapped-random-source/make-source seed)
+         result (loop [iterations-left iterations]
+                  (let [run-data (run-prop-1 source f)]
+                    (if (and (-> run-data
+                                 ::result
+                                 (true?))
+                             (> iterations-left 1)
+                             (source/used? source))         ;If a source is unused, there isn't much point in rerunning
+                      (do                                   ;the test, since nothing will change
+                        (source/reset source)
+                        (recur (dec iterations-left)))
+                      (-> run-data
+                          (assoc ::source-used (source/used? source))
+                          (assoc ::iterations-run (- iterations (dec iterations-left)))
+                          (cond->
+                            seed (assoc ::seed seed))))))]
+     (source/done-with-test!)
+     result)))
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
@@ -456,7 +458,7 @@ If you can't find the cause of the error, please raise an issue at "
         (let [{:keys [min max]
                :or   {min Long/MIN_VALUE
                       max Long/MAX_VALUE}} args]
-          (and                                            ;(<= min max)
+          (and                                              ;(<= min max)
             (<= min ret)
             (>= max ret)))))
 
