@@ -341,35 +341,52 @@ If you can't find the cause of the error, please raise an issue at "
       (ByteBuffer/wrap)
       (.getLong)))
 
-(defn format-failed [results]
-  (format "
-  This test failed after running %d times.
-  The initial failing values were:
-  %s
+(defn format-failed [name results]
+  (format "%s failed after running %d times.
 
-  These were shrunk to:
-  %s
+The simplest values we could make the test fail with were:
+%s
 
-  The seed that generated the initial case was %s.
-  If you want to rerun this particular failing case, you can add this seed to the test.
-  If you're using Clojure,
-  "))
+The initial failing values were:
+%s
 
-(defn format-not-property-test-failed [results]
-  (format "
-  This test failed after a single run.
-  It did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk.
-  The cause of the failure was:
-  %s"))
+The seed that generated the initial case was %s.
+If you want to rerun this particular failing case, you can add this seed to the test.
 
-(defn format-not-property-passed [results]
-  "This test did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.")
+If you're using Clojure, you can add :undertaker.core/seed to this test's options map:
+(defprop %s {:undertaker.core/seed %s} ...)
 
-(defn format-results [results]
+If you're using Java and jUnit, you can add an annotation to the test:
+@Test
+@UndertakerConfig(seed = %s)
+public void %s() { ... }"
+          name
+          (::iterations-run results)
+          (vec (::shrunk-values results))
+          (vec (::generated-values results))
+          (::seed results)
+          name
+          (::seed results)
+          name
+          (::seed results)))
+
+(defn format-not-property-test-failed [name results]
+  (format "This test did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
+          name))
+
+(defn format-not-property-passed [name results]
+  (format "%s did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.
+You probably want to replace (defprop %s { opts... } test-body...) with (deftest %s test-body...)"
+          name
+          name
+          name))
+
+(defn format-results [name results]
   (cond
-    (and (::source-used results) (::result results)) (format-not-property-passed results)
-    (::source-used results) (format-not-property-test-failed results)
-    (::result results) (format-failed results)))
+    (and (not (::source-used results)) (::result results)) (format-not-property-passed name results)
+    (not (::source-used results)) (format-not-property-test-failed name results)
+    (not (::result results)) (format-failed name results)
+    :default nil))
 
 (s/fdef format-results
   :args (s/cat :results ::results-map)
@@ -525,6 +542,11 @@ If you can't find the cause of the error, please raise an issue at "
   :ret any?)
 
 (defmacro defprop [name opts & body]
-  `(t/deftest ~name
-     (let [result# (run-prop ~opts (fn [] (do ~@body)))]
-       (t/is (::result result#) result#))))
+  (let [name-string (str name)]
+    (when-not (map? opts)
+      (throw (IllegalArgumentException. "The second argument to defprop must be a map literal.")))
+    `(t/deftest ~name
+       (let [result# (run-prop ~opts (fn [] (do ~@body)))]
+         (dorun (map t/report (::reported result#)))
+         (when-let [message# (format-results ~name-string result#)]
+           (println message#))))))

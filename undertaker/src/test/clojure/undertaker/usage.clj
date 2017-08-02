@@ -18,3 +18,12 @@
                      (rest remaining)
                      updated-reference
                      updated-under-test)))))))
+
+#_(undertaker/defprop warns-if-no-generator-used {}
+  (is true))
+
+#_(undertaker/defprop warns-if-no-generator-used-and-fails {}
+    (is false))
+
+#_(undertaker/defprop shows-details-on-legit-fail {}
+  (is (undertaker/bool)))
