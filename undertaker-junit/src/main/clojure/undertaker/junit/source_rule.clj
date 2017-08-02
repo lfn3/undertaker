@@ -13,13 +13,49 @@
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description)
            (java.util List ArrayList)
-           (java.util.function Function))
+           (java.util.function Function)
+           (java.lang.reflect Modifier))
   (:require [undertaker.core :as undertaker]
-            [undertaker.source :as source]))
+            [undertaker.source :as source]
+            [clojure.string :as str]))
 
 (defn -init []
   [[] (let [seed (System/nanoTime)]
         {:seed   seed})])
+
+(defn add-tag-meta-if-applicable [symbol ^Class type]
+  (if (and (.isPrimitive type)
+           (not= "long" (str type))
+           (not= "double" (str type)))
+    symbol
+    (with-meta symbol {:tag (.getName type)})))
+
+(defmacro override-delegate
+  "Based on https://stackoverflow.com/a/33463302/5776097"
+  [type delegate & body]
+  (let [d (gensym)
+        overrides (group-by first body)
+        methods (for [m (.getMethods (resolve type))
+                      :let [f (-> (.getName m)
+                                  symbol
+                                  (add-tag-meta-if-applicable (.getReturnType m)))]
+                      :when (and (not (overrides f))
+                                 (not (Modifier/isPrivate (.getModifiers m)))
+                                 (not (Modifier/isProtected (.getModifiers m))))
+                      :let [args (for [t (.getParameterTypes m)]
+                                   (add-tag-meta-if-applicable (gensym) t))]]
+                  (list f (vec (conj args 'this))
+                        `(. ~d ~f ~@(map #(with-meta % nil) args))))
+        grouped-methods (->> methods
+                             (group-by first)
+                             (map (fn [[f arities]]
+                                    (let [by-arity-length (group-by (fn [[_ args-vec]] (count args-vec)) arities)]
+                                      (apply list f (->> by-arity-length
+                                                         (map (fn [[k arities]] (first arities)))
+                                                         (map (fn [[_ args-vec body]] `(~args-vec (~@body)))))))))
+                             (into []))]
+    `(let [~d ~delegate]
+       (proxy [~type] [] ~@body ~@grouped-methods))))
 
 (defn ^Statement -apply [this ^Statement base ^Description description]
   (let [state (.state this)]
@@ -28,7 +64,12 @@
         (let [{:keys [source seed]} state
               result (undertaker/run-prop {::undertaker/seed seed} #(.evaluate base))]
           (when (false? (::undertaker/result result))
-            (throw (ex-info "Test failed" result (::undertaker/ex result)))))))))
+            (let [test-name (first (str/split (.getDisplayName description) #"\("))
+                  message (undertaker/format-results test-name result)]
+              (throw (override-delegate
+                       java.lang.Throwable
+                       (::undertaker/cause result)
+                       (getMessage [] message))))))))))
 
 (defn ^long -pushInterval [_ ^String interval-name]
   (source/push-interval undertaker/*source* interval-name))

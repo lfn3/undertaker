@@ -56,6 +56,13 @@ public class SourceRuleTest {
     }
 
     @Test
+    @Ignore
+    public void canFailWithNiceishMessageWhenUsingAGenerator()
+    {
+        Assert.assertTrue(source.getBool());
+    }
+
+    @Test
     public void canGetABoolean()
     {
         final boolean bool = source.getBool();
