@@ -1,9 +1,7 @@
-package undertaker.junit.junit;
+package com.lmax.undertaker.junit;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import undertaker.junit.Source;
-import undertaker.junit.SourceRule;
 
 public class NoSourceRuleTest {
     @Test

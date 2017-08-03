@@ -13,7 +13,7 @@
             [undertaker.util :as util])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
-           (undertaker OverrunException)))
+           (com.lmax.undertaker OverrunException)))
 
 (defonce seed-uniquifier* (volatile! (long 8682522807148012)))
 

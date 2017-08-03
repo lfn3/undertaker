@@ -1,15 +1,15 @@
-(ns undertaker.junit.source-rule
+(ns com.lmax.undertaker.junit.source-rule
   (:gen-class
-    :name undertaker.junit.SourceRule
+    :name com.lmax.undertaker.junit.SourceRule
     :state state
     :init init
     :implements [org.junit.rules.TestRule
-                 undertaker.junit.generators.ByteGen
-                 undertaker.junit.generators.IntGen
-                 undertaker.junit.generators.LongGen
-                 undertaker.junit.generators.BoolGen
-                 undertaker.junit.generators.ListGen
-                 undertaker.junit.Source])
+                 com.lmax.undertaker.junit.generators.ByteGen
+                 com.lmax.undertaker.junit.generators.IntGen
+                 com.lmax.undertaker.junit.generators.LongGen
+                 com.lmax.undertaker.junit.generators.BoolGen
+                 com.lmax.undertaker.junit.generators.ListGen
+                 com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description)
            (java.util List ArrayList)

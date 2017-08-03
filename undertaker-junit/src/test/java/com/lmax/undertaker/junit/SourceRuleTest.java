@@ -1,12 +1,10 @@
-package undertaker.junit.junit;
+package com.lmax.undertaker.junit;
 
+import com.lmax.undertaker.junit.generators.ByteGen;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import undertaker.junit.Source;
-import undertaker.junit.SourceRule;
-import undertaker.junit.generators.ByteGen;
 
 import java.time.Instant;
 import java.util.Date;

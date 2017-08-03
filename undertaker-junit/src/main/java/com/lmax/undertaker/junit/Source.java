@@ -1,7 +1,7 @@
-package undertaker.junit;
+package com.lmax.undertaker.junit;
 
 import org.junit.rules.TestRule;
-import undertaker.junit.generators.*;
+import com.lmax.undertaker.junit.generators.*;
 
 public interface Source extends BoolGen, ByteGen, IntGen, ListGen, LongGen, TestRule
 {

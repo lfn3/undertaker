@@ -1,6 +1,6 @@
 (ns undertaker.source.fixed
   (:require [undertaker.proto :as proto])
-  (:import (undertaker OverrunException)))
+  (:import (com.lmax.undertaker OverrunException)))
 
 (defn- push-interval* [state interval-name]
   (let [id (inc (::interval-id-counter state))]

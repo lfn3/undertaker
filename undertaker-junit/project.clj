@@ -11,7 +11,7 @@
                  [org.clojure/test.check "0.9.0"]
                  [criterium "0.4.4"]
                  [junit/junit "4.12"]
-                 [undertaker ~version]]
+                 [com.lmax/undertaker ~version]]
 
   :plugins [[lein-junit "1.1.8"]]
   :junit ["src/test/java"]
@@ -21,4 +21,4 @@
   :test-paths ["src/test/java"]
   :target-path "target/%s"
 
-  :aot [undertaker.junit.source-rule])
+  :aot [com.lmax.undertaker.junit.source-rule])

@@ -1,10 +1,9 @@
-package undertaker.junit.generators;
+package com.lmax.undertaker.junit.generators;
 
-import undertaker.junit.Source;
+import com.lmax.undertaker.junit.Source;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public interface ListGen
 {

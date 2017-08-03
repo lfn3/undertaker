@@ -1,4 +1,4 @@
-package undertaker.junit.generators;
+package com.lmax.undertaker.junit.generators;
 
 public interface IntGen {
     default int getInt()
