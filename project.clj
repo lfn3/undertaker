@@ -1,6 +1,6 @@
 (def version "0.1.0-SNAPSHOT")
 
-(defproject undertaker-all version
+(defproject com.lmax/undertaker-all version
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
