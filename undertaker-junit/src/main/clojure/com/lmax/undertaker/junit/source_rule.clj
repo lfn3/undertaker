@@ -2,7 +2,6 @@
   (:gen-class
     :name com.lmax.undertaker.junit.SourceRule
     :state state
-    :init init
     :implements [org.junit.rules.TestRule
                  com.lmax.undertaker.junit.generators.ByteGen
                  com.lmax.undertaker.junit.generators.IntGen
@@ -14,14 +13,11 @@
            (org.junit.runner Description)
            (java.util List ArrayList)
            (java.util.function Function)
-           (java.lang.reflect Modifier))
+           (java.lang.reflect Modifier)
+           (com.lmax.undertaker.junit Seed Trials))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
-
-(defn -init []
-  [[] (let [seed (System/nanoTime)]
-        {:seed   seed})])
 
 (defn add-tag-meta-if-applicable [symbol ^Class type]
   (if (and (.isPrimitive type)
@@ -57,19 +53,27 @@
     `(let [~d ~delegate]
        (proxy [~type] [] ~@body ~@grouped-methods))))
 
+(defn get-annotation-value [^Class annotation ^Description description default]
+  (let [annotation (or (.getAnnotation description annotation)
+                       (.getAnnotation (.getTestClass description) annotation))]
+    (or (some-> annotation
+                (.value))
+        default)))
+
 (defn ^Statement -apply [this ^Statement base ^Description description]
-  (let [state (.state this)]
-    (proxy [Statement] []
-      (evaluate []
-        (let [{:keys [source seed]} state
-              result (undertaker/run-prop {::undertaker/seed seed} #(.evaluate base))]
-          (when (false? (::undertaker/result result))
-            (let [test-name (first (str/split (.getDisplayName description) #"\("))
-                  message (undertaker/format-results test-name result)]
-              (throw (override-delegate
-                       java.lang.Throwable
-                       (::undertaker/cause result)
-                       (getMessage [] message))))))))))
+  (proxy [Statement] []
+    (evaluate []
+      (let [seed (get-annotation-value Seed description (undertaker/next-seed (System/nanoTime)))
+            trials (get-annotation-value Trials description 1000)
+            result (undertaker/run-prop {::undertaker/seed       seed
+                                         ::undertaker/iterations trials} #(.evaluate base))]
+        (when (false? (::undertaker/result result))
+          (let [test-name (first (str/split (.getDisplayName description) #"\("))
+                message (undertaker/format-results test-name result)]
+            (throw (override-delegate
+                     java.lang.Throwable
+                     (::undertaker/cause result)
+                     (getMessage [] message)))))))))
 
 (defn ^long -pushInterval [_ ^String interval-name]
   (source/push-interval undertaker/*source* interval-name))

@@ -92,6 +92,14 @@ public class SourceRuleTest {
         Assert.assertTrue(aLong <= Long.MAX_VALUE);
     }
 
+    @Test
+    @Seed(1234567)
+    @Trials(1)
+    public void annotationsWork() throws Exception
+    {
+        Assert.assertEquals(7320916221699310354L, source.getLong());
+    }
+
     public static <T, V> Supplier<V> bind(Function<T, V> f, T input)
     {
         return () -> f.apply(input);

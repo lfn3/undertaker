@@ -359,7 +359,7 @@ If you're using Clojure, you can add :undertaker.core/seed to this test's option
 
 If you're using Java and jUnit, you can add an annotation to the test:
 @Test
-@UndertakerConfig(seed = %s)
+@com.lmax.undertaker.junit.Seed(%s)
 public void %s() { ... }"
           name
           (::iterations-run results)
