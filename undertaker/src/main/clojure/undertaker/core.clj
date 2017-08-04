@@ -504,7 +504,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
-  ([elem-gen min] (vec-of elem-gen min default-max-size))
+  ([elem-gen min] (vec-of elem-gen min (+ min default-max-size)))
   ([elem-gen min max]
    (with-interval (format-interval-name "vec" min max)
      (loop [result []]
