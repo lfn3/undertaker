@@ -19,7 +19,7 @@ public class SourceRuleTest {
     @Test
     public void compilesAndRuns()
     {
-
+        System.out.println(new long[1].getClass().getName());
     }
 
     @Test
@@ -90,6 +90,16 @@ public class SourceRuleTest {
         final long aLong = source.getLong();
         Assert.assertTrue(aLong >= Long.MIN_VALUE);
         Assert.assertTrue(aLong <= Long.MAX_VALUE);
+    }
+
+    @Test
+    public void canGetLongArray() throws Exception
+    {
+        final long[] someLongs = source.getLongArray();
+        for (long aLong : someLongs) {
+            Assert.assertTrue(aLong >= Long.MIN_VALUE);
+            Assert.assertTrue(aLong <= Long.MAX_VALUE);
+        }
     }
 
     @Test

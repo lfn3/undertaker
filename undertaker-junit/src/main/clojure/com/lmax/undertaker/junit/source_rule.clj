@@ -8,6 +8,7 @@
                  com.lmax.undertaker.junit.generators.LongGen
                  com.lmax.undertaker.junit.generators.BoolGen
                  com.lmax.undertaker.junit.generators.ListGen
+                 com.lmax.undertaker.junit.generators.LongArrayGen
                  com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description)
@@ -107,3 +108,9 @@
           (map #(.add result-list %1))
           (dorun))
      result-vec)))
+
+(defn #^"[J" -getLongArray
+  ([this] (long-array (undertaker/vec-of undertaker/long)))
+  ([this ^Function generator] (long-array (undertaker/vec-of #(.apply generator this))))
+  ([this ^Function generator min] (long-array (undertaker/vec-of #(.apply generator this) min (+ min 64))))
+  ([this ^Function generator min max] (long-array (undertaker/vec-of #(.apply generator this) min max))))
