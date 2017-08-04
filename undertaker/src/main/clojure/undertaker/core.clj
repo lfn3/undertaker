@@ -393,6 +393,27 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat :results ::results-map)
   :ret string?)
 
+(defn fill-numeric-array [output-arr get-bytes-fn floor ceiling]
+  (let [maxes (get-bytes-fn ceiling)
+        mins (get-bytes-fn floor)
+        first-genned (source/get-byte *source* (first mins) (first maxes))
+        negative? (neg? first-genned)
+        maxes (if (and negative? (not (neg? ceiling)))
+                (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
+                maxes)
+        mins (if (and (not negative?) (neg? floor))
+               (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+               mins)]
+    (aset output-arr 0 first-genned)
+    (loop [idx 1
+           all-maxes? (is-max? first-genned 0 mins maxes)]
+      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
+        (aset output-arr idx next-val)
+        (when (< (inc idx) (count output-arr))
+          (recur (inc idx)
+                 (and all-maxes? (is-max? next-val idx mins maxes))))))
+    output-arr))
+
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -420,26 +441,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "int" floor ceiling)
-     (let [mins (util/get-bytes-from-int floor)
-           maxes (util/get-bytes-from-int ceiling)
-           first-genned (source/get-byte *source* (first mins) (first maxes))
-           output-arr (byte-array 4)
-           negative? (neg? first-genned)
-           maxes (if (and negative? (not (neg? ceiling)))
-                   (util/get-bytes-from-int (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
-                   maxes)
-           mins (if (and (not negative?) (neg? floor))
-                  (util/get-bytes-from-int (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-                  mins)]
-       (aset output-arr 0 first-genned)
-       (loop [idx 1
-              all-maxes? (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-           (aset output-arr idx next-val)
-           (when (< (inc idx) (count output-arr))
-             (recur (inc idx)
-                    (and all-maxes? (is-max? next-val idx mins maxes))))))
-       (bytes->int output-arr)))))
+     (-> (byte-array 4)
+         (fill-numeric-array util/get-bytes-from-int floor ceiling)
+         (bytes->int)))))
 
 (s/fdef int
   :args (s/cat :min (s/? int?)
@@ -458,26 +462,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "long" floor ceiling)
-     (let [mins (util/get-bytes-from-long floor)
-           maxes (util/get-bytes-from-long ceiling)
-           first-genned (source/get-byte *source* (first mins) (first maxes))
-           output-arr (byte-array 8)
-           negative? (neg? first-genned)
-           maxes (if (and negative? (not (neg? ceiling)))
-                   (util/get-bytes-from-long (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
-                   maxes)
-           mins (if (and (not negative?) (neg? floor))
-                  (util/get-bytes-from-long (max 0 floor))  ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-                  mins)]
-       (aset output-arr 0 first-genned)
-       (loop [idx 1
-              all-maxes? (is-max? first-genned 0 mins maxes)]
-         (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-           (aset output-arr idx next-val)
-           (when (< (inc idx) (count output-arr))
-             (recur (inc idx)
-                    (and all-maxes? (is-max? next-val idx mins maxes))))))
-       (bytes->long output-arr)))))
+     (-> (byte-array 8)
+         (fill-numeric-array util/get-bytes-from-long floor ceiling)
+         (bytes->long)))))
 
 (s/fdef long
   :args (s/cat :min (s/? int?)
