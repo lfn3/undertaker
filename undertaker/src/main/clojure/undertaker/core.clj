@@ -1,6 +1,6 @@
 (ns undertaker.core
   (:gen-class)
-  (:refer-clojure :exclude [int])
+  (:refer-clojure :exclude [int byte long])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
@@ -15,10 +15,11 @@
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException)))
 
-(defonce seed-uniquifier* (volatile! (long 8682522807148012)))
+(defonce seed-uniquifier* (volatile! (clojure.core/long 8682522807148012)))
 
 (defn seed-uniquifier []
-  (vswap! seed-uniquifier* #(unchecked-multiply (long %1) (long 181783497276652981)))) ;TODO: get rid of casts.
+  (vswap! seed-uniquifier* #(unchecked-multiply (clojure.core/long %1) ;TODO: get rid of casts.
+                                                (clojure.core/long 181783497276652981))))
 
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
