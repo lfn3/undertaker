@@ -34,6 +34,15 @@
     (.putLong wrapped i)
     out))
 
+(defn get-bytes-from-double [^Double d]
+  (let [out (byte-array 8)
+        wrapped (ByteBuffer/wrap out)]
+    (.putDouble wrapped d)
+    out))
+
+(defn byte-array->bits [bytes]
+  (map #(.substring (Integer/toBinaryString (+ (bit-and 0xFF %1) 0x100)) 1) bytes))
+
 (defn abs [i]
   (if (neg-int? i) (- i) i))
 

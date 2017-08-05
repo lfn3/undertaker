@@ -13,7 +13,8 @@
             [undertaker.source.fixed :as source.fixed]
             [undertaker.source.wrapped-random :as source.wrapped]
             [undertaker.proto :as proto]
-            [undertaker.source.forgetful :as source.forgetful]))
+            [undertaker.source.forgetful :as source.forgetful]
+            [undertaker.util :as util]))
 
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
 
@@ -120,3 +121,26 @@
   (is (instance? Long (undertaker/long)))
   (is (>= (undertaker/long) Long/MIN_VALUE))
   (is (<= (undertaker/long) Long/MAX_VALUE)))
+
+(deftest double-get-test
+  (is (instance? Double (undertaker/double)))
+  (is (>= (undertaker/double) Double/MIN_VALUE))
+  (is (<= (undertaker/double) Double/MAX_VALUE))
+  (is (>= (undertaker/double -1.0 1.0) 1.0))
+  (is (<= (undertaker/double -1.0 1.0) -1.0)))
+
+(deftest double-arrays-examples
+  (is (= (vec (util/get-bytes-from-double -2.563353952042129E75))
+         [-49 -106 -85 58 73 -49 -24 -102]))
+  (is (= (vec (util/get-bytes-from-double 1.0))
+         [63 -16 0 0 0 0 0 0]))
+  (is (= (vec (util/get-bytes-from-double -1.0))
+         [-65 -16 0 0 0 0 0 0]))
+  (is (= (vec (util/get-bytes-from-double 0.5))
+         [63 -32 0 0 0 0 0 0]))
+  (is (= (vec (util/get-bytes-from-double -0.5))
+         [-65 -32 0 0 0 0 0 0]))
+  (is (= (vec (util/get-bytes-from-double 0.2))
+         [63 -55 -103 -103 -103 -103 -103 -102]))
+  (is (= (vec (util/get-bytes-from-double 1.0000000000000002))
+         [63 -16 0 0 0 0 0 1])))

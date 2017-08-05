@@ -1,6 +1,6 @@
 (ns undertaker.core
   (:gen-class)
-  (:refer-clojure :exclude [int byte long])
+  (:refer-clojure :exclude [int byte long double])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
@@ -342,6 +342,12 @@ If you can't find the cause of the error, please raise an issue at "
       (ByteBuffer/wrap)
       (.getLong)))
 
+(defn bytes->double [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getDouble)))
+
 (defn format-failed [name results]
   (format "%s failed after running %d times.
 
@@ -478,6 +484,17 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
             (<= min ret)
             (>= max ret)))))
 
+;This is another tricky case.
+;Have to deal with the exponent and mantissa separately I think.
+
+(defn double
+  ([] (double Double/MIN_VALUE Double/MAX_VALUE))
+  ([min] (double min Double/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "double" floor ceiling)
+     (-> (byte-array 8)
+         (fill-numeric-array util/get-bytes-from-double floor ceiling)
+         (bytes->double)))))
 
 (def default-max-size 64)
 
