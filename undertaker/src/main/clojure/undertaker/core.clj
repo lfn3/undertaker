@@ -41,7 +41,7 @@
        min
        (let [divisor (/ type-range range)
              adjusted-number (+ fixed-offset number)]
-         (Math/round (double (+ min (/ adjusted-number divisor)))))))))
+         (Math/round (clojure.core/double (+ min (/ adjusted-number divisor)))))))))
 
 (s/fdef move-into-range
   :args (s/alt
@@ -486,6 +486,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 ;This is another tricky case.
 ;Have to deal with the exponent and mantissa separately I think.
+;Seems like the bytes in a double (at least in the exponent) are treated as unsigned.
+;I.e. -1 > -2
 
 (defn double
   ([] (double Double/MIN_VALUE Double/MAX_VALUE))

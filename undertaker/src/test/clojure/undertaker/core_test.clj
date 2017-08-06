@@ -126,8 +126,8 @@
   (is (instance? Double (undertaker/double)))
   (is (>= (undertaker/double) Double/MIN_VALUE))
   (is (<= (undertaker/double) Double/MAX_VALUE))
-  (is (>= (undertaker/double -1.0 1.0) 1.0))
-  (is (<= (undertaker/double -1.0 1.0) -1.0)))
+  (is (<= (undertaker/double -1.0 1.0) 1.0))
+  (is (>= (undertaker/double -1.0 1.0) -1.0)))
 
 (deftest double-arrays-examples
   (is (= (vec (util/get-bytes-from-double -2.563353952042129E75))
