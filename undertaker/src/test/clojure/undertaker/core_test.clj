@@ -131,8 +131,8 @@
 
 (deftest double-arrays-examples
   (is (= (vec (util/get-bytes-from-double -2.563353952042129E75))
-         [-49 -106 -85 58 73 -49 -24 -102]))
-  (is (= (vec (util/get-bytes-from-double 1.0))
+         [-49 -106 -85 58 73 -49 -24 -102]))                ;This is the problem with the generator. -65 < -49 < 63.
+  (is (= (vec (util/get-bytes-from-double 1.0))             ;But if we consider them as unsigned, -49 > -65.
          [63 -16 0 0 0 0 0 0]))
   (is (= (vec (util/get-bytes-from-double -1.0))
          [-65 -16 0 0 0 0 0 0]))
@@ -144,3 +144,26 @@
          [63 -55 -103 -103 -103 -103 -103 -102]))
   (is (= (vec (util/get-bytes-from-double 1.0000000000000002))
          [63 -16 0 0 0 0 0 1])))
+
+(deftest unsigned-range-test
+  (is (= (undertaker/unsigned-range 0 0) 0))
+  (is (= (undertaker/unsigned-range 0 1) 1))
+  (is (= (undertaker/unsigned-range -1 0) 255))
+  (is (= (undertaker/unsigned-range -128 0) 128))
+  (is (= (undertaker/unsigned-range -128 127) 1))
+  (is (= (undertaker/unsigned-range 127 -1) 128))
+  (is (= (undertaker/unsigned-range 0 127) 127))
+  (is (= (undertaker/unsigned-range -1 1) 254))
+  (is (= (undertaker/unsigned-range -128 -1) 127))
+  (is (= (undertaker/unsigned-range -65 63) 128)))
+
+(deftest unsigned-range->generator-floor-and-ceiling-test
+  (is (= [-128 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 255)))
+  (is (= [0 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 128)))
+  (is (= [-1 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 129))))
+
+(deftest map-into-unsigned-range
+  (is (= (undertaker/map-into-unsigned-range 0 -128 127) 0))
+  (is (= (undertaker/map-into-unsigned-range -128 -128 127) -128))
+  (is (= (undertaker/map-into-unsigned-range 127 -1 0) -1))
+  (is (= (undertaker/map-into-unsigned-range 126 -1 0) -2)))

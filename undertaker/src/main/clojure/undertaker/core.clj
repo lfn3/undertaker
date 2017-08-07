@@ -420,6 +420,57 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                  (and all-maxes? (is-max? next-val idx mins maxes))))))
     output-arr))
 
+(defn unsigned-range [floor ceiling]
+  (let [unsigned-floor (bit-and 0xff floor)
+        unsigned-ceiling (bit-and 0xff ceiling)]
+    (- (max unsigned-floor unsigned-ceiling) (min unsigned-floor unsigned-ceiling))))
+
+(defn unsigned-range->get-byte-floor-and-ceiling [value]
+  (let [floor (if (> value 127)
+                (unchecked-byte value)
+                0)
+        ceiling (min value 127)]
+    [floor ceiling]))
+
+(s/fdef unsigned-range->get-byte-floor-and-ceiling
+  :args (s/cat :value (s/with-gen (s/and integer?
+                                         (partial <= 0)
+                                         (partial >= 255))
+                                  #(gen/choose 0 255)))
+  :ret (s/tuple (s/and integer? (partial >= 0))
+                (s/and integer? (partial >= 127))))
+
+(defn map-into-unsigned-range [value floor ceiling]
+  value)
+
+(defn fill-unsigned-numeric-array [output-arr get-bytes-fn floor ceiling]
+  (let [maxes (get-bytes-fn ceiling)
+        mins (get-bytes-fn floor)
+        _ (prn (vec mins))
+        _ (prn (vec maxes))
+        ranges (->> (map unsigned-range mins maxes)
+                    (map unsigned-range->get-byte-floor-and-ceiling))
+        _ (prn ranges)
+        first-genned (-> (source/get-byte *source* (first (first ranges)) (first (last ranges)))
+                         (map-into-unsigned-range (first (first ranges)) (first (last ranges)))) ;Not sure about this bit, yet.
+        _ (prn first-genned)
+        negative? (neg? first-genned)
+        maxes (if (and negative? (not (neg? ceiling)))      ;not sure if I need these.
+                (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
+                maxes)
+        mins (if (and (not negative?) (neg? floor))
+               (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+               mins)]
+    (aset output-arr 0 first-genned)
+    (loop [idx 1
+           all-maxes? (is-max? first-genned 0 mins maxes)]
+      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? (map first ranges) (map last ranges))]
+        (aset output-arr idx next-val)
+        (when (< (inc idx) (count output-arr))
+          (recur (inc idx)
+                 (and all-maxes? (is-max? next-val idx mins maxes))))))
+    output-arr))
+
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -495,7 +546,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([floor ceiling]
    (with-interval (format-interval-name "double" floor ceiling)
      (-> (byte-array 8)
-         (fill-numeric-array util/get-bytes-from-double floor ceiling)
+         (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling)
          (bytes->double)))))
 
 (def default-max-size 64)
