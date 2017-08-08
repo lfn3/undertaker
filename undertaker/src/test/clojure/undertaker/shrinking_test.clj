@@ -102,3 +102,11 @@
   (let [result (->> (fn [])
                     (undertaker/run-prop {}))]
     (is (= 1 (::undertaker/iterations-run result)))))
+
+(deftest should-shrink-to-below-one
+  (let [result (->> (fn [] (let [value (undertaker/double)]
+                             (is (> 0.9 value))))
+                    (undertaker/run-prop {}))
+        shrunk-val (first (::undertaker/shrunk-values))]
+    (is (> 0.9 shrunk-val))
+    (is (< 1 shrunk-val))))

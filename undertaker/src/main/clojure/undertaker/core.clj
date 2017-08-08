@@ -427,7 +427,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (defn unsigned-range->get-byte-floor-and-ceiling [value]
   (let [floor (if (> value 127)
-                (unchecked-byte value)
+                (- 127 value)
                 0)
         ceiling (min value 127)]
     [floor ceiling]))
@@ -441,19 +441,17 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                 (s/and integer? (partial >= 127))))
 
 (defn map-into-unsigned-range [value floor ceiling]
-  value)
+  (if (= -1 (Integer/compareUnsigned ceiling value))
+    (+ -128 (- (util/abs value) ceiling 1))
+    value))
 
 (defn fill-unsigned-numeric-array [output-arr get-bytes-fn floor ceiling]
   (let [maxes (get-bytes-fn ceiling)
         mins (get-bytes-fn floor)
-        _ (prn (vec mins))
-        _ (prn (vec maxes))
         ranges (->> (map unsigned-range mins maxes)
                     (map unsigned-range->get-byte-floor-and-ceiling))
-        _ (prn ranges)
         first-genned (-> (source/get-byte *source* (first (first ranges)) (first (last ranges)))
                          (map-into-unsigned-range (first (first ranges)) (first (last ranges)))) ;Not sure about this bit, yet.
-        _ (prn first-genned)
         negative? (neg? first-genned)
         maxes (if (and negative? (not (neg? ceiling)))      ;not sure if I need these.
                 (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
@@ -461,7 +459,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         mins (if (and (not negative?) (neg? floor))
                (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
                mins)]
-    (aset output-arr 0 first-genned)
+    (aset-byte output-arr 0 first-genned)
     (loop [idx 1
            all-maxes? (is-max? first-genned 0 mins maxes)]
       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? (map first ranges) (map last ranges))]
@@ -548,6 +546,15 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
      (-> (byte-array 8)
          (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling)
          (bytes->double)))))
+
+(s/fdef double
+  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
+  :ret double?
+  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
+                                      :or {floor Double/MIN_VALUE
+                                           ceiling Double/MAX_VALUE}} args]
+                                 (and (>= ret floor)
+                                      (<= ret ceiling)))))
 
 (def default-max-size 64)
 
