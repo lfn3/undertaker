@@ -441,9 +441,13 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                 (s/and integer? (partial >= 127))))
 
 (defn map-into-unsigned-range [value floor ceiling]
-  (if (= -1 (Integer/compareUnsigned ceiling value))
-    (+ -128 (- (util/abs value) ceiling 1))
-    value))
+  (let [[floor ceiling] [(min floor ceiling) (max floor ceiling)]]
+    (cond
+      (and (or (pos? value) (zero? value)) (pos? ceiling) (>= ceiling value)) value
+      (and (pos? ceiling) (pos? value)) (+ -129 (- value ceiling))
+      (and (zero? ceiling) (neg? floor) (zero? value)) 0
+      (and (or (zero? ceiling) (neg? ceiling)) (neg? floor) (not (neg? value))) (+ -128 value)
+      (neg? value) (+ -129 (util/abs value)))))
 
 (defn fill-unsigned-numeric-array [output-arr get-bytes-fn floor ceiling]
   (let [maxes (get-bytes-fn ceiling)
@@ -553,8 +557,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
                                       :or {floor Double/MIN_VALUE
                                            ceiling Double/MAX_VALUE}} args]
-                                 (and (>= ret floor)
-                                      (<= ret ceiling)))))
+                                 (or (= Double/NaN ret)
+                                     (Double/isFinite ret)
+                                     (and (>= ret floor)
+                                          (<= ret ceiling))))))
 
 (def default-max-size 64)
 

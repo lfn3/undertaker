@@ -31,7 +31,7 @@
 (undertaker/defprop double-full-range-get-test {}
   (let [value (undertaker/double)]
     (is (instance? Double value))
-    (is (>= value Double/MIN_VALUE))
+    (is (>= value (- Double/MAX_VALUE)))
     (is (<= value Double/MAX_VALUE))))
 
 (undertaker/defprop double-around-one {}

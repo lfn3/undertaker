@@ -124,7 +124,7 @@
 
 (deftest double-get-test
   (is (instance? Double (undertaker/double)))
-  (is (>= (undertaker/double) Double/MIN_VALUE))
+  (is (>= (undertaker/double) (- Double/MAX_VALUE)))
   (is (<= (undertaker/double) Double/MAX_VALUE))
   (is (<= (undertaker/double -1.0 1.0) 1.0))
   (is (>= (undertaker/double -1.0 1.0) -1.0)))
@@ -155,7 +155,7 @@
   (is (= (undertaker/unsigned-range 0 127) 127))
   (is (= (undertaker/unsigned-range -1 1) 254))
   (is (= (undertaker/unsigned-range -128 -1) 127))
-  (is (= (undertaker/unsigned-range -65 63) 127)))
+  (is (= (undertaker/unsigned-range -65 63) 128)))
 
 (deftest unsigned-range->generator-floor-and-ceiling-test
   (is (= [-128 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 255)))
@@ -169,6 +169,9 @@
   (is (= (undertaker/map-into-unsigned-range 0 -65 63) 0))
   (is (= (undertaker/map-into-unsigned-range 63 -65 63) 63))
   (is (= (undertaker/map-into-unsigned-range 64 -65 63) -128))
-  (is (= (undertaker/map-into-unsigned-range 128 -65 63) -65))
-  (is (= (undertaker/map-into-unsigned-range 127 -1 0) -1))
-  (is (= (undertaker/map-into-unsigned-range 126 -1 0) -2)))
+  (is (= (undertaker/map-into-unsigned-range 127 -65 63) -65))
+  (is (= (undertaker/map-into-unsigned-range 0 -128 -1) -128))
+  (is (= (undertaker/map-into-unsigned-range 127 -128 -1) -1))
+  (is (= (undertaker/map-into-unsigned-range 126 -128 -1) -2))
+  (is (= (undertaker/map-into-unsigned-range 96 0 -127) -32))
+  (is (= (undertaker/map-into-unsigned-range 0 -1 0) 0)))
