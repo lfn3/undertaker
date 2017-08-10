@@ -363,7 +363,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn bool
   ([]
    (with-interval (format-interval-name "bool")
-     (if (= 1 (source/get-byte *source* 0 1))
+     (if (= 1 (source/get-ubyte *source* 1))
        true
        false))))
 

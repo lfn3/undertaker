@@ -32,6 +32,9 @@
       (min ceiling)
       (max floor)))
 
+(defn squish-ubyte [b ceiling]
+  (min (bit-and 0xff b) (bit-and 0xff ceiling)))
+
 (defn byte-or-throw-overrun [state]
   (try (nth (::bytes state) (::cursor state))
        (catch IndexOutOfBoundsException e
@@ -51,6 +54,11 @@
     (let [byte (byte-or-throw-overrun @state-atom)]
       (swap! state-atom update ::cursor inc)
       (squish-byte byte floor ceiling)))
+  proto/UnsignedByteSource
+  (get-ubyte [_ ceiling]
+    (let [byte (byte-or-throw-overrun @state-atom)]
+      (swap! state-atom update ::cursor inc)
+      (squish-ubyte byte ceiling)))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

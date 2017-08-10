@@ -8,12 +8,24 @@
   (let [range (inc (util/abs (- ceiling floor)))]
     (unchecked-byte (+ floor (mod b range)))))
 
+(defn squish-ubyte [b ceiling]
+  (let [range (inc (bit-and 0xff ceiling))]
+    (cond
+      (zero? range) 0
+      (= 256 range) b
+      :default (unchecked-byte (mod b range)))))
+
 (extend-type Random
   proto/ByteSource
   (get-byte [this min max]
     (let [output (byte-array 1)]
       (.nextBytes this output)
-      (squish-byte (aget output 0) min max))))
+      (squish-byte (aget output 0) min max)))
+  proto/UnsignedByteSource
+  (get-ubyte [this max]
+    (let [output (byte-array 1)]
+      (.nextBytes this output)
+      (squish-ubyte (aget output 0) max))))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -63,6 +75,13 @@
   proto/ByteSource
   (get-byte [_ min max]
     (let [byte (proto/get-byte rnd min max)]
+      (swap! state-atom #(-> %1
+                             (update ::bytes-counter inc)
+                             (update ::bytes conj byte)))
+      byte))
+  proto/UnsignedByteSource
+  (get-ubyte [_ max]
+    (let [byte (proto/get-ubyte rnd max)]
       (swap! state-atom #(-> %1
                              (update ::bytes-counter inc)
                              (update ::bytes conj byte)))
