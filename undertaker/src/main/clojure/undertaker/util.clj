@@ -49,3 +49,15 @@
 (s/fdef abs
   :args (s/cat :i integer?)
   :ret (s/or :pos pos-int? :zero zero?))
+
+(defn unsigned<= [x y]
+  (= -1 (Long/compareUnsigned x y)))
+
+(s/fdef unsigned<=
+  :args (s/cat :x int? :y int?)
+  :ret boolean?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [x y]} args]
+          (if (= (Long/signum x) (Long/signum y))
+            (and ret (<= x y))
+            (and ret (neg? y))))))

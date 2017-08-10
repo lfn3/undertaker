@@ -62,3 +62,14 @@
              (map (fn [val] [((set (range -128 128)) val) val]))
              (filter (comp nil? first))
              (empty?)))))
+
+(deftest should-emit-unsigned-numbers-in-range
+  (is (= 0 (source/get-ubyte forgetful-source 0)))
+  (let [values (repeatedly 10 #(source/get-ubyte forgetful-source 1))]
+    (is (not-every? (partial = 0) values))
+    (is (not-every? (partial = 1) values)))
+  (let [values (repeatedly 100000 #(source/get-ubyte forgetful-source -1))]
+    (is (->> values
+             (map (fn [val] [((set (range -128 128)) val) val]))
+             (filter (comp nil? first))
+             (empty?)))))

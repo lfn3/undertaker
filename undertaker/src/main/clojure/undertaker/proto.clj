@@ -15,6 +15,9 @@
 (defprotocol ByteSource
   (get-byte [this min max]))
 
+(defprotocol UnsignedByteSource
+  (get-ubyte [this max]))
+
 (defprotocol Interval
   (push-interval [this interval-name])
   (pop-interval [this interval-id generated-value])

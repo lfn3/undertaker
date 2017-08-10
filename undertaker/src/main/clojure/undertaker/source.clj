@@ -73,6 +73,18 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
               (partial >= Byte/MAX_VALUE)
               (partial <= Byte/MIN_VALUE)))
 
+(defn get-ubyte
+  ([source] (get-ubyte source -1))
+  ([source max] (proto/get-ubyte source max)))
+
+(s/fdef get-ubyte
+  :args (s/cat :source ::source :max (s/? ::util/byte))
+  :ret ::util/byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [max]
+               :or   {max -1}} args]
+          (util/unsigned<= ret max))))
+
 (defn push-interval [source interval-name]
   (check-invariants source)
   (proto/push-interval source interval-name))
