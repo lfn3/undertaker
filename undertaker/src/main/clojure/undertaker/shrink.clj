@@ -40,8 +40,8 @@
             shrunk-bytes (snip-interval bytes interval)
             source (fixed-source/make-fixed-source shrunk-bytes)
             result (fn source)
-            passed? (::result result)
-            overrun? (instance? OverrunException (::cause result))
+            passed? (:undertaker.core/result result)
+            overrun? (instance? OverrunException (:undertaker.core/cause result))
             continue? (< (inc index) (count intervals))]
         (cond
           (and continue? (or overrun? passed?)) (recur (inc index)
@@ -93,7 +93,7 @@
       (let [shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
             keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
             result-map (fn shrunk-source)
-            passed? (true? (::result result-map))
+            passed? (true? (:undertaker.core/result result-map))
             work-on-next (if keep-trying-current-byte?
                            working-on
                            (inc working-on))
