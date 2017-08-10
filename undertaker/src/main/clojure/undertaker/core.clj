@@ -378,6 +378,16 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
    (with-interval (format-interval-name "byte" min max)
      (source/get-byte *source* min max))))
 
+(s/fdef byte
+  :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))
+  :ret ::util/byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or {min Byte/MIN_VALUE
+                    max Byte/MAX_VALUE}} args]
+          (and (<= min ret)
+               (<= ret max)))))
+
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
