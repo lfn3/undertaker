@@ -257,8 +257,8 @@ public void %s() { ... }"
           (::seed results)
           name
           (::seed results)
-          name
-          (::seed results)))
+          (::seed results)
+          name))
 
 (defn format-not-property-test-failed [name results]
   (format "This test did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
