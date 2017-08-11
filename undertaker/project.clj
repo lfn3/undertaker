@@ -10,9 +10,13 @@
 
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
-  :test-paths ["src/test/clojure" "src/test/java"]
+  :test-paths ["src/test/clojure"]
   :target-path "target/%s"
 
   :profiles {:dev {:dependencies [[orchestra "0.3.0"]
                                    [org.clojure/test.check "0.9.0"]
-                                   [criterium "0.4.4"]]}})
+                                   [criterium "0.4.4"]]}
+             :benchmarks {:test-paths ^:replace ["src/test/benchmarks"]
+                          :dependencies [[criterium "0.4.4"]
+                                         [org.clojure/test.check "0.9.0"]]}}
+  :aliases {"bench" ["with-profile" "benchmarks" "test"]})
