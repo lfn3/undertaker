@@ -33,7 +33,7 @@
       (max floor)))
 
 (defn squish-ubyte [b ceiling]
-  (min (bit-and 0xff b) (bit-and 0xff ceiling)))
+  (unchecked-byte (min (bit-and 0xff b) (bit-and 0xff ceiling))))
 
 (defn byte-or-throw-overrun [state]
   (try (nth (::bytes state) (::cursor state))

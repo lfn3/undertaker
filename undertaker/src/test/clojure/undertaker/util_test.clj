@@ -50,3 +50,18 @@
   (is (not (util/unsigned<= -1 0)))
   (is (not (util/unsigned<= -128 0)))
   (is (not (util/unsigned<= -128 127))))
+
+(deftest signed-range->unsigned-test
+  (is (= 2 (util/signed-range->unsigned -1 1)))
+  (is (= -1 (util/signed-range->unsigned -128 127)))
+  (is (= 127 (util/signed-range->unsigned 0 127)))
+  (is (= 32 (util/signed-range->unsigned 16 48)))
+  (is (= -128 (util/signed-range->unsigned -1 127)))
+  (is (= -128 (util/signed-range->unsigned -65 63))))
+
+(deftest map-unsigned-byte-into-signed-range-test
+  (is (= 0 (util/map-unsigned-byte-into-signed-range -128 127 0)))
+  (is (= -128 (util/map-unsigned-byte-into-signed-range -128 127 -1))) ;-1 is the largest possible value
+  (is (= 1 (util/map-unsigned-byte-into-signed-range -128 127 1)))
+  (is (= 127 (util/map-unsigned-byte-into-signed-range -128 127 127)))
+  (is (= -56 (util/map-unsigned-byte-into-signed-range -128 127 -73))))

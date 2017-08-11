@@ -16,13 +16,13 @@
         (unchecked-byte))))
 
 (s/fdef move-towards-0
-        :args (s/cat :byte ::util/byte)
-        :ret ::util/byte
-        :fn (fn [{:keys [args ret]}]
-              (let [{:keys [byte]} args]
-                (or (= 0 ret)
-                    (< (bit-and 0xff ret)
-                       (bit-and 0xff (:byte args)))))))
+  :args (s/cat :byte ::util/byte)
+  :ret ::util/byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [byte]} args]
+          (or (= 0 ret)
+              (< (bit-and 0xff ret)
+                 (bit-and 0xff (:byte args)))))))
 
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
@@ -30,6 +30,20 @@
     (System/arraycopy bytes 0 output 0 interval-start)
     (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
     output))
+
+(defn is-overrun? [result-map]
+  (or (instance? OverrunException (:undertaker.core/cause result-map))
+      (->> result-map
+           :undertaker.core/cause
+           (map :actual)
+           (filter (partial instance? OverrunException))
+           (not-empty)
+           (nil?)
+           (not))))
+
+(s/fdef is-overrun?
+  :args (s/cat :result-map (s/keys :req [:undertaker.core/cause]))
+  :ret boolean?)
 
 (defn snip-intervals [bytes intervals fn]
   (loop [index 0
@@ -41,7 +55,7 @@
             source (fixed-source/make-fixed-source shrunk-bytes)
             result (fn source)
             passed? (:undertaker.core/result result)
-            overrun? (instance? OverrunException (:undertaker.core/cause result))
+            overrun? (is-overrun? result)
             continue? (< (inc index) (count intervals))]
         (cond
           (and continue? (or overrun? passed?)) (recur (inc index)
@@ -67,22 +81,22 @@
        (reduce +)))
 
 (s/fdef shrink-at!
-        :args (s/with-gen (s/cat :bytes (s/and bytes?
-                                               not-empty)
-                                 :index integer?)
-                          #(gen/bind (s/gen (s/and bytes?
-                                                   not-empty))
-                                     (fn [byte-arr]
-                                       (gen/tuple (gen/return byte-arr)
-                                                  (gen/choose 0 (dec (count byte-arr)))))))
-        :ret bytes?
-        :fn (fn [{:keys [args ret]}]
-              (let [{:keys [bytes index]} args]
-                (and (< index (count bytes))
-                     (= (count bytes)
-                        (count ret))
-                     (>= (sum-abs bytes)
-                         (sum-abs ret))))))
+  :args (s/with-gen (s/cat :bytes (s/and bytes?
+                                         not-empty)
+                           :index integer?)
+                    #(gen/bind (s/gen (s/and bytes?
+                                             not-empty))
+                               (fn [byte-arr]
+                                 (gen/tuple (gen/return byte-arr)
+                                            (gen/choose 0 (dec (count byte-arr)))))))
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [bytes index]} args]
+          (and (< index (count bytes))
+               (= (count bytes)
+                  (count ret))
+               (>= (sum-abs bytes)
+                   (sum-abs ret))))))
 
 (defn move-bytes-towards-zero [bytes fn]
   (if-not (empty? bytes)
@@ -110,17 +124,18 @@
 
 (defn shrink
   ([bytes intervals f]
-   (source/shrinking!)
-   (let [shrunk-source (-> bytes
-                           (snip-intervals intervals f)
-                           (move-bytes-towards-zero f)
-                           (fixed-source/make-fixed-source))]
-     (f shrunk-source)                                      ;So we get the right intervals in place. TODO: remove this.
-     (source/done-shrinking!)
-     shrunk-source)))
+   (try
+     (source/shrinking!)
+     (let [shrunk-source (-> bytes
+                             (snip-intervals intervals f)
+                             (move-bytes-towards-zero f)
+                             (fixed-source/make-fixed-source))]
+       (f shrunk-source)                                    ;So we get the right intervals in place. TODO: remove this.
+       shrunk-source)
+     (finally (source/done-shrinking!)))))
 
 (s/fdef shrink
-        :args (s/cat :bytes bytes?
-                     :intervals (s/coll-of ::proto/interval)
-                     :fn fn?)
-        :ret ::source/source)
+  :args (s/cat :bytes bytes?
+               :intervals (s/coll-of ::proto/interval)
+               :fn fn?)
+  :ret ::source/source)

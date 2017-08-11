@@ -80,7 +80,7 @@ If you can't find the cause of the error, please raise an issue at "
 (defn failure? [test-report]
   (-> test-report
       :type
-      (= :fail)))
+      #{:fail :error}))
 
 (defn get-failures-from-test-reports [test-reports]
   (->> test-reports
@@ -98,7 +98,7 @@ If you can't find the cause of the error, please raise an issue at "
   (fn [source]
     (let [result (atom [])
           report-fn (make-report-fn result)]
-      (when (not (nil? *source*))
+      (when-not (nil? *source*)
         (throw (IllegalStateException. (already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}
@@ -376,7 +376,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
    (with-interval (format-interval-name "byte" min max)
-     (source/get-byte *source* min max))))
+     (->> (util/signed-range->unsigned min max)
+          (source/get-ubyte *source*)
+          (util/map-unsigned-byte-into-signed-range min max)))))
 
 (s/fdef byte
   :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))

@@ -10,8 +10,8 @@
        (<= Byte/MIN_VALUE b)))
 
 (s/fdef byte?
-        :args (s/cat :b number?)
-        :ret boolean?)
+  :args (s/cat :b number?)
+  :ret boolean?)
 
 (s/def ::byte (s/with-gen
                 (s/and integer?
@@ -25,8 +25,8 @@
     out))
 
 (s/fdef get-bytes-from-int
-        :args (s/cat :i integer?)
-        :ret bytes?)
+  :args (s/cat :i integer?)
+  :ret bytes?)
 
 (defn get-bytes-from-long [^Long i]
   (let [out (byte-array 8)
@@ -61,3 +61,52 @@
           (if (= (Long/signum x) (Long/signum y))
             (= ret (<= x y))
             (= ret (or (zero? x) (neg? y)))))))
+
+(defn signed-range->unsigned [min max]
+  (unchecked-byte (- max min)))
+
+(s/fdef signed-range->unsigned
+  :args (s/cat :min ::byte :max ::byte)
+  :ret ::byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]} args]
+          (if (< Byte/MAX_VALUE (- max min))
+            (neg? ret)
+            (or (zero? ret) (pos? ret))))))
+
+(defn map-unsigned-byte-into-signed-range
+  "This is somewhat odd since I still want zero to map to zero,
+   or to the \"simplest\" value, i.e. value closest to zero (sml).
+   What I do is set 0 = sml, and wrap around max back to min,
+   unless the range is entirely negative in which case we run from max down to min"
+  [min max value]
+  (let [range-is-entirely-negative (and (neg? max) (neg? min))
+        range-is-entirely-positive (and (pos? max) (pos? min))
+        sml (cond
+              range-is-entirely-negative max
+              range-is-entirely-positive min
+              :default 0)]
+    (cond
+      range-is-entirely-negative (-> value                  ;in this case sml is the number closest to -1
+                                     (bit-and 0xff)         ;move value into the range from 0 - 255
+                                     (-)                    ;negate the value so we move more towards -128
+                                     (+ sml))
+      range-is-entirely-positive (-> value
+                                     (bit-and 0xff)
+                                     (+ sml))
+      :default (let [possibly-wrapped-val (-> value
+                                              (bit-and 0xff)
+                                              (+ sml))]
+                 (if (< max possibly-wrapped-val)
+                   (-> possibly-wrapped-val                 ;If wrapped, treat the same as the -ve case above.
+                       (- max)                              ;But we have to remove the quantity from before wrapping first.
+                       (-))                                 ;Sml will be zero, no need to add.
+                   value)))))
+
+(s/fdef map-unsigned-byte-into-signed-range
+  :args (s/cat :min ::byte :max ::byte :value ::byte)
+  :ret ::byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max value]} args]
+          (and (<= min ret)
+               (<= ret max)))))
