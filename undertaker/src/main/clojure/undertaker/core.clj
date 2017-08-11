@@ -205,7 +205,10 @@ If you can't find the cause of the error, please raise an issue at "
         ceiling (nth maxes idx)
         flip? (= 1 (Integer/compareUnsigned floor ceiling))
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
-    (if all-maxes? (source/get-byte source floor ceiling) (source/get-byte source))))
+    (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
+                        (source/get-ubyte *source*)
+                        (util/map-unsigned-byte-into-signed-range floor ceiling))
+                   (source/get-ubyte source))))
 
 (defn is-max? [val idx mins maxes]
   (let [target-array (if (neg? val)
@@ -285,7 +288,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn fill-numeric-array [output-arr get-bytes-fn floor ceiling]
   (let [maxes (get-bytes-fn ceiling)
         mins (get-bytes-fn floor)
-        first-genned (source/get-byte *source* (first mins) (first maxes))
+        first-genned (->> (util/signed-range->unsigned (first mins) (first maxes))
+                          (source/get-ubyte *source*)
+                          (util/map-unsigned-byte-into-signed-range (first mins) (first maxes)))
         negative? (neg? first-genned)
         maxes (if (and negative? (not (neg? ceiling)))
                 (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
@@ -293,11 +298,11 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         mins (if (and (not negative?) (neg? floor))
                (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
                mins)]
-    (aset output-arr 0 first-genned)
+    (aset-byte output-arr 0 first-genned)
     (loop [idx 1
            all-maxes? (is-max? first-genned 0 mins maxes)]
       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-        (aset output-arr idx next-val)
+        (aset-byte output-arr idx next-val)
         (when (< (inc idx) (count output-arr))
           (recur (inc idx)
                  (and all-maxes? (is-max? next-val idx mins maxes))))))
