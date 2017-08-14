@@ -311,7 +311,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn unsigned-range [floor ceiling]
   (let [unsigned-floor (bit-and 0xff floor)
         unsigned-ceiling (bit-and 0xff ceiling)]
-    (- (max unsigned-floor unsigned-ceiling) (min unsigned-floor unsigned-ceiling))))
+    (unchecked-byte (- (max unsigned-floor unsigned-ceiling) (min unsigned-floor unsigned-ceiling)))))
 
 (defn unsigned-range->get-byte-floor-and-ceiling [value]
   (let [floor (if (> value 127)
@@ -340,21 +340,20 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn fill-unsigned-numeric-array [output-arr get-bytes-fn floor ceiling]
   (let [maxes (get-bytes-fn ceiling)
         mins (get-bytes-fn floor)
-        ranges (->> (map unsigned-range mins maxes)
-                    (map unsigned-range->get-byte-floor-and-ceiling))
-        first-genned (-> (source/get-byte *source* (first (first ranges)) (first (last ranges)))
-                         (map-into-unsigned-range (first (first ranges)) (first (last ranges)))) ;Not sure about this bit, yet.
+        first-genned (-> (source/get-ubyte *source* (unsigned-range (first mins) (first maxes)))
+                         (map-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
         negative? (neg? first-genned)
         maxes (if (and negative? (not (neg? ceiling)))      ;not sure if I need these.
                 (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
                 maxes)
         mins (if (and (not negative?) (neg? floor))
                (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-               mins)]
+               mins)
+        ranges (map unsigned-range mins maxes)]
     (aset-byte output-arr 0 first-genned)
     (loop [idx 1
            all-maxes? (is-max? first-genned 0 mins maxes)]
-      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? (map first ranges) (map last ranges))]
+      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
         (aset output-arr idx next-val)
         (when (< (inc idx) (count output-arr))
           (recur (inc idx)

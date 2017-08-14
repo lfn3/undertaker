@@ -148,14 +148,14 @@
 (deftest unsigned-range-test
   (is (= (undertaker/unsigned-range 0 0) 0))
   (is (= (undertaker/unsigned-range 0 1) 1))
-  (is (= (undertaker/unsigned-range -1 0) 255))
-  (is (= (undertaker/unsigned-range -128 0) 128))
+  (is (= (undertaker/unsigned-range -1 0) -1))
+  (is (= (undertaker/unsigned-range -128 0) -128))
   (is (= (undertaker/unsigned-range -128 127) 1))
-  (is (= (undertaker/unsigned-range 127 -1) 128))
+  (is (= (undertaker/unsigned-range 127 -1) -128))
   (is (= (undertaker/unsigned-range 0 127) 127))
-  (is (= (undertaker/unsigned-range -1 1) 254))
+  (is (= (undertaker/unsigned-range -1 1) -2))
   (is (= (undertaker/unsigned-range -128 -1) 127))
-  (is (= (undertaker/unsigned-range -65 63) 128)))
+  (is (= (undertaker/unsigned-range -65 63) -128)))
 
 (deftest unsigned-range->generator-floor-and-ceiling-test
   (is (= [-128 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 255)))
