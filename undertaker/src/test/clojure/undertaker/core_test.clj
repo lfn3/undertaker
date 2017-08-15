@@ -169,3 +169,11 @@
   (is (= (undertaker/map-into-unsigned-range 126 -128 -1) -2))
   (is (= (undertaker/map-into-unsigned-range 96 0 -127) -32))
   (is (= (undertaker/map-into-unsigned-range 0 -1 0) 0)))
+
+(deftest count-of-potentially-matched-disallowed-values
+  (is (= 1 (undertaker/count-of-potentially-matched-disallowed-values (byte-array []) #{(byte-array [127])})))
+  (is (= 0 (undertaker/count-of-potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127])})))
+  (is (= 1 (undertaker/count-of-potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])})))
+  (is (= 0 (undertaker/count-of-potentially-matched-disallowed-values (byte-array [127 1]) #{(byte-array [127 -1])})))
+  (is (= 2 (undertaker/count-of-potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])
+                                                                                           (byte-array [127 -2])}))))

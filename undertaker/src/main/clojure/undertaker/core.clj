@@ -324,7 +324,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (defn count-of-potentially-matched-disallowed-values [bytes disallowed-values]
   (->> disallowed-values
-       (filter #(= (dec (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
+       (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
        (filter #(map = (take (dec (count %1)) bytes)))      ;Check if all bar the last byte match the disallowed value.
        (count)))                                            ;If so we could potentially generate that as the next byte.
 
