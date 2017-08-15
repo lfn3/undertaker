@@ -313,21 +313,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         unsigned-ceiling (bit-and 0xff ceiling)]
     (unchecked-byte (- (max unsigned-floor unsigned-ceiling) (min unsigned-floor unsigned-ceiling)))))
 
-(defn unsigned-range->get-byte-floor-and-ceiling [value]
-  (let [floor (if (> value 127)
-                (- 127 value)
-                0)
-        ceiling (min value 127)]
-    [floor ceiling]))
-
-(s/fdef unsigned-range->get-byte-floor-and-ceiling
-  :args (s/cat :value (s/with-gen (s/and integer?
-                                         (partial <= 0)
-                                         (partial >= 255))
-                                  #(gen/choose 0 255)))
-  :ret (s/tuple (s/and integer? (partial >= 0))
-                (s/and integer? (partial >= 127))))
-
 (defn map-into-unsigned-range [value floor ceiling]
   (let [[floor ceiling] [(min floor ceiling) (max floor ceiling)]]
     (cond

@@ -157,12 +157,6 @@
   (is (= (undertaker/unsigned-range -128 -1) 127))
   (is (= (undertaker/unsigned-range -65 63) -128)))
 
-(deftest unsigned-range->generator-floor-and-ceiling-test
-  (is (= [-128 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 255)))
-  (is (= [0 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 127)))
-  (is (= [-1 127] (undertaker/unsigned-range->get-byte-floor-and-ceiling 128)))
-  (is (= [0 0] (undertaker/unsigned-range->get-byte-floor-and-ceiling 0))))
-
 (deftest map-into-unsigned-range
   (is (= (undertaker/map-into-unsigned-range 0 -128 127) 0))
   (is (= (undertaker/map-into-unsigned-range -128 -128 127) -1))
