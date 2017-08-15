@@ -293,10 +293,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                           (util/map-unsigned-byte-into-signed-range (first mins) (first maxes)))
         negative? (neg? first-genned)
         maxes (if (and negative? (not (neg? ceiling)))
-                (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
+                (get-bytes-fn (min -1 ceiling))             ;If we've already generated a -ve number, then the max is actually -1
                 maxes)
         mins (if (and (not negative?) (neg? floor))
-               (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+               (get-bytes-fn (max 0 floor))                 ;Conversely, if we've generated a +ve number, then the minimum is now zero.
                mins)]
     (aset-byte output-arr 0 first-genned)
     (loop [idx 1
@@ -322,28 +322,44 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
       (and (or (zero? ceiling) (neg? ceiling)) (neg? floor) (not (neg? value))) (+ -128 value)
       (neg? value) (+ -129 (util/abs value)))))
 
-(defn fill-unsigned-numeric-array [output-arr get-bytes-fn floor ceiling]
-  (let [maxes (get-bytes-fn ceiling)
-        mins (get-bytes-fn floor)
-        first-genned (-> (source/get-ubyte *source* (unsigned-range (first mins) (first maxes)))
-                         (map-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
-        negative? (neg? first-genned)
-        maxes (if (and negative? (not (neg? ceiling)))      ;not sure if I need these.
-                (get-bytes-fn (min -1 ceiling)) ;If we've already generated a -ve number, then the max is actually -1
-                maxes)
-        mins (if (and (not negative?) (neg? floor))
-               (get-bytes-fn (max 0 floor))   ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-               mins)
-        ranges (map unsigned-range mins maxes)]
-    (aset-byte output-arr 0 first-genned)
-    (loop [idx 1
-           all-maxes? (is-max? first-genned 0 mins maxes)]
-      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-        (aset output-arr idx next-val)
-        (when (< (inc idx) (count output-arr))
-          (recur (inc idx)
-                 (and all-maxes? (is-max? next-val idx mins maxes))))))
-    output-arr))
+(defn count-of-potentially-matched-disallowed-values [bytes disallowed-values]
+  (->> disallowed-values
+       (filter #(= (dec (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
+       (filter #(map = (take (dec (count %1)) bytes)))      ;Check if all bar the last byte match the disallowed value.
+       (count)))                                            ;If so we could potentially generate that as the next byte.
+
+(s/fdef count-of-potentially-matched-disallowed-values
+  :args (s/cat :bytes bytes? :disallowed-values (s/coll-of bytes?))
+  :ret integer?)
+
+(defn fill-unsigned-numeric-array
+  ([output-arr get-bytes-fn floor ceiling] (fill-unsigned-numeric-array output-arr get-bytes-fn floor ceiling #{}))
+  ([output-arr get-bytes-fn floor ceiling disallowed-values]
+   (let [maxes (get-bytes-fn ceiling)
+         mins (get-bytes-fn floor)
+         first-genned (-> (source/get-ubyte *source* (unsigned-range (first mins) (first maxes)))
+                          (map-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
+         negative? (neg? first-genned)
+         maxes (if (and negative? (not (neg? ceiling)))     ;not sure if I need these.
+                 (get-bytes-fn (min -1 ceiling))            ;If we've already generated a -ve number, then the max is actually -1
+                 maxes)
+         mins (if (and (not negative?) (neg? floor))
+                (get-bytes-fn (max 0 floor))                ;Conversely, if we've generated a +ve number, then the minimum is now zero.
+                mins)
+         ranges (map unsigned-range mins maxes)]
+     (aset-byte output-arr 0 first-genned)
+     (loop [idx 1
+            all-maxes? (is-max? first-genned 0 mins maxes)]
+       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
+         (aset output-arr idx next-val)
+         (when (< (inc idx) (count output-arr))
+           (recur (inc idx)
+                  (and all-maxes? (is-max? next-val idx mins maxes))))))
+     output-arr)))
+
+(s/fdef fill-unsigned-numeric-array
+  :args (s/cat :output-arr bytes? :get-bytes-fn fn? :floor number? :ceiling number? :disallowed (s/? (s/coll-of bytes?)))
+  :ret bytes?)
 
 ;; === === === === === === === ===
 ;; Public api
@@ -374,8 +390,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :ret ::util/byte
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [min max]
-               :or {min Byte/MIN_VALUE
-                    max Byte/MAX_VALUE}} args]
+               :or   {min Byte/MIN_VALUE
+                      max Byte/MAX_VALUE}} args]
           (and (<= min ret)
                (<= ret max)))))
 
@@ -439,12 +455,34 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
   :ret double?
   :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or {floor Double/MIN_VALUE
-                                           ceiling Double/MAX_VALUE}} args]
+                                      :or   {floor   Double/MIN_VALUE
+                                             ceiling Double/MAX_VALUE}} args]
                                  (or (= Double/NaN ret)
                                      (Double/isFinite ret)
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
+
+(def start-of-NaN (byte-array (take 2 (util/get-bytes-from-double Double/NaN))))
+
+(defn double-without-NaN
+  ([] (double Double/MIN_VALUE Double/MAX_VALUE))
+  ([min] (double min Double/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "double" floor ceiling)
+     (-> (byte-array 8)
+         (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling #{(byte-array start-of-NaN)})
+         (bytes->double)))))
+
+(s/fdef double-without-NaN
+  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
+  :ret double?
+  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
+                                      :or   {floor   Double/MIN_VALUE
+                                             ceiling Double/MAX_VALUE}} args]
+                                 (or (Double/isFinite ret)
+                                     (and (>= ret floor)
+                                          (<= ret ceiling))))))
+
 
 (def default-max-size 64)
 
