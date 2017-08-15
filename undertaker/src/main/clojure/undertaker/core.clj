@@ -176,6 +176,26 @@ If you can't find the cause of the error, please raise an issue at "
                :fn fn?)
   :ret ::results-map)
 
+(defn potentially-matched-disallowed-values [bytes disallowed-values]
+  (->> disallowed-values
+       (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
+       (filter #(map = (take (dec (count %1)) bytes)))))    ;Check if all bar the last byte match the disallowed value.
+                                                            ;If so we could potentially generate that as the next byte.
+(s/fdef potentially-matched-disallowed-values
+  :args (s/cat :bytes bytes? :disallowed-values (s/coll-of bytes?))
+  :ret (s/coll-of bytes?))
+
+(defn generate-next-byte-for-double
+  [source output-arr idx all-maxes? mins maxes disallowed-values]
+  (let [floor (nth mins idx)
+        ceiling (nth maxes idx)
+        flip? (= 1 (Integer/compareUnsigned floor ceiling))
+        [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
+    (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
+                        (source/get-ubyte *source*)
+                        (util/map-unsigned-byte-into-signed-range floor ceiling))
+                   (source/get-ubyte source))))
+
 ;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
 ;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
 ;the range of allowed bytes in this case is actually 127 127 127 127 -> -128 -128 -128 -128
@@ -322,16 +342,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
       (and (or (zero? ceiling) (neg? ceiling)) (neg? floor) (not (neg? value))) (+ -128 value)
       (neg? value) (+ -129 (util/abs value)))))
 
-(defn count-of-potentially-matched-disallowed-values [bytes disallowed-values]
-  (->> disallowed-values
-       (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
-       (filter #(map = (take (dec (count %1)) bytes)))      ;Check if all bar the last byte match the disallowed value.
-       (count)))                                            ;If so we could potentially generate that as the next byte.
-
-(s/fdef count-of-potentially-matched-disallowed-values
-  :args (s/cat :bytes bytes? :disallowed-values (s/coll-of bytes?))
-  :ret integer?)
-
 (defn fill-unsigned-numeric-array
   ([output-arr get-bytes-fn floor ceiling] (fill-unsigned-numeric-array output-arr get-bytes-fn floor ceiling #{}))
   ([output-arr get-bytes-fn floor ceiling disallowed-values]
@@ -350,8 +360,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
      (aset-byte output-arr 0 first-genned)
      (loop [idx 1
             all-maxes? (is-max? first-genned 0 mins maxes)]
-       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-         (aset output-arr idx next-val)
+       (let [next-val (generate-next-byte-for-double *source* output-arr idx all-maxes? mins maxes disallowed-values)]
+         (aset-byte output-arr idx next-val)
          (when (< (inc idx) (count output-arr))
            (recur (inc idx)
                   (and all-maxes? (is-max? next-val idx mins maxes))))))
