@@ -189,12 +189,20 @@ If you can't find the cause of the error, please raise an issue at "
   (and (<= (bit-and 0xff floor) (bit-and 0xff value))
        (<= (bit-and 0xff value) (bit-and 0xff ceiling))))
 
-(defn skip-disallowed-values [disallowed-values generated-byte]
-  (->> disallowed-values
-       (filter (comp (partial <= (bit-and 0xff generated-byte)) (partial bit-and 0xff)))
-       (count)
-       (+ generated-byte)
-       (unchecked-byte)))
+(defn skip-disallowed-values
+  [disallowed-values generated-byte]
+  ;We have to do this repeatedly since we might have pushed the value up into another disallowed value.
+  (loop [disallowed-bytes (map last disallowed-values) ;We know that we must be dealing with the last part of the disallowed byte at this point
+         last-altered-val generated-byte]
+    (let [at-or-below-generated (filter #(util/unsigned<= %1 last-altered-val) disallowed-bytes)
+          next-altered-val (->> at-or-below-generated
+                                (count)
+                                (+ last-altered-val)
+                                (unchecked-byte))]
+      (if (= next-altered-val last-altered-val)
+        last-altered-val
+        (recur (remove (set at-or-below-generated) disallowed-bytes)
+               next-altered-val)))))
 
 (s/fdef skip-disallowed-values
   :args (s/cat :disallowed-values (s/coll-of bytes?) :generated-byte ::util/byte)

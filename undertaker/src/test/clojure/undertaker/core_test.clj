@@ -177,3 +177,10 @@
   (is (= '() (undertaker/potentially-matched-disallowed-values (byte-array [127 1]) #{(byte-array [127 -1])})))
   (is (= #{[127 -1] [127 -2]} (set (map vec (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])
                                                                                                                    (byte-array [127 -2])}))))))
+(deftest skip-disallowed-values
+  (is (= -128 (undertaker/skip-disallowed-values #{(byte-array [127])} 127)))
+  (is (= -1 (undertaker/skip-disallowed-values #{(byte-array [127])} -2)))
+  (is (= 7 (undertaker/skip-disallowed-values #{(byte-array [1])
+                                                (byte-array [5])} 5)))
+  (is (= 6 (undertaker/skip-disallowed-values #{(byte-array [1])
+                                                (byte-array [5])} 4))))
