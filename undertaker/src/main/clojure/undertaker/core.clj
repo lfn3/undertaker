@@ -185,16 +185,42 @@ If you can't find the cause of the error, please raise an issue at "
   :args (s/cat :bytes bytes? :disallowed-values (s/coll-of bytes?))
   :ret (s/coll-of bytes?))
 
+(defn next-byte-in-range? [floor ceiling value]
+  (and (<= (bit-and 0xff floor) (bit-and 0xff value))
+       (<= (bit-and 0xff value) (bit-and 0xff ceiling))))
+
+(defn skip-disallowed-values [disallowed-values generated-byte]
+  (->> disallowed-values
+       (filter (comp (partial <= (bit-and 0xff generated-byte)) (partial bit-and 0xff)))
+       (count)
+       (+ generated-byte)
+       (unchecked-byte)))
+
+(s/fdef skip-disallowed-values
+  :args (s/cat :disallowed-values (s/coll-of bytes?) :generated-byte ::util/byte)
+  :ret ::util/byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [disallowed-values]} args]
+          (not-any? (partial = ret) (map last disallowed-values)))))
+
 (defn generate-next-byte-for-double
   [source output-arr idx all-maxes? mins maxes disallowed-values]
   (let [floor (nth mins idx)
         ceiling (nth maxes idx)
         flip? (= 1 (Integer/compareUnsigned floor ceiling))
-        [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
+        [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
+        disallowed-values (potentially-matched-disallowed-values output-arr disallowed-values)
+        disallowed-values (if all-maxes?
+                            disallowed-values
+                            (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values))]
     (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
-                        (source/get-ubyte *source*)
+                        (#(- %1 (count disallowed-values)))
+                        (source/get-ubyte source)
+                        (skip-disallowed-values disallowed-values)
                         (util/map-unsigned-byte-into-signed-range floor ceiling))
-                   (source/get-ubyte source))))
+                   (->> (- -1 (count disallowed-values))
+                        (source/get-ubyte source)
+                        (skip-disallowed-values disallowed-values)))))
 
 ;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
 ;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.

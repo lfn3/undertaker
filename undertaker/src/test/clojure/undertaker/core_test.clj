@@ -171,9 +171,9 @@
   (is (= (undertaker/map-into-unsigned-range 0 -1 0) 0)))
 
 (deftest count-of-potentially-matched-disallowed-values
-  (is (= [[127]] (vec (map vec (undertaker/potentially-matched-disallowed-values (byte-array []) #{(byte-array [127])})))))
+  (is (= #{[127]} (set (map vec (undertaker/potentially-matched-disallowed-values (byte-array []) #{(byte-array [127])})))))
   (is (= '() (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127])})))
-  (is (= [[127 -1]] (vec (map vec (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])})))))
+  (is (= #{[127 -1]} (set (map vec (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])})))))
   (is (= '() (undertaker/potentially-matched-disallowed-values (byte-array [127 1]) #{(byte-array [127 -1])})))
-  (is (= [[127 -1] [127 -2]] (vec (map vec (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])
-                                                                                                          (byte-array [127 -2])}))))))
+  (is (= #{[127 -1] [127 -2]} (set (map vec (undertaker/potentially-matched-disallowed-values (byte-array [127]) #{(byte-array [127 -1])
+                                                                                                                   (byte-array [127 -2])}))))))
