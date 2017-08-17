@@ -4,10 +4,6 @@
             [undertaker.util :as util])
   (:import (java.util Random)))
 
-(defn squish-byte [b floor ceiling]
-  (let [range (inc (util/abs (- ceiling floor)))]
-    (unchecked-byte (+ floor (mod b range)))))
-
 (defn squish-ubyte [b ceiling]
   (let [range (inc (bit-and 0xff ceiling))]
     (cond
@@ -16,11 +12,6 @@
       :default (unchecked-byte (mod b range)))))
 
 (extend-type Random
-  proto/ByteSource
-  (get-byte [this min max]
-    (let [output (byte-array 1)]
-      (.nextBytes this output)
-      (squish-byte (aget output 0) min max)))
   proto/UnsignedByteSource
   (get-ubyte [this max]
     (let [output (byte-array 1)]
@@ -29,8 +20,6 @@
 
 (defrecord ForgetfulSource
   [rnd]
-  proto/ByteSource
-  (get-byte [_ min max] (proto/get-byte rnd min max))
   proto/UnsignedByteSource
   (get-ubyte [_ max] (proto/get-ubyte rnd max))
   proto/Interval
@@ -47,4 +36,4 @@
 
 (s/fdef make-source
   :args (s/cat :seed integer?)
-  :ret (comp (partial extends? proto/ByteSource) class))
+  :ret (comp (partial extends? proto/UnsignedByteSource) class))

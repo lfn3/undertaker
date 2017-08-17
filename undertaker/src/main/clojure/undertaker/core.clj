@@ -533,10 +533,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [source min max len]
   (with-interval (format-interval-name "should-generate-elem" min max len)
-    (= 1 (cond
-           (> min len) (source/get-byte source 1 1)
-           (< max (inc len)) (source/get-byte source 0 0)
-           :default (source/get-byte source 0 1)))))
+    (= 1 (let [value (source/get-ubyte source 1)]           ;Side-effecty
+           (cond (> min len) 1
+                 (< max (inc len)) 0
+                 :default value)))))
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))

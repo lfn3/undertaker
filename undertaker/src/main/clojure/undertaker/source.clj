@@ -7,7 +7,7 @@
             [undertaker.util :as util])
   (:import (java.util Random)))
 
-(s/def ::source (s/with-gen (comp (partial extends? proto/ByteSource) class)
+(s/def ::source (s/with-gen (comp (partial extends? proto/UnsignedByteSource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
 
 (def source-in-use (atom #{}))
@@ -59,19 +59,6 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
   (throw-if-source-is-nil source)
   (every-call-in-scope-of-test-should-use-same-source source)
   (should-only-use-fixed-source-while-shrinking source))
-
-(defn get-byte
-  ([source] (get-byte source Byte/MIN_VALUE Byte/MAX_VALUE))
-  ([source min] (get-byte source min Byte/MAX_VALUE))
-  ([source min max]
-   (check-invariants source)
-   (proto/get-byte source min max)))
-
-(s/fdef get-byte
-  :args (s/cat :source ::source :min (s/? ::util/byte) :max (s/? ::util/byte))
-  :ret (s/and ::util/byte
-              (partial >= Byte/MAX_VALUE)
-              (partial <= Byte/MIN_VALUE)))
 
 (defn get-ubyte
   ([source] (get-ubyte source -1))

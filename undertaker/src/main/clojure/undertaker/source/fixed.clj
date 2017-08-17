@@ -27,11 +27,6 @@
                                                (assoc ::proto/interval-end (get state ::cursor))
                                                (assoc ::proto/generated-value generated-value))))))
 
-(defn squish-byte [b floor ceiling]
-  (-> b                                                     ;Most of the time the ranges should remain constant?
-      (min ceiling)
-      (max floor)))
-
 (defn squish-ubyte [b ceiling]
   (unchecked-byte (min (bit-and 0xff b) (bit-and 0xff ceiling))))
 
@@ -49,11 +44,6 @@
 
 ;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
-  proto/ByteSource
-  (get-byte [_ floor ceiling]
-    (let [byte (byte-or-throw-overrun @state-atom)]
-      (swap! state-atom update ::cursor inc)
-      (squish-byte byte floor ceiling)))
   proto/UnsignedByteSource
   (get-ubyte [_ ceiling]
     (let [byte (byte-or-throw-overrun @state-atom)]

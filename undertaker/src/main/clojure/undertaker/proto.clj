@@ -12,9 +12,6 @@
 (s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value]
                           :opt [::interval-parent-id]))
 
-(defprotocol ByteSource
-  (get-byte [this min max]))
-
 (defprotocol UnsignedByteSource
   (get-ubyte [this max]))
 
