@@ -527,7 +527,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
 
-
 (def default-max-size 64)
 
 ;TODO bias this so it's more likely to produce longer seqs.
