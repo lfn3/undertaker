@@ -14,6 +14,7 @@
             [undertaker.source.wrapped-random :as source.wrapped]
             [undertaker.proto :as proto]
             [undertaker.source.forgetful :as source.forgetful]
+            [undertaker.source.always-max-source :as source.max]
             [undertaker.util :as util]))
 
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
@@ -184,3 +185,8 @@
                                                 (byte-array [5])} 5)))
   (is (= 6 (undertaker/skip-disallowed-values #{(byte-array [1])
                                                 (byte-array [5])} 4))))
+
+(deftest double-without-NaN-test
+  (is (not= Double/NaN
+            (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0])}
+              (undertaker/double-without-NaN)))))

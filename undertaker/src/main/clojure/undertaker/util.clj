@@ -1,5 +1,6 @@
 (ns undertaker.util
-  (:require [clojure.spec.alpha :as s])
+  (:require [clojure.spec.alpha :as s]
+            [clojure.set :as set])
   (:import (java.nio ByteBuffer)))
 
 (def bug-tracker-url "https://github.com/lfn3/undertaker/issues/new")
@@ -70,9 +71,10 @@
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [min max]} args]
-          (if (< Byte/MAX_VALUE (- max min))
-            (neg? ret)
-            (or (zero? ret) (pos? ret))))))
+          (let [range (if (< min max)
+                        (range min max)
+                        (range min max -1))]
+            (count range)))))
 
 (defn map-unsigned-byte-into-signed-range
   "This is somewhat odd since I still want zero to map to zero,
@@ -110,3 +112,12 @@
         (let [{:keys [min max value]} args]
           (and (<= min ret)
                (<= ret max)))))
+
+(defn map-unsigned-byte-into-unsigned-range
+  "Same reasoning as map-unsigned-byte-into-signed-range,
+   but values go from -128 -> min on the negative side."
+  [min max value]
+  (if (unsigned<= value max)
+    value
+    (-> (- (bit-and 0xff value) (bit-and 0xff max))
+        (+ -128))))

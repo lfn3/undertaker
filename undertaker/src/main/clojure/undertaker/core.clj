@@ -219,13 +219,13 @@ If you can't find the cause of the error, please raise an issue at "
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
         disallowed-values (potentially-matched-disallowed-values output-arr disallowed-values)
         disallowed-values (if all-maxes?
-                            disallowed-values
-                            (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values))]
+                            (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values)
+                            disallowed-values)]
     (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
                         (#(- %1 (count disallowed-values)))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)
-                        (util/map-unsigned-byte-into-signed-range floor ceiling))
+                        (util/map-unsigned-byte-into-unsigned-range floor ceiling))
                    (->> (- -1 (count disallowed-values))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)))))
