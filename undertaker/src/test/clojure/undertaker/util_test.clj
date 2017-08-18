@@ -65,3 +65,10 @@
   (is (= 1 (util/map-unsigned-byte-into-signed-range -128 127 1)))
   (is (= 127 (util/map-unsigned-byte-into-signed-range -128 127 127)))
   (is (= -56 (util/map-unsigned-byte-into-signed-range -128 127 -73))))
+
+#_(deftest map-unsigned-byte-into-unsigned-range-test
+  (is (= 0 (util/map-unsigned-byte-into-unsigned-range -128 127 0)))
+  (is (= -128 (util/map-unsigned-byte-into-unsigned-range -128 127 -1))) ;-1 is the largest possible value
+  (is (= 1 (util/map-unsigned-byte-into-unsigned-range -128 127 1)))
+  (is (= 127 (util/map-unsigned-byte-into-unsigned-range -128 127 127)))
+  (is (= -56 (util/map-unsigned-byte-into-unsigned-range -128 127 -73))))

@@ -64,7 +64,7 @@
             (= ret (or (zero? x) (neg? y)))))))
 
 (defn signed-range->unsigned [min max]
-  (unchecked-byte (- max min)))
+  (unchecked-byte (abs (- max min))))
 
 (s/fdef signed-range->unsigned
   :args (s/cat :min ::byte :max ::byte)
@@ -74,19 +74,20 @@
           (let [range (if (< min max)
                         (range min max)
                         (range min max -1))]
-            (count range)))))
+            (= ret (unchecked-byte (count range)))))))
 
 (defn map-unsigned-byte-into-signed-range
   "This is somewhat odd since I still want zero to map to zero,
    or to the \"simplest\" value, i.e. value closest to zero (sml).
    What I do is set 0 = sml, and wrap around max back to min,
    unless the range is entirely negative in which case we run from max down to min"
-  [min max value]
-  (let [range-is-entirely-negative (and (neg? max) (neg? min))
-        range-is-entirely-positive (and (pos? max) (pos? min))
+  [floor ceiling value]
+  (let [[floor ceiling] [(min floor ceiling) (max floor ceiling)]
+        range-is-entirely-negative (and (neg? ceiling) (neg? floor))
+        range-is-entirely-positive (and (pos? ceiling) (pos? floor))
         sml (cond
-              range-is-entirely-negative max
-              range-is-entirely-positive min
+              range-is-entirely-negative ceiling
+              range-is-entirely-positive floor
               :default 0)]
     (cond
       range-is-entirely-negative (-> value                  ;in this case sml is the number closest to -1
@@ -99,19 +100,20 @@
       :default (let [possibly-wrapped-val (-> value
                                               (bit-and 0xff)
                                               (+ sml))]
-                 (if (< max possibly-wrapped-val)
+                 (if (< ceiling possibly-wrapped-val)
                    (-> possibly-wrapped-val                 ;If wrapped, treat the same as the -ve case above.
-                       (- max)                              ;But we have to remove the quantity from before wrapping first.
+                       (- ceiling)                              ;But we have to remove the quantity from before wrapping first.
                        (-))                                 ;Sml will be zero, no need to add.
                    value)))))
 
 (s/fdef map-unsigned-byte-into-signed-range
-  :args (s/cat :min ::byte :max ::byte :value ::byte)
+  :args (s/cat :floor ::byte :ceiling ::byte :value ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max value]} args]
-          (and (<= min ret)
-               (<= ret max)))))
+        (let [{:keys [floor ceiling value]} args
+              [floor ceiling] [(min floor ceiling) (max floor ceiling)]]
+          (and (<= floor ret)
+               (<= ret ceiling)))))
 
 (defn map-unsigned-byte-into-unsigned-range
   "Same reasoning as map-unsigned-byte-into-signed-range,
@@ -129,3 +131,14 @@
         (let [{:keys [min max value]} args]
           (or (unsigned<= ret min)
               (unsigned<= ret max)))))
+
+;TODO
+(defn unsigned-range->unsigned [lower upper]
+  (bit-and 0xff upper))
+
+(s/fdef unsigned-range->unsigned
+  :args (s/cat :min ::byte :max ::byte)
+  :ret ::byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]} args]
+          (range -128 min ))))
