@@ -121,3 +121,11 @@
     value
     (-> (- (bit-and 0xff value) (bit-and 0xff max))
         (+ -128))))
+
+(s/fdef map-unsigned-byte-into-unsigned-range
+  :args (s/cat :min ::byte :max ::byte :value ::byte)
+  :ret ::byte
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max value]} args]
+          (or (unsigned<= ret min)
+              (unsigned<= ret max)))))

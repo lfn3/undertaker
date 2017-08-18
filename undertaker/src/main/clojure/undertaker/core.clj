@@ -212,12 +212,11 @@ If you can't find the cause of the error, please raise an issue at "
           (not-any? (partial = ret) (map last disallowed-values)))))
 
 (defn generate-next-byte-for-double
-  [source output-arr idx all-maxes? mins maxes disallowed-values]
+  [source idx all-maxes? mins maxes disallowed-values]
   (let [floor (nth mins idx)
         ceiling (nth maxes idx)
         flip? (= 1 (Integer/compareUnsigned floor ceiling))
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
-        disallowed-values (potentially-matched-disallowed-values output-arr disallowed-values)
         disallowed-values (if all-maxes?
                             (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values)
                             disallowed-values)]
@@ -394,7 +393,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
      (aset-byte output-arr 0 first-genned)
      (loop [idx 1
             all-maxes? (is-max? first-genned 0 mins maxes)]
-       (let [next-val (generate-next-byte-for-double *source* output-arr idx all-maxes? mins maxes disallowed-values)]
+       (let [disallowed-values (potentially-matched-disallowed-values output-arr disallowed-values)
+             next-val (generate-next-byte-for-double *source* idx all-maxes? mins maxes disallowed-values)]
          (aset-byte output-arr idx next-val)
          (when (< (inc idx) (count output-arr))
            (recur (inc idx)
@@ -502,7 +502,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                       :or   {floor   Double/MIN_VALUE
                                              ceiling Double/MAX_VALUE}} args]
                                  (or (= Double/NaN ret)
-                                     (Double/isFinite ret)
+                                     (not (Double/isFinite ret))
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
 
