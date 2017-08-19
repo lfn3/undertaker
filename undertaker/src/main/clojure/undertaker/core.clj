@@ -7,7 +7,7 @@
             [clojure.test :as t]
             [undertaker.proto :as proto]
             [undertaker.source :as source]
-            [undertaker.source.wrapped-random :as wrapped-random-source]
+            [undertaker.source.multi-source :as source.multi]
             [undertaker.source.fixed :as fixed-source]
             [clojure.test.check.generators :as gen]
             [undertaker.util :as util]
@@ -149,7 +149,7 @@ If you can't find the cause of the error, please raise an issue at "
             iterations 1000}
      :as   opts-map}
     f]
-   (let [source (wrapped-random-source/make-source seed)
+   (let [source (source.multi/make-source seed)
          result (loop [iterations-left iterations]
                   (let [run-data (run-prop-1 source f)]
                     (if (and (-> run-data
