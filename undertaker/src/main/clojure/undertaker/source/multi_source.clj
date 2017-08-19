@@ -4,10 +4,12 @@ undertaker.source.multi-source
             [undertaker.source.always-max-source :as source.max]
             [undertaker.source.wrapped-random :as source.random]))
 
-(defn next-source [state-atom]
-  (let [next-source (first (::sources state-atom))]
-    {::current-source next-source
-     ::sources        (rest (::sources state-atom))}))
+(defn next-source [state]
+  (let [next-source (first (::sources state))]
+    (if next-source
+      {::current-source next-source
+       ::sources        (rest (::sources state))}
+      state)))
 
 (defn initial-state [seed]
   {::current-source (source.max/make-always-max-source)
@@ -19,7 +21,7 @@ undertaker.source.multi-source
   proto/Interval
   (push-interval [_ interval-name] (proto/push-interval (::current-source @state-atom) interval-name))
   (pop-interval [_ interval-id generated-value] (proto/pop-interval (::current-source @state-atom) interval-id generated-value))
-  (get-intervals [_] (::completed-intervals @state-atom))
+  (get-intervals [_] (proto/get-intervals (::current-source @state-atom)))
   proto/Recall
   (get-sourced-bytes [_] (proto/get-sourced-bytes (::current-source @state-atom)))
   (reset [_] (if (first (::sources @state-atom))
@@ -27,4 +29,4 @@ undertaker.source.multi-source
                (proto/reset (::current-source @state-atom)))))
 
 (defn make-source [seed]
-  (map->MultiSource (initial-state seed)))
+  (->MultiSource (atom (initial-state seed))))

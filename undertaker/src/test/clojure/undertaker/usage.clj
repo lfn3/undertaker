@@ -29,12 +29,12 @@
     (is (undertaker/bool)))
 
 (undertaker/defprop double-full-range-get-test {}
-  (let [value (undertaker/double)]
+  (let [value (undertaker/double-without-NaN)]
     (is (instance? Double value))
     (is (>= value (- Double/MAX_VALUE)))
     (is (<= value Double/MAX_VALUE))))
 
 (undertaker/defprop double-around-one {}
-  (let [value (undertaker/double -1.0 1.0)]
+  (let [value (undertaker/double-without-NaN -1.0 1.0)]
     (is (<= value 1.0))
     (is (>= value -1.0))))
