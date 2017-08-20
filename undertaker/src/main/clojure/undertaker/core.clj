@@ -224,7 +224,7 @@ If you can't find the cause of the error, please raise an issue at "
                         (#(- %1 (count disallowed-values)))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)
-                        (util/map-unsigned-byte-into-unsigned-range floor ceiling))
+                        (util/map-generated-byte-into-unsigned-range floor ceiling))
                    (->> (- -1 (count disallowed-values))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)))))
@@ -260,7 +260,7 @@ If you can't find the cause of the error, please raise an issue at "
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
     (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
                         (source/get-ubyte *source*)
-                        (util/map-unsigned-byte-into-signed-range floor ceiling))
+                        (util/map-generated-byte-into-signed-range floor ceiling))
                    (source/get-ubyte source))))
 
 (defn is-max? [val idx mins maxes]
@@ -343,7 +343,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         mins (get-bytes-fn floor)
         first-genned (->> (util/signed-range->unsigned (first mins) (first maxes))
                           (source/get-ubyte *source*)
-                          (util/map-unsigned-byte-into-signed-range (first mins) (first maxes)))
+                          (util/map-generated-byte-into-signed-range (first mins) (first maxes)))
         negative? (neg? first-genned)
         maxes (if (and negative? (not (neg? ceiling)))
                 (get-bytes-fn (min -1 ceiling))             ;If we've already generated a -ve number, then the max is actually -1
@@ -427,7 +427,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
    (with-interval (format-interval-name "byte" min max)
      (->> (util/signed-range->unsigned min max)
           (source/get-ubyte *source*)
-          (util/map-unsigned-byte-into-signed-range min max)))))
+          (util/map-generated-byte-into-signed-range min max)))))
 
 (s/fdef byte
   :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))

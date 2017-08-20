@@ -79,7 +79,7 @@
                         (range min max -1))]
             (= ret (unchecked-byte (count range)))))))
 
-(defn map-unsigned-byte-into-signed-range
+(defn map-generated-byte-into-signed-range
   "This is somewhat odd since I still want zero to map to zero,
    or to the \"simplest\" value, i.e. value closest to zero (sml).
    What I do is set 0 = sml, and wrap around max back to min,
@@ -109,7 +109,7 @@
                        (-))                                 ;Sml will be zero, no need to add.
                    value)))))
 
-(s/fdef map-unsigned-byte-into-signed-range
+(s/fdef map-generated-byte-into-signed-range
   :args (s/cat :floor ::byte :ceiling ::byte :value ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
@@ -118,7 +118,7 @@
           (and (<= floor ret)
                (<= ret ceiling)))))
 
-(defn map-unsigned-byte-into-unsigned-range
+(defn map-generated-byte-into-unsigned-range
   "Same reasoning as map-unsigned-byte-into-signed-range,
    but values go from -128 -> min on the negative side."
   [neg-max pos-max value]
@@ -129,7 +129,7 @@
          (dec)
          (- neg-max))))
 
-(s/fdef map-unsigned-byte-into-unsigned-range
+(s/fdef map-generated-byte-into-unsigned-range
   :args (s/cat :min ::byte :max ::byte :value ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
