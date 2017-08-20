@@ -2,7 +2,8 @@
 undertaker.source.multi-source
   (:require [undertaker.proto :as proto]
             [undertaker.source.always-max-source :as source.max]
-            [undertaker.source.wrapped-random :as source.random]))
+            [undertaker.source.wrapped-random :as source.random]
+            [undertaker.source.always-zero-source :as source.zero]))
 
 (defn next-source [state]
   (let [next-source (first (::sources state))]
@@ -13,7 +14,8 @@ undertaker.source.multi-source
 
 (defn initial-state [seed]
   {::current-source (source.max/make-always-max-source)
-   ::sources        [(source.random/make-source seed)]})
+   ::sources        [(source.zero/make-always-zero-source)
+                     (source.random/make-source seed)]})
 
 (defrecord MultiSource [state-atom]
   proto/UnsignedByteSource
