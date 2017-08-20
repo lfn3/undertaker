@@ -509,10 +509,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (def start-of-NaN (byte-array (take 2 (util/get-bytes-from-double Double/NaN))))
 
 (defn double-without-NaN
-  ([] (double Double/MIN_VALUE Double/MAX_VALUE))
-  ([min] (double min Double/MAX_VALUE))
+  ([] (double-without-NaN Double/MIN_VALUE Double/MAX_VALUE))
+  ([min] (double-without-NaN min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "double" floor ceiling)
+   (with-interval (format-interval-name "double-without-NaN" floor ceiling)
      (-> (byte-array 8)
          (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling #{(byte-array start-of-NaN)})
          (bytes->double)))))

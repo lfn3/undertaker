@@ -187,6 +187,5 @@
                                                 (byte-array [5])} 4))))
 
 (deftest double-without-NaN-test
-  (is (not= Double/NaN
-            (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0])}
-              (undertaker/double-without-NaN)))))
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0])}
+    (is (not= Double/NaN (undertaker/double-without-NaN)))))
