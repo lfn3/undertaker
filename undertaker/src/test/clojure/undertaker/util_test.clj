@@ -51,6 +51,17 @@
   (is (not (util/unsigned<= -128 0)))
   (is (not (util/unsigned<= -128 127))))
 
+(deftest test-unsigned<
+  (is (not (util/unsigned< 1 1)))
+  (is (util/unsigned< 0 1))
+  (is (util/unsigned< 0 -1))
+  (is (util/unsigned< 0 -128))
+  (is (util/unsigned< 127 -128))
+  (is (not (util/unsigned< 1 0)))
+  (is (not (util/unsigned< -1 0)))
+  (is (not (util/unsigned< -128 0)))
+  (is (not (util/unsigned< -128 127))))
+
 (deftest signed-range->unsigned-test
   (is (= 2 (util/signed-range->unsigned -1 1)))
   (is (= -1 (util/signed-range->unsigned -128 127)))
@@ -68,11 +79,12 @@
 
 (deftest map-unsigned-byte-into-unsigned-range-test
   (is (= 0 (util/map-unsigned-byte-into-unsigned-range -128 127 0)))
-  (is (= -128 (util/map-unsigned-byte-into-unsigned-range -128 127 -1))) ;-1 is the largest possible value
-  (is (= 1 (util/map-unsigned-byte-into-unsigned-range -128 127 1)))
-  (is (= 127 (util/map-unsigned-byte-into-unsigned-range -128 127 127)))
-  (is (= -56 (util/map-unsigned-byte-into-unsigned-range -128 127 -73)))
+  (is (= 0 (util/map-unsigned-byte-into-unsigned-range -1 127 0)))
+  (is (= -128 (util/map-unsigned-byte-into-unsigned-range -1 127 -1))) ;-1 is the largest possible value
+  (is (= 1 (util/map-unsigned-byte-into-unsigned-range -1 127 1)))
+  (is (= 127 (util/map-unsigned-byte-into-unsigned-range -1 127 127)))
+  (is (= -56 (util/map-unsigned-byte-into-unsigned-range -1 127 -73)))
   (is (= 0 (util/map-unsigned-byte-into-unsigned-range -65 63 0)))
   (is (= 63 (util/map-unsigned-byte-into-unsigned-range -65 63 63)))
-  (is (= -128 (util/map-unsigned-byte-into-unsigned-range -65 63 64)))
-  (is (= -65 (util/map-unsigned-byte-into-unsigned-range -65 63 127))))
+  (is (= -65 (util/map-unsigned-byte-into-unsigned-range -65 63 64)))
+  (is (= -128 (util/map-unsigned-byte-into-unsigned-range -65 63 127))))

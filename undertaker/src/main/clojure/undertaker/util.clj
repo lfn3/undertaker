@@ -63,6 +63,9 @@
             (= ret (<= x y))
             (= ret (or (zero? x) (neg? y)))))))
 
+(defn unsigned< [x y]
+  (= -1 (Long/compareUnsigned x y)))
+
 (defn signed-range->unsigned [min max]
   (unchecked-byte (abs (- max min))))
 
@@ -118,11 +121,13 @@
 (defn map-unsigned-byte-into-unsigned-range
   "Same reasoning as map-unsigned-byte-into-signed-range,
    but values go from -128 -> min on the negative side."
-  [min max value]
-  (if (unsigned<= value max)
+  [neg-max pos-max value]
+  (if (unsigned<= value pos-max)
     value
-    (-> (- (bit-and 0xff value) (bit-and 0xff max))
-        (+ -128))))
+    (->> (bit-and 0xff pos-max)
+         (- (bit-and 0xff value))
+         (dec)
+         (- neg-max))))
 
 (s/fdef map-unsigned-byte-into-unsigned-range
   :args (s/cat :min ::byte :max ::byte :value ::byte)
