@@ -66,10 +66,10 @@
 (defn unsigned< [x y]
   (= -1 (Long/compareUnsigned x y)))
 
-(defn signed-range->unsigned [min max]
+(defn signed-range->generator-range [min max]
   (unchecked-byte (abs (- max min))))
 
-(s/fdef signed-range->unsigned
+(s/fdef signed-range->generator-range
   :args (s/cat :min ::byte :max ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]
@@ -138,10 +138,10 @@
               (unsigned<= ret max)))))
 
 ;TODO
-(defn unsigned-range->unsigned [lower upper]
+(defn unsigned-range->generator-range [lower upper]
   (bit-and 0xff upper))
 
-(s/fdef unsigned-range->unsigned
+(s/fdef unsigned-range->generator-range
   :args (s/cat :min ::byte :max ::byte)
   :ret ::byte
   :fn (fn [{:keys [args ret]}]

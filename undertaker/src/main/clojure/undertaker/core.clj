@@ -220,7 +220,7 @@ If you can't find the cause of the error, please raise an issue at "
         disallowed-values (if all-maxes?
                             (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values)
                             disallowed-values)]
-    (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
+    (if all-maxes? (->> (util/signed-range->generator-range floor ceiling)
                         (#(- %1 (count disallowed-values)))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)
@@ -258,7 +258,7 @@ If you can't find the cause of the error, please raise an issue at "
         ceiling (nth maxes idx)
         flip? (= 1 (Integer/compareUnsigned floor ceiling))
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
-    (if all-maxes? (->> (util/signed-range->unsigned floor ceiling)
+    (if all-maxes? (->> (util/signed-range->generator-range floor ceiling)
                         (source/get-ubyte *source*)
                         (util/map-generated-byte-into-signed-range floor ceiling))
                    (source/get-ubyte source))))
@@ -341,7 +341,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn fill-numeric-array [output-arr get-bytes-fn floor ceiling]
   (let [maxes (get-bytes-fn ceiling)
         mins (get-bytes-fn floor)
-        first-genned (->> (util/signed-range->unsigned (first mins) (first maxes))
+        first-genned (->> (util/signed-range->generator-range (first mins) (first maxes))
                           (source/get-ubyte *source*)
                           (util/map-generated-byte-into-signed-range (first mins) (first maxes)))
         negative? (neg? first-genned)
@@ -425,7 +425,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
    (with-interval (format-interval-name "byte" min max)
-     (->> (util/signed-range->unsigned min max)
+     (->> (util/signed-range->generator-range min max)
           (source/get-ubyte *source*)
           (util/map-generated-byte-into-signed-range min max)))))
 

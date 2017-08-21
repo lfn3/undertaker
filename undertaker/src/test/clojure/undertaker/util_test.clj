@@ -62,13 +62,13 @@
   (is (not (util/unsigned< -128 0)))
   (is (not (util/unsigned< -128 127))))
 
-(deftest signed-range->unsigned-test
-  (is (= 2 (util/signed-range->unsigned -1 1)))
-  (is (= -1 (util/signed-range->unsigned -128 127)))
-  (is (= 127 (util/signed-range->unsigned 0 127)))
-  (is (= 32 (util/signed-range->unsigned 16 48)))
-  (is (= -128 (util/signed-range->unsigned -1 127)))
-  (is (= -128 (util/signed-range->unsigned -65 63))))
+(deftest signed-range->generator-range-test
+  (is (= 2 (util/signed-range->generator-range -1 1)))
+  (is (= -1 (util/signed-range->generator-range -128 127)))
+  (is (= 127 (util/signed-range->generator-range 0 127)))
+  (is (= 32 (util/signed-range->generator-range 16 48)))
+  (is (= -128 (util/signed-range->generator-range -1 127)))
+  (is (= -128 (util/signed-range->generator-range -65 63))))
 
 (deftest map-generated-byte-into-signed-range-test
   (is (= 0 (util/map-generated-byte-into-signed-range -128 127 0)))
