@@ -137,9 +137,8 @@
           (or (unsigned<= ret min)
               (unsigned<= ret max)))))
 
-;TODO
-(defn unsigned-range->generator-range [lower upper]
-  (bit-and 0xff upper))
+(defn unsigned-range->generator-range [neg-max pos-max]
+  (unchecked-byte (+ 129 neg-max pos-max)))
 
 (s/fdef unsigned-range->generator-range
   :args (s/cat :min ::byte :max ::byte)
