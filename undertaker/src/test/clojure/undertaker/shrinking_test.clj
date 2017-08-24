@@ -4,12 +4,35 @@
             [orchestra.spec.test :as orchestra.test]
             [clojure.test :as t :refer [deftest is]]
             [undertaker.source :as source]
-            [undertaker.shrink :as shrink]))
-
+            [undertaker.shrink :as shrink]
+            [clojure.string :as str]
+            [clojure.spec.test.alpha :as s.test]
+            [clojure.spec.alpha :as s]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
                            (orchestra.test/unstrument)))
+
+(def this-ns *ns*)
+
+(def ignored #{})
+
+(deftest check-shrinking
+  (let [target-namespace (first (str/split (str this-ns) #"-test"))
+        targets (->> (s/registry)
+                     (filter #(str/starts-with? (str (key %1)) target-namespace))
+                     (map first)
+                     (remove ignored))
+        result (s.test/check targets {:clojure.spec.test.check/opts {:num-tests 100}})
+        failures (->> result
+                      (filter #(-> %1
+                                   (get-in [:clojure.spec.test.check/ret :result])
+                                   (not)
+                                   (true?))))]
+    (println (str "Checked following specs in " target-namespace ": "))
+    (dorun (map println targets))
+    (is (empty? failures))))
+
 
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))

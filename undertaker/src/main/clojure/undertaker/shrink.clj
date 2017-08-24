@@ -77,7 +77,7 @@
 
 (defn sum-abs [coll]
   (->> coll
-       (map util/abs)
+       (map (partial bit-and 0xff))
        (reduce +)))
 
 (s/fdef shrink-at!
@@ -122,13 +122,22 @@
           last-failure-bytes)))
     bytes))
 
+(defn repeatedly-move-towards-zero [bytes fn]
+  (loop [sum (sum-abs bytes)
+         bytes bytes]
+    (let [shrunk (move-bytes-towards-zero bytes fn)
+          after-shrink-sum (sum-abs bytes)]
+      (if-not (= sum after-shrink-sum)
+        (recur after-shrink-sum shrunk)
+        shrunk))))
+
 (defn shrink
   ([bytes intervals f]
    (try
      (source/shrinking!)
      (let [shrunk-source (-> bytes
                              (snip-intervals intervals f)
-                             (move-bytes-towards-zero f)
+                             (repeatedly-move-towards-zero f)
                              (fixed-source/make-fixed-source))]
        (f shrunk-source)                                    ;So we get the right intervals in place. TODO: remove this.
        shrunk-source)
