@@ -80,14 +80,14 @@
 (deftest map-generated-byte-into-unsigned-range-test
   (is (= 0 (util/map-generated-byte-into-unsigned-range -128 127 0)))
   (is (= 0 (util/map-generated-byte-into-unsigned-range -1 127 0)))
-  (is (= -128 (util/map-generated-byte-into-unsigned-range -1 127 -1))) ;-1 is the largest possible value
+  (is (= -1 (util/map-generated-byte-into-unsigned-range -1 127 -1))) ;-1 is the largest possible value
   (is (= 1 (util/map-generated-byte-into-unsigned-range -1 127 1)))
   (is (= 127 (util/map-generated-byte-into-unsigned-range -1 127 127)))
-  (is (= -56 (util/map-generated-byte-into-unsigned-range -1 127 -73)))
+  (is (= -73 (util/map-generated-byte-into-unsigned-range -1 127 -73)))
   (is (= 0 (util/map-generated-byte-into-unsigned-range -65 63 0)))
   (is (= 63 (util/map-generated-byte-into-unsigned-range -65 63 63)))
-  (is (= -65 (util/map-generated-byte-into-unsigned-range -65 63 64)))
-  (is (= -128 (util/map-generated-byte-into-unsigned-range -65 63 127))))
+  (is (= -128 (util/map-generated-byte-into-unsigned-range -65 63 64)))
+  (is (= -65 (util/map-generated-byte-into-unsigned-range -65 63 127))))
 
 (deftest unsigned-range->generator-range-test
   (is (= 1 (util/unsigned-range->generator-range -128 0)))

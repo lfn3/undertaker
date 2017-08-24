@@ -127,7 +127,7 @@
     (->> (bit-and 0xff pos-max)
          (- (bit-and 0xff value))
          (dec)
-         (- neg-max))))
+         (+ -128))))
 
 (s/fdef map-generated-byte-into-unsigned-range
   :args (s/cat :min ::byte :max ::byte :value ::byte)
