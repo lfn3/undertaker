@@ -189,3 +189,15 @@
 (deftest double-without-NaN-test
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0])}
     (is (not= Double/NaN (undertaker/double-without-NaN)))))
+
+(deftest should-generate-max-double
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (util/get-bytes-from-double Double/MAX_VALUE))}
+    (let [value (undertaker/double-without-NaN)]
+      (is (= Double/MAX_VALUE value) (str "Produced bytes were: " (vec (util/get-bytes-from-double value))
+                                          ",\n       but expected: " (vec (util/get-bytes-from-double Double/MAX_VALUE)))))))
+
+(deftest should-generate-min-double
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (util/get-bytes-from-double Double/MIN_VALUE))}
+    (let [value (undertaker/double-without-NaN)]
+      (is (= Double/MIN_VALUE value) (str "Produced bytes were: " (vec (util/get-bytes-from-double value))
+                                          ",\n       but expected: " (vec (util/get-bytes-from-double Double/MIN_VALUE)))))))
