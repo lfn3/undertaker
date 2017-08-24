@@ -215,12 +215,12 @@ If you can't find the cause of the error, please raise an issue at "
   [source idx all-maxes? mins maxes disallowed-values]
   (let [floor (nth mins idx)
         ceiling (nth maxes idx)
-        flip? (= 1 (Integer/compareUnsigned floor ceiling))
+        flip? (= -1 (Integer/compareUnsigned floor ceiling))
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
         disallowed-values (if all-maxes?
                             (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values)
                             disallowed-values)]
-    (if all-maxes? (->> (util/signed-range->generator-range floor ceiling)
+    (if all-maxes? (->> (util/unsigned-range->generator-range floor ceiling)
                         (#(- %1 (count disallowed-values)))
                         (source/get-ubyte source)
                         (skip-disallowed-values disallowed-values)
