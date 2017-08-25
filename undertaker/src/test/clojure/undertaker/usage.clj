@@ -36,7 +36,10 @@
       (is (>= value (- Double/MAX_VALUE)))
       (is (<= value Double/MAX_VALUE)))))
 
-#_(undertaker/defprop double-around-one {}
-  (let [value (undertaker/double-without-NaN -2.0 2.0)]
-    (is (<= value 2.0))
-    (is (>= value -2.0))))
+(undertaker/defprop double-without-NaN {}
+  (is (not (Double/isNaN (undertaker/double-without-NaN)))))
+
+(undertaker/defprop double-around-one {}
+  (let [value (undertaker/double-without-NaN -1.0 1.0)]
+    (is (<= value 1.0))
+    (is (>= value -1.0))))

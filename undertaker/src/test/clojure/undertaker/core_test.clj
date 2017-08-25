@@ -198,7 +198,13 @@
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [-1 -1 0 0 0 0 0 0
                                                                          -1 -1 0 0 0 0 0 0])}
     (is (not (Double/isNaN (undertaker/double-without-NaN))))
-    (is (Double/isNaN (undertaker/double)))))
+    (is (Double/isNaN (undertaker/double))))
+  (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
+    (is (not (Double/isNaN (undertaker/double-without-NaN))))
+    (is (Double/isNaN (undertaker/double))))
+  (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
+    (is (not (Double/isNaN (undertaker/double-without-NaN -1.0 1.0))))
+    (is (Double/isNaN (undertaker/double -1.0 1.0)))))
 
 (deftest should-generate-max-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (util/get-bytes-from-double Double/MAX_VALUE))}

@@ -175,6 +175,7 @@ If you can't find the cause of the error, please raise an issue at "
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt-un [::seed ::iterations]))
+(s/def ::disallowed-values (s/coll-of ::util/bytes))
 
 (s/fdef run-prop
   :args (s/cat :opts-map ::prop-opts-map
@@ -187,7 +188,7 @@ If you can't find the cause of the error, please raise an issue at "
        (filter #(map = (take (dec (count %1)) bytes)))))    ;Check if all bar the last byte match the disallowed value.
 ;If so we could potentially generate that as the next byte.
 (s/fdef potentially-matched-disallowed-values
-  :args (s/cat :bytes ::util/bytes :disallowed-values (s/coll-of ::util/bytes))
+  :args (s/cat :bytes ::util/bytes :disallowed-values ::disallowed-values)
   :ret (s/coll-of ::util/bytes))
 
 (defn next-byte-in-range? [floor ceiling value]
@@ -210,7 +211,7 @@ If you can't find the cause of the error, please raise an issue at "
                next-altered-val)))))
 
 (s/fdef skip-disallowed-values
-  :args (s/cat :disallowed-values (s/coll-of ::util/bytes) :generated-byte ::util/byte)
+  :args (s/cat :disallowed-values ::disallowed-values :generated-byte ::util/byte)
   :ret ::util/byte
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [disallowed-values]} args]
