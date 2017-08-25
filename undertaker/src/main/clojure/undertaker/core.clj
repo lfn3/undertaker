@@ -117,6 +117,8 @@ If you can't find the cause of the error, please raise an issue at "
 (defn run-prop-1 [source f]
   (let [f (wrap-fn f)
         result-map (-> (f source)
+                       (assoc ::intervals (source/get-intervals source))
+                       (assoc ::generated-bytes (vec (source/get-sourced-bytes source)))
                        (assoc ::generated-values (map ::proto/generated-value
                                                       (->> source
                                                            (source/get-intervals)
@@ -124,9 +126,12 @@ If you can't find the cause of the error, please raise an issue at "
     (if (::result result-map)
       result-map
       (let [shrunk-source (shrink/shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
-        (assoc result-map ::shrunk-values (->> (source/get-intervals shrunk-source)
-                                               (filter (comp nil? ::proto/interval-parent-id))
-                                               (map ::proto/generated-value)))))))
+        (-> result-map
+            (assoc ::shrunk-intervals (source/get-intervals shrunk-source))
+            (assoc ::shrunk-bytes (vec (source/get-sourced-bytes shrunk-source)))
+            (assoc ::shrunk-values (->> (source/get-intervals shrunk-source)
+                                        (filter (comp nil? ::proto/interval-parent-id))
+                                        (map ::proto/generated-value))))))))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
@@ -180,7 +185,7 @@ If you can't find the cause of the error, please raise an issue at "
   (->> disallowed-values
        (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
        (filter #(map = (take (dec (count %1)) bytes)))))    ;Check if all bar the last byte match the disallowed value.
-                                                            ;If so we could potentially generate that as the next byte.
+;If so we could potentially generate that as the next byte.
 (s/fdef potentially-matched-disallowed-values
   :args (s/cat :bytes ::util/bytes :disallowed-values (s/coll-of ::util/bytes))
   :ret (s/coll-of ::util/bytes))
@@ -623,4 +628,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
        (let [result# (run-prop ~opts (fn [] (do ~@body)))]
          (dorun (map t/report (::reported result#)))
          (when-let [message# (format-results ~name-string result#)]
-           (println message#))))))
+           (println message#))
+         (when (:debug ~opts)
+           (println "\n\nDebug output follows:\n")
+           (println result#))))))
