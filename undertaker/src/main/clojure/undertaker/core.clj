@@ -185,7 +185,7 @@ If you can't find the cause of the error, please raise an issue at "
 (defn potentially-matched-disallowed-values [bytes disallowed-values]
   (->> disallowed-values
        (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
-       (filter #(map = (take (dec (count %1)) bytes)))))    ;Check if all bar the last byte match the disallowed value.
+       (filter #(every? true? (map = (take (dec (count %1)) bytes) %1)))))    ;Check if all bar the last byte match the disallowed value.
 ;If so we could potentially generate that as the next byte.
 (s/fdef potentially-matched-disallowed-values
   :args (s/cat :bytes ::util/bytes :disallowed-values ::disallowed-values)
@@ -544,8 +544,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
 
-(def start-of-NaN-values (->> (range -1 -17 -1)
-                              (map (fn [i] [127 i]))
+(def start-of-NaN-values (->> (range -1 -16 -1)
+                              (mapcat (fn [i] [[127 i] [-1 i]]))
                               (set)))
 
 (defn double-without-NaN
