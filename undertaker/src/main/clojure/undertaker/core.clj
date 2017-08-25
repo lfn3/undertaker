@@ -149,7 +149,7 @@ If you can't find the cause of the error, please raise an issue at "
   :ret ::results-map)
 
 (defn run-prop
-  ([{:keys [::seed ::iterations]
+  ([{:keys [:seed :iterations]
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
             iterations 1000}
      :as   opts-map}
@@ -174,7 +174,7 @@ If you can't find the cause of the error, please raise an issue at "
      result)))
 
 (s/def ::iterations integer?)
-(s/def ::prop-opts-map (s/keys :opt [::seed ::iterations]))
+(s/def ::prop-opts-map (s/keys :opt-un [::seed ::iterations]))
 
 (s/fdef run-prop
   :args (s/cat :opts-map ::prop-opts-map
@@ -306,7 +306,7 @@ The seed that generated the initial case was %s.
 If you want to rerun this particular failing case, you can add this seed to the test.
 
 If you're using Clojure, you can add :undertaker.core/seed to this test's options map:
-(defprop %s {:undertaker.core/seed %s} ...)
+(defprop %s {:seed %s} ...)
 
 If you're using Java and jUnit, you can add an annotation to the test:
 @Test
