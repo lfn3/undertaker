@@ -19,6 +19,9 @@
                        byte?)
                 #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
 
+(s/def ::bytes (s/or :arr bytes?
+                     :coll (s/coll-of ::byte)))
+
 (defn get-bytes-from-int [^Integer i]
   (let [out (byte-array 4)
         wrapped (ByteBuffer/wrap out)]

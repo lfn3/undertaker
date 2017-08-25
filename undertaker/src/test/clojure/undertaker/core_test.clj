@@ -187,8 +187,18 @@
                                                 (byte-array [5])} 4))))
 
 (deftest double-without-NaN-test
-  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0])}
-    (is (not= Double/NaN (undertaker/double-without-NaN)))))
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0
+                                                                         127 -8 0 0 0 0 0 0])}
+    (is (not (Double/isNaN (undertaker/double-without-NaN))))
+    (is (Double/isNaN (undertaker/double))))
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -15 0 0 0 0 0 0
+                                                                         127 -15 0 0 0 0 0 0])}
+    (is (not (Double/isNaN (undertaker/double-without-NaN))))
+    (is (Double/isNaN (undertaker/double))))
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [-1 -1 0 0 0 0 0 0
+                                                                         -1 -1 0 0 0 0 0 0])}
+    (is (not (Double/isNaN (undertaker/double-without-NaN))))
+    (is (Double/isNaN (undertaker/double)))))
 
 (deftest should-generate-max-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (util/get-bytes-from-double Double/MAX_VALUE))}
