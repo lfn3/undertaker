@@ -416,7 +416,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
      (aset-byte output-arr 0 first-genned)
      (loop [idx 1
             all-maxes? (is-max? first-genned 0 mins maxes)]
-       (let [disallowed-values (potentially-matched-disallowed-values output-arr disallowed-values)
+       (let [disallowed-values (potentially-matched-disallowed-values (take idx output-arr) disallowed-values)
              next-val (generate-next-byte-for-double *source* idx all-maxes? mins maxes disallowed-values)]
          (aset-byte output-arr idx next-val)
          (when (< (inc idx) (count output-arr))
@@ -544,7 +544,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
 
-(def start-of-NaN-values (->> (range -1 -16 -1)
+(def start-of-NaN-values (->> (range -1 -17 -1)
                               (mapcat (fn [i] [[127 i] [-1 i]]))
                               (set)))
 
