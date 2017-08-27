@@ -368,20 +368,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                  (and all-maxes? (is-max? next-val idx mins maxes))))))
     output-arr))
 
-(defn unsigned-range [floor ceiling]
-  (let [unsigned-floor (bit-and 0xff floor)
-        unsigned-ceiling (bit-and 0xff ceiling)]
-    (unchecked-byte (- (max unsigned-floor unsigned-ceiling) (min unsigned-floor unsigned-ceiling)))))
-
-(defn map-into-unsigned-range [value floor ceiling]
-  (let [[floor ceiling] [(min floor ceiling) (max floor ceiling)]]
-    (cond
-      (and (or (pos? value) (zero? value)) (pos? ceiling) (>= ceiling value)) value
-      (and (pos? ceiling) (pos? value)) (+ -129 (- value ceiling))
-      (and (zero? ceiling) (neg? floor) (zero? value)) 0
-      (and (or (zero? ceiling) (neg? ceiling)) (neg? floor) (not (neg? value))) (+ -128 value)
-      (neg? value) (+ -129 (util/abs value)))))
-
 ;TODO: refactor
 (defn fill-unsigned-numeric-array
   ([output-arr get-bytes-fn]
@@ -403,16 +389,15 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([output-arr get-bytes-fn floor ceiling disallowed-values]
    (let [maxes (get-bytes-fn ceiling)
          mins (get-bytes-fn floor)
-         first-genned (-> (source/get-ubyte *source* (unsigned-range (first mins) (first maxes)))
-                          (map-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
+         first-genned (->> (source/get-ubyte *source* (util/unsigned-range->generator-range (first mins) (first maxes)))
+                           (util/map-generated-byte-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
          negative? (neg? first-genned)
          maxes (if (and negative? (not (neg? ceiling)))     ;not sure if I need these.
                  (get-bytes-fn (min -1 ceiling))            ;If we've already generated a -ve number, then the max is actually -1
                  maxes)
          mins (if (and (not negative?) (neg? floor))
                 (get-bytes-fn (max 0 floor))                ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-                mins)
-         ranges (map unsigned-range mins maxes)]
+                mins)]
      (aset-byte output-arr 0 first-genned)
      (loop [idx 1
             all-maxes? (is-max? first-genned 0 mins maxes)]

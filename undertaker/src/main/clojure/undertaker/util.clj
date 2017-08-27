@@ -144,8 +144,5 @@
   (unchecked-byte (+ 129 neg-max pos-max)))
 
 (s/fdef unsigned-range->generator-range
-  :args (s/cat :min ::byte :max ::byte)
-  :ret ::byte
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]} args]
-          (range -128 min ))))
+  :args (s/cat :neg-max ::byte :pos-max ::byte)
+  :ret ::byte)

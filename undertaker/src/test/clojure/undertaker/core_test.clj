@@ -146,31 +146,6 @@
   (is (= (vec (util/get-bytes-from-double 1.0000000000000002))
          [63 -16 0 0 0 0 0 1])))
 
-(deftest unsigned-range-test
-  (is (= (undertaker/unsigned-range 0 0) 0))
-  (is (= (undertaker/unsigned-range 0 1) 1))
-  (is (= (undertaker/unsigned-range -1 0) -1))
-  (is (= (undertaker/unsigned-range -128 0) -128))
-  (is (= (undertaker/unsigned-range -128 127) 1))
-  (is (= (undertaker/unsigned-range 127 -1) -128))
-  (is (= (undertaker/unsigned-range 0 127) 127))
-  (is (= (undertaker/unsigned-range -1 1) -2))
-  (is (= (undertaker/unsigned-range -128 -1) 127))
-  (is (= (undertaker/unsigned-range -65 63) -128)))
-
-(deftest map-into-unsigned-range
-  (is (= (undertaker/map-into-unsigned-range 0 -128 127) 0))
-  (is (= (undertaker/map-into-unsigned-range -128 -128 127) -1))
-  (is (= (undertaker/map-into-unsigned-range 0 -65 63) 0))
-  (is (= (undertaker/map-into-unsigned-range 63 -65 63) 63))
-  (is (= (undertaker/map-into-unsigned-range 64 -65 63) -128))
-  (is (= (undertaker/map-into-unsigned-range 127 -65 63) -65))
-  (is (= (undertaker/map-into-unsigned-range 0 -128 -1) -128))
-  (is (= (undertaker/map-into-unsigned-range 127 -128 -1) -1))
-  (is (= (undertaker/map-into-unsigned-range 126 -128 -1) -2))
-  (is (= (undertaker/map-into-unsigned-range 96 0 -127) -32))
-  (is (= (undertaker/map-into-unsigned-range 0 -1 0) 0)))
-
 (deftest count-of-potentially-matched-disallowed-values
   (is (= #{[127]} (set (map vec (undertaker/potentially-matched-disallowed-values [] #{[127]})))))
   (is (= '() (undertaker/potentially-matched-disallowed-values [127] #{[127]})))
@@ -203,10 +178,7 @@
     (is (Double/isNaN (undertaker/double))))
   (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
     (is (not (Double/isNaN (undertaker/double-without-NaN))))
-    (is (Double/isNaN (undertaker/double))))
-  (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
-    (is (not (Double/isNaN (undertaker/double-without-NaN -1.0 1.0))))
-    (is (Double/isNaN (undertaker/double -1.0 1.0)))))
+    (is (Double/isNaN (undertaker/double)))))
 
 (deftest should-generate-max-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (util/get-bytes-from-double Double/MAX_VALUE))}
@@ -219,3 +191,9 @@
     (let [value (undertaker/double-without-NaN)]
       (is (= Double/MIN_VALUE value) (str "Produced bytes were: " (vec (util/get-bytes-from-double value))
                                           ",\n       but expected: " (vec (util/get-bytes-from-double Double/MIN_VALUE)))))))
+
+(deftest double-without-NaN-should-generate-numbers-in-range
+  (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
+    (let [double (undertaker/double-without-NaN -1.0 1.0)]
+      (is (<= double 1.0))
+      (is (<= -1.0 double)))))
