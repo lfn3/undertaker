@@ -47,3 +47,11 @@
 (undertaker/defprop double-above-one {:debug true}
   (let [double (undertaker/double-without-NaN 1.0)]
     (is (<= 1.0 double))))
+
+(undertaker/defprop short-above-one {:debug true}
+  (let [short (undertaker/short 1)]
+    (is (<= 1 short))))
+
+(undertaker/defprop int-above-one {:debug true}
+  (let [int (undertaker/int 1)]
+    (is (<= 1 int))))

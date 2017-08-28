@@ -1,6 +1,6 @@
 (ns undertaker.core
   (:gen-class)
-  (:refer-clojure :exclude [int byte long double])
+  (:refer-clojure :exclude [int byte long double short])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
@@ -284,6 +284,12 @@ If you can't find the cause of the error, please raise an issue at "
       (ByteBuffer/wrap)
       (.getInt)))
 
+(defn bytes->short [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getShort)))
+
 (defn bytes->long [arr]
   (-> arr
       (cond-> (not (bytes? arr)) (byte-array))
@@ -460,6 +466,15 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                       max Byte/MAX_VALUE}} args]
           (and (<= min ret)
                (<= ret max)))))
+
+(defn short
+  ([] (short Short/MIN_VALUE Short/MAX_VALUE))
+  ([min] (short min Short/MAX_VALUE))
+  ([floor ceiling]
+    (with-interval (format-interval-name "short" floor ceiling)
+      (-> (byte-array 2)
+          (fill-numeric-array util/get-bytes-from-short floor ceiling)
+          (bytes->short)))))
 
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
