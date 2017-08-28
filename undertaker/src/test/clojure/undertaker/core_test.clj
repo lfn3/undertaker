@@ -197,3 +197,8 @@
     (let [double (undertaker/double-without-NaN -1.0 1.0)]
       (is (<= double 1.0))
       (is (<= -1.0 double)))))
+
+(deftest double-without-NaN-should-generate-numbers-above-one
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [0 16 0 0 0 0 0 0])}
+    (let [double (undertaker/double-without-NaN 1.0)]
+      (is (<= 1.0 double)))))

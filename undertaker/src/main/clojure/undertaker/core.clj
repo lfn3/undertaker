@@ -271,10 +271,12 @@ If you can't find the cause of the error, please raise an issue at "
                    (source/get-ubyte source))))
 
 (defn is-max? [val idx mins maxes]
-  (let [target-array (if (neg? val)
-                       mins
-                       maxes)]
-    (= val (aget target-array idx))))
+  (or (= val (aget mins idx))
+      (= val (aget maxes idx))))
+
+(s/fdef is-max?
+  :args (s/cat :val ::util/byte :idx int? :mins ::util/bytes :maxes ::util/bytes)
+  :ret boolean?)
 
 (defn bytes->int [arr]
   (-> arr
@@ -389,7 +391,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([output-arr get-bytes-fn floor ceiling disallowed-values]
    (let [maxes (get-bytes-fn ceiling)
          mins (get-bytes-fn floor)
-         first-genned (->> (source/get-ubyte *source* (util/unsigned-range->generator-range (first mins) (first maxes)))
+         first-genned (->> (util/unsigned-range->generator-range (first mins) (first maxes))
+                           (source/get-ubyte *source*)
                            (util/map-generated-byte-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
          negative? (neg? first-genned)
          maxes (if (and negative? (not (neg? ceiling)))     ;not sure if I need these.

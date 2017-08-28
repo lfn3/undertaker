@@ -108,7 +108,7 @@
                                               (+ sml))]
                  (if (< ceiling possibly-wrapped-val)
                    (-> possibly-wrapped-val                 ;If wrapped, treat the same as the -ve case above.
-                       (- ceiling)                              ;But we have to remove the quantity from before wrapping first.
+                       (- ceiling)                          ;But we have to remove the quantity from before wrapping first.
                        (-))                                 ;Sml will be zero, no need to add.
                    value)))))
 
@@ -125,12 +125,13 @@
   "Same reasoning as map-unsigned-byte-into-signed-range,
    but values go from -128 -> min on the negative side."
   [neg-max pos-max value]
-  (if (unsigned<= value pos-max)
-    value
-    (->> (bit-and 0xff pos-max)
-         (- (bit-and 0xff value))
-         (dec)
-         (+ -128))))
+  (cond
+    (= (Integer/signum neg-max) (Integer/signum pos-max)) (+ neg-max value) ;in this case neg-max is actually floor
+    (unsigned<= value pos-max) value                        ;otherwise, check if it's above pos-max. If not, just return the value
+    :default (->> (bit-and 0xff pos-max)                    ;
+                  (- (bit-and 0xff value))
+                  (dec)
+                  (+ -128))))
 
 (s/fdef map-generated-byte-into-unsigned-range
   :args (s/cat :min ::byte :max ::byte :value ::byte)

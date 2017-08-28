@@ -43,3 +43,7 @@
   (let [value (undertaker/double-without-NaN -1.0 1.0)]
     (is (<= value 1.0))
     (is (>= value -1.0))))
+
+(undertaker/defprop double-above-one {:debug true}
+  (let [double (undertaker/double-without-NaN 1.0)]
+    (is (<= 1.0 double))))
