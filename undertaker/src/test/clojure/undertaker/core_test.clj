@@ -202,3 +202,8 @@
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [0 16 0 0 0 0 0 0])}
     (let [double (undertaker/double-without-NaN 1.0)]
       (is (<= 1.0 double)))))
+
+(deftest short-should-generate-numbers-above-one
+  (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [0 0 0 0 0 0 0 0])}
+    (let [short (undertaker/short 1)]
+      (is (<= 1 short)))))

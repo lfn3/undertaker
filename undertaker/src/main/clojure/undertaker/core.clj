@@ -266,7 +266,7 @@ If you can't find the cause of the error, please raise an issue at "
         flip? (= 1 (Integer/compareUnsigned floor ceiling))
         [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
     (if all-maxes? (->> (util/signed-range->generator-range floor ceiling)
-                        (source/get-ubyte *source*)
+                        (source/get-ubyte source)
                         (util/map-generated-byte-into-signed-range floor ceiling))
                    (source/get-ubyte source))))
 
@@ -370,6 +370,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
     (loop [idx 1
            all-maxes? (is-max? first-genned 0 mins maxes)]
       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
+        (prn next-val)
         (aset-byte output-arr idx next-val)
         (when (< (inc idx) (count output-arr))
           (recur (inc idx)
