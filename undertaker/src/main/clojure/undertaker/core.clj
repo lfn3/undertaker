@@ -31,35 +31,6 @@
 
 (def ^:dynamic *source* nil)
 
-(defn move-into-range
-  ([byte min max]
-   (move-into-range byte min max Byte/MIN_VALUE Byte/MAX_VALUE))
-  ([number min max type-min type-max]
-   (let [type-range (- type-max type-min)
-         range (- max min)
-         fixed-offset (- type-min)]                         ;Due to everything in java being signed.
-     (if (= range 0)
-       min
-       (let [divisor (/ type-range range)
-             adjusted-number (+ fixed-offset number)]
-         (Math/round (clojure.core/double (+ min (/ adjusted-number divisor)))))))))
-
-(s/fdef move-into-range
-  :args (s/alt
-          :byte (s/cat :byte ::util/byte
-                       :min ::util/byte
-                       :max ::util/byte)
-          :integer (s/cat :integer integer?
-                          :min integer?
-                          :max integer?
-                          :type-min integer?
-                          :type-max integer?))
-  :ret integer?
-  :fn (fn [{:keys [args ret]}]
-        (let [inner-args (last args)]
-          (and (<= (:min inner-args) ret)
-               (>= (:max inner-args) ret)))))
-
 (defn format-interval-name [name & args]
   (str name " [" (str/join " " args) "]"))
 
@@ -370,7 +341,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
     (loop [idx 1
            all-maxes? (is-max? first-genned 0 mins maxes)]
       (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-        (prn next-val)
         (aset-byte output-arr idx next-val)
         (when (< (inc idx) (count output-arr))
           (recur (inc idx)
