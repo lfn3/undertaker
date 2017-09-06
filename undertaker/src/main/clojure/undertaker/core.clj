@@ -11,7 +11,8 @@
             [undertaker.source.fixed :as fixed-source]
             [clojure.test.check.generators :as gen]
             [undertaker.util :as util]
-            [undertaker.shrink :as shrink])
+            [undertaker.shrink :as shrink]
+            [undertaker.bytes :as bytes])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException)))
@@ -153,126 +154,6 @@ If you can't find the cause of the error, please raise an issue at "
                :fn fn?)
   :ret ::results-map)
 
-(defn potentially-matched-disallowed-values [bytes disallowed-values]
-  (->> disallowed-values
-       (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
-       (filter #(every? true? (map = (take (dec (count %1)) bytes) %1)))))    ;Check if all bar the last byte match the disallowed value.
-;If so we could potentially generate that as the next byte.
-(s/fdef potentially-matched-disallowed-values
-  :args (s/cat :bytes ::util/bytes :disallowed-values ::disallowed-values)
-  :ret (s/coll-of ::util/bytes))
-
-(defn next-byte-in-range? [floor ceiling value]
-  (and (<= (bit-and 0xff floor) (bit-and 0xff value))
-       (<= (bit-and 0xff value) (bit-and 0xff ceiling))))
-
-(defn skip-disallowed-values
-  [disallowed-values generated-byte]
-  ;We have to do this repeatedly since we might have pushed the value up into another disallowed value.
-  (loop [disallowed-bytes (map last disallowed-values)      ;We know that we must be dealing with the last part of the disallowed byte at this point
-         last-altered-val generated-byte]
-    (let [at-or-below-generated (filter #(util/unsigned<= %1 last-altered-val) disallowed-bytes)
-          next-altered-val (->> at-or-below-generated
-                                (count)
-                                (+ last-altered-val)
-                                (unchecked-byte))]
-      (if (= next-altered-val last-altered-val)
-        last-altered-val
-        (recur (remove (set at-or-below-generated) disallowed-bytes)
-               next-altered-val)))))
-
-(s/fdef skip-disallowed-values
-  :args (s/cat :disallowed-values ::disallowed-values :generated-byte ::util/byte)
-  :ret ::util/byte
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [disallowed-values]} args]
-          (not-any? (partial = ret) (map last disallowed-values)))))
-
-(defn generate-next-byte-for-double
-  [source idx all-maxes? mins maxes disallowed-values]
-  (if all-maxes?
-    (let [floor (nth mins idx)
-          ceiling (nth maxes idx)
-          flip? (= -1 (Integer/compareUnsigned floor ceiling))
-          [floor ceiling] (if flip? [ceiling floor] [floor ceiling]) ;;i.e. -1 > -2
-          disallowed-values (if all-maxes?
-                              (filter #(next-byte-in-range? floor ceiling (last %1)) disallowed-values)
-                              disallowed-values)]
-      (->> (util/unsigned-range->generator-range floor ceiling)
-           (#(- %1 (count disallowed-values)))
-           (source/get-ubyte source)
-           (skip-disallowed-values disallowed-values)
-           (util/map-generated-byte-into-unsigned-range floor ceiling)))
-    (->> (- -1 (count disallowed-values))
-         (source/get-ubyte source)
-         (skip-disallowed-values disallowed-values))))
-
-;Mapping straight to bytes doesn't work since the repr of an int is laid out differently.
-;i.e. int max is 127 -1 -1 -1, int min is -128 0 0 0.
-;the range of allowed bytes in this case is actually 127 127 127 127 -> -128 -128 -128 -128
-;can special case max and min, but I still have to deal with larger ints.
-;i.e. 2027483647 -> 120 -40 -15 -1, -2027483647 -> -121 39 14 1, we'd want to generate 119 40 ... (1999113729),
-;so just working off the range wouldn't work.
-
-; -1 -> +1 = [-1 -1 -1 -1] -> [0 0 0 1]
-; generate first byte. If it's -1 then the rest of the options are fixed?
-; not quite - there's the zero case.
-; can split into -ve and
-
-;; This is here for Rich-ean posterity: how I arrived at the fn below, and commentary explaining bits.
-;(if (neg? first-genned)                              ;We know it's going to be in the negative part of the range (and that that part of the range exists)
-;  (if (= first-genned (first mins))                  ;Only generate up to the limit
-;    )
-;  (if (= first-genned (first maxes))                 ;If first genned = max then we can only generate up to the limit.
-;    (source/get-byte source
-;                     (min 0 (nth maxes 2))           ;Max might be -ve (> 127)
-;                     (if (neg? (nth maxes 2))
-;                       Byte/MAX_VALUE
-;                       (nth maxes 2)))
-;    ()))
-
-(defn generate-next-byte-for-int [source idx all-maxes? mins maxes]
-  (let [floor (nth mins idx)
-        ceiling (nth maxes idx)
-        flip? (= 1 (Integer/compareUnsigned floor ceiling))
-        [floor ceiling] (if flip? [ceiling floor] [floor ceiling])] ;;i.e. -1 > -2
-    (if all-maxes? (->> (util/signed-range->generator-range floor ceiling)
-                        (source/get-ubyte source)
-                        (util/map-generated-byte-into-signed-range floor ceiling))
-                   (source/get-ubyte source))))
-
-(defn is-max? [val idx mins maxes]
-  (or (= val (aget mins idx))
-      (= val (aget maxes idx))))
-
-(s/fdef is-max?
-  :args (s/cat :val ::util/byte :idx int? :mins ::util/bytes :maxes ::util/bytes)
-  :ret boolean?)
-
-(defn bytes->int [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getInt)))
-
-(defn bytes->short [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getShort)))
-
-(defn bytes->long [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getLong)))
-
-(defn bytes->double [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getDouble)))
-
 (defn format-failed [name results]
   (format "%s failed after running %d times.
 
@@ -324,85 +205,14 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat :results ::results-map)
   :ret string?)
 
-(defn fill-numeric-array [output-arr get-bytes-fn floor ceiling]
-  (let [maxes (get-bytes-fn ceiling)
-        mins (get-bytes-fn floor)
-        first-genned (->> (util/signed-range->generator-range (first mins) (first maxes))
-                          (source/get-ubyte *source*)
-                          (util/map-generated-byte-into-signed-range (first mins) (first maxes)))
-        negative? (neg? first-genned)
-        maxes (if (and negative? (not (neg? ceiling)))
-                (get-bytes-fn (min -1 ceiling))             ;If we've already generated a -ve number, then the max is actually -1
-                maxes)
-        mins (if (and (not negative?) (neg? floor))
-               (get-bytes-fn (max 0 floor))                 ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-               mins)]
-    (aset-byte output-arr 0 first-genned)
-    (loop [idx 1
-           all-maxes? (is-max? first-genned 0 mins maxes)]
-      (let [next-val (generate-next-byte-for-int *source* idx all-maxes? mins maxes)]
-        (aset-byte output-arr idx next-val)
-        (when (< (inc idx) (count output-arr))
-          (recur (inc idx)
-                 (and all-maxes? (is-max? next-val idx mins maxes))))))
-    output-arr))
+(defn filled-array [size]
+  (let [output (byte-array size)]
+    (dorun (map-indexed (fn [idx _] (aset-byte output idx (source/get-ubyte *source*))) output))
+    output))
 
-;TODO: refactor
-(defn fill-unsigned-numeric-array
-  ([output-arr get-bytes-fn]
-   (loop [idx 0]
-     (let [next-val (generate-next-byte-for-double *source* idx false [] [] [])]
-       (aset-byte output-arr idx next-val)
-       (when (< (inc idx) (count output-arr))
-         (recur (inc idx)))))
-   output-arr)
-  ([output-arr get-bytes-fn disallowed-values]
-   (loop [idx 0]
-     (let [disallowed-values (potentially-matched-disallowed-values (take idx output-arr) disallowed-values)
-           next-val (generate-next-byte-for-double *source* idx false [] [] disallowed-values)]
-       (aset-byte output-arr idx next-val)
-       (when (< (inc idx) (count output-arr))
-         (recur (inc idx)))))
-   output-arr)
-  ([output-arr get-bytes-fn floor ceiling] (fill-unsigned-numeric-array output-arr get-bytes-fn floor ceiling #{}))
-  ([output-arr get-bytes-fn floor ceiling disallowed-values]
-   (let [maxes (get-bytes-fn ceiling)
-         mins (get-bytes-fn floor)
-         first-genned (->> (util/unsigned-range->generator-range (first mins) (first maxes))
-                           (source/get-ubyte *source*)
-                           (util/map-generated-byte-into-unsigned-range (first mins) (first maxes))) ;Not sure about this bit, yet.
-         negative? (neg? first-genned)
-         maxes (if (and negative? (not (neg? ceiling)))     ;not sure if I need these.
-                 (get-bytes-fn (min -1 ceiling))            ;If we've already generated a -ve number, then the max is actually -1
-                 maxes)
-         mins (if (and (not negative?) (neg? floor))
-                (get-bytes-fn (max 0 floor))                ;Conversely, if we've generated a +ve number, then the minimum is now zero.
-                mins)]
-     (aset-byte output-arr 0 first-genned)
-     (loop [idx 1
-            all-maxes? (is-max? first-genned 0 mins maxes)]
-       (let [disallowed-values (potentially-matched-disallowed-values (take idx output-arr) disallowed-values)
-             next-val (generate-next-byte-for-double *source* idx all-maxes? mins maxes disallowed-values)]
-         (aset-byte output-arr idx next-val)
-         (when (< (inc idx) (count output-arr))
-           (recur (inc idx)
-                  (and all-maxes? (is-max? next-val idx mins maxes))))))
-     output-arr)))
-
-;TODO: should really be any? not double?
-(s/def ::get-bytes-fn (s/fspec :args (s/cat :val double?) :ret bytes?))
-
-(s/fdef fill-unsigned-numeric-array
-  :args (s/alt
-          :without-ranges (s/cat :output-arr bytes?
-                                 :get-bytes-fn (s/with-gen ::get-bytes-fn #(gen/return util/get-bytes-from-double))
-                                 :disallowed (s/? (s/coll-of ::util/bytes)))
-          :with-ranges (s/cat :output-arr bytes?
-                              :get-bytes-fn (s/with-gen ::get-bytes-fn #(gen/return util/get-bytes-from-double))
-                              :floor number?
-                              :ceiling number?
-                              :disallowed (s/? (s/coll-of ::util/bytes))))
-  :ret bytes?)
+(s/fdef filled-array
+  :args (s/cat :size integer?)
+  :ret ::util/bytes)
 
 ;; === === === === === === === ===
 ;; Public api
@@ -423,10 +233,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
-   (with-interval (format-interval-name "byte" min max)
-     (->> (util/signed-range->generator-range min max)
-          (source/get-ubyte *source*)
-          (util/map-generated-byte-into-signed-range min max)))))
+   (with-interval (format-interval-name "byte" min max)     ;This is slightly ridiculous, but consistency is key!
+     (-> (filled-array 1)
+         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes))
+         (bytes/bytes->byte)))))
 
 (s/fdef byte
   :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))
@@ -443,18 +253,18 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (short min Short/MAX_VALUE))
   ([floor ceiling]
     (with-interval (format-interval-name "short" floor ceiling)
-      (-> (byte-array 2)
-          (fill-numeric-array util/get-bytes-from-short floor ceiling)
-          (bytes->short)))))
+      (-> (filled-array 2)
+          (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes))
+          (bytes/bytes->short)))))
 
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "int" floor ceiling)
-     (-> (byte-array 4)
-         (fill-numeric-array util/get-bytes-from-int floor ceiling)
-         (bytes->int)))))
+     (-> (filled-array 4)
+         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/int->bytes))
+         (bytes/bytes->int)))))
 
 (s/fdef int
   :args (s/cat :min (s/? int?)
@@ -473,9 +283,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "long" floor ceiling)
-     (-> (byte-array 8)
-         (fill-numeric-array util/get-bytes-from-long floor ceiling)
-         (bytes->long)))))
+     (-> (filled-array 8)
+         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes))
+         (bytes/bytes->long)))))
 
 (s/fdef long
   :args (s/cat :min (s/? int?)
@@ -495,17 +305,13 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 ;I.e. -1 > -2
 
 (defn double
-  ([]
-   (with-interval (format-interval-name "double")
-     (-> (byte-array 8)
-         (fill-unsigned-numeric-array util/get-bytes-from-double)
-         (bytes->double))))
+  ([] (double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (double min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "double" floor ceiling)
-     (-> (byte-array 8)
-         (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling)
-         (bytes->double)))))
+     (-> (filled-array 8)
+         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes))
+         (bytes/bytes->double)))))
 
 (s/fdef double
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
@@ -523,17 +329,15 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                               (set)))
 
 (defn double-without-NaN
-  ([]
-   (with-interval (format-interval-name "double-without-NaN")
-     (-> (byte-array 8)
-         (fill-unsigned-numeric-array util/get-bytes-from-double start-of-NaN-values)
-         (bytes->double))))
+  ([] (double-without-NaN (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (double-without-NaN min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "double-without-NaN" floor ceiling)
-     (-> (byte-array 8)
-         (fill-unsigned-numeric-array util/get-bytes-from-double floor ceiling start-of-NaN-values)
-         (bytes->double)))))
+     (with-interval (format-interval-name "double" floor ceiling)
+       (-> (filled-array 8)
+           (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+                                  start-of-NaN-values)
+           (bytes/bytes->double))))))
 
 (s/fdef double-without-NaN
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))

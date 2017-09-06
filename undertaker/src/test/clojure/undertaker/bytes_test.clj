@@ -46,24 +46,12 @@
 (deftest test-values-in-range?
   (is (true? (values-in-range? [0 0] [[0 0] [0 1]])))
   (is (true? (values-in-range? [-1 -1] [[-128 -128] [-1 -1]])))
-  (is (true? (values-in-range? [0] [[0 5] [0 10]]))))
+  (is (true? (values-in-range? [0] [[0 5] [0 10]])))
+  (is (true? (values-in-range? [-1] [[-1 -17 -1 -1 -1 -1 -1 -1] [-65 -16 0 0 0 0 0 0]]))))
 
 (deftest test-ranges-at-idx
   (is (= [[0 0]] (map (partial map #(nth %1 0)) [[[0] [0]]])))
   (is (= [[1 -1]] (map (partial map #(nth %1 1)) [[[0 1] [0 -1]]]))))
-
-(defn bytes->short [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getShort)))
-
-(defn short->bytes [short]
-  (let [output (byte-array 2)]
-    (-> output
-        (ByteBuffer/wrap)
-        (.putShort short))
-    output))
 
 (defn vectorized-move-bytes-into-range
   ([input min max] (vectorized-move-bytes-into-range input min max #{}))
@@ -82,6 +70,40 @@
                          (vec))]
     (is (= [[[0 0] [0 1]]] (vectorized 0 1)))
     (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))))
+
+(deftest double-arrays-examples
+  (is (= (vec (double->bytes -2.563353952042129E75))
+         [-49 -106 -85 58 73 -49 -24 -102]))                ;This is the problem with the generator. -65 < -49 < 63.
+  (is (= (vec (double->bytes 1.0))                          ;But if we consider them as unsigned, -49 > -65.
+         [63 -16 0 0 0 0 0 0]))
+  (is (= (vec (double->bytes -1.0))
+         [-65 -16 0 0 0 0 0 0]))
+  (is (= (vec (double->bytes 0.5))
+         [63 -32 0 0 0 0 0 0]))
+  (is (= (vec (double->bytes -0.5))
+         [-65 -32 0 0 0 0 0 0]))
+  (is (= (vec (double->bytes 0.2))
+         [63 -55 -103 -103 -103 -103 -103 -102]))
+  (is (= (vec (double->bytes 1.0000000000000002))
+         [63 -16 0 0 0 0 0 1])))
+
+#_(deftest test-count-of-potentially-matched-disallowed-values
+  (is (= #{[127]} (set (map vec (potentially-matched-disallowed-values [] #{[127]})))))
+  (is (= '() (potentially-matched-disallowed-values [127] #{[127]})))
+  (is (= #{[127 -1]} (set (map vec (potentially-matched-disallowed-values [127] #{[127 -1]})))))
+  (is (= '() (potentially-matched-disallowed-values [127 1] #{[127 -1]})))
+  (is (= '() (potentially-matched-disallowed-values [127 1] #{[127 -1]})))
+  (is (= '() (potentially-matched-disallowed-values [127] #{[-1 -1]})))
+  (is (= #{[127 -1] [127 -2]} (set (map vec (potentially-matched-disallowed-values [127] #{[127 -1]
+                                                                                           [127 -2]}))))))
+#_(deftest test-skip-disallowed-values
+  (is (= -128 (skip-disallowed-values 127 #{(byte-array [127])} )))
+  (is (= -2 (skip-disallowed-values -2 #{(byte-array [127])} )))
+  (is (= 6 (skip-disallowed-values 5 #{(byte-array [1])
+                                     (byte-array [5])} )))
+  (is (= 4 (skip-disallowed-values 4 #{(byte-array [1])
+                                     (byte-array [5])}))))
+
 
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]

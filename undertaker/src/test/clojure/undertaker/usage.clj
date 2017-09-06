@@ -44,14 +44,14 @@
     (is (<= value 1.0))
     (is (>= value -1.0))))
 
-(undertaker/defprop double-above-one {:debug true}
+(undertaker/defprop double-above-one {}
   (let [double (undertaker/double-without-NaN 1.0)]
     (is (<= 1.0 double))))
 
-(undertaker/defprop short-above-one {:debug true}
+(undertaker/defprop short-above-one {}
   (let [short (undertaker/short 1)]
     (is (<= 1 short))))
 
-(undertaker/defprop int-above-one {:debug true}
+(undertaker/defprop int-above-one {}
   (let [int (undertaker/int 1)]
     (is (<= 1 int))))
