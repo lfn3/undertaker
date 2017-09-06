@@ -1,5 +1,6 @@
 (ns undertaker.source.fixed
-  (:require [undertaker.proto :as proto])
+  (:require [undertaker.proto :as proto]
+            [undertaker.bytes :as bytes])
   (:import (com.lmax.undertaker OverrunException)))
 
 (defn- push-interval* [state interval-name]
@@ -52,11 +53,14 @@
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [size (count (first (first ranges)))
-          bytes (byte-array (repeatedly size byte-or-throw-overrun))]
-      (swap! state-atom #(-> %1
-                             (update ::bytes-counter (+ size))
-                             (update ::bytes (concat (vec bytes)))))
-      bytes))
+          state @state-atom
+          bytes (byte-array (->> state
+                                 (::bytes)
+                                 (drop (::cursor state))
+                                 (take size)))]
+      (when-not (= (count bytes) size) (throw (OverrunException.)))
+      (swap! state-atom update ::cursor + size)
+      (bytes/map-into-ranges bytes ranges skip)))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

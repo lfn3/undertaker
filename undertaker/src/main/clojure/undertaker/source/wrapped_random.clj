@@ -80,8 +80,8 @@
   (get-bytes [_ ranges skip]
     (let [bytes (proto/get-bytes rnd ranges skip)]
       (swap! state-atom #(-> %1
-                             (update ::bytes-counter (+ (count bytes)))
-                             (update ::bytes (concat (vec bytes)))))
+                             (update ::bytes-counter (partial + (count bytes)))
+                             (update ::bytes (fn [bytes] (concat bytes (vec bytes))))))
       bytes))
   proto/Interval
   (push-interval [_ interval-name]

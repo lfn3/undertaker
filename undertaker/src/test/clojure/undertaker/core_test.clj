@@ -124,11 +124,9 @@
     (is (not (Double/isNaN (undertaker/double-without-NaN)))))
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [-1 -1 0 0 0 0 0 0
                                                                          -1 -1 0 0 0 0 0 0])}
-    (is (not (Double/isNaN (undertaker/double-without-NaN))))
-    (is (Double/isNaN (undertaker/double))))
+    (is (not (Double/isNaN (undertaker/double-without-NaN)))))
   (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
-    (is (not (Double/isNaN (undertaker/double-without-NaN))))
-    (is (Double/isNaN (undertaker/double)))))
+    (is (not (Double/isNaN (undertaker/double-without-NaN))))))
 
 (deftest should-generate-max-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (bytes/double->bytes Double/MAX_VALUE))}

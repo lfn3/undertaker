@@ -28,8 +28,7 @@
   proto/UnsignedByteSource
   (get-ubyte [_ max] (proto/get-ubyte rnd max))
   proto/ByteArraySource
-  (get-bytes [_ ranges skip]
-    (proto/get-bytes rnd ranges skip))
+  (get-bytes [_ ranges skip] (proto/get-bytes rnd ranges skip))
   proto/Interval
   (push-interval [_ interval-name])
   (pop-interval [_ interval-id generated-value])

@@ -234,9 +234,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
    (with-interval (format-interval-name "byte" min max)     ;This is slightly ridiculous, but consistency is key!
-     (-> (filled-array 1)
-         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes))
-         (bytes/bytes->byte)))))
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
+          (source/get-bytes *source*)
+          (bytes/bytes->byte)))))
 
 (s/fdef byte
   :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))
@@ -252,9 +252,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
   ([floor ceiling]
-    (with-interval (format-interval-name "short" floor ceiling)
-      (-> (filled-array 2)
-          (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes))
+   (with-interval (format-interval-name "short" floor ceiling)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
+          (source/get-bytes *source*)
           (bytes/bytes->short)))))
 
 (defn int
@@ -262,9 +262,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "int" floor ceiling)
-     (-> (filled-array 4)
-         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/int->bytes))
-         (bytes/bytes->int)))))
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/int->bytes)
+          (source/get-bytes *source*)
+          (bytes/bytes->int)))))
 
 (s/fdef int
   :args (s/cat :min (s/? int?)
@@ -283,9 +283,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "long" floor ceiling)
-     (-> (filled-array 8)
-         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes))
-         (bytes/bytes->long)))))
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
+          (source/get-bytes *source*)
+          (bytes/bytes->long)))))
 
 (s/fdef long
   :args (s/cat :min (s/? int?)
@@ -309,9 +309,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (double min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "double" floor ceiling)
-     (-> (filled-array 8)
-         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes))
-         (bytes/bytes->double)))))
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+          (source/get-bytes *source*)
+          (bytes/bytes->double)))))
 
 (s/fdef double
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
@@ -333,10 +333,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (double-without-NaN min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "double-without-NaN" floor ceiling)
-     (-> (filled-array 8)
-         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
-                                start-of-NaN-values)
-         (bytes/bytes->double)))))
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+          (source/get-bytes *source* start-of-NaN-values)
+          (bytes/bytes->double)))))
 
 (s/fdef double-without-NaN
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))

@@ -40,20 +40,18 @@
   (get-bytes [_ ranges skip]
     (let [flattened-ranges (mapcat identity ranges)
           max-range (loop [idx 0
-                           ranges ranges]
+                           ranges flattened-ranges]
                       (let [min-value (->> ranges
                                            (map #(nth %1 idx))
                                            (reduce min))
                             min-ranges (->> ranges
-                                            (filter (= min-value (nth %1 idx))))]
+                                            (filter #(= min-value (nth %1 idx))))]
                         (cond
-                          (= 0 (count min-ranges)) (first range)
+                          (= 0 (count min-ranges)) (first ranges)
                           (= 1 (count min-ranges)) (first min-ranges)
-                          :default (recur (inc idx)
-                                          min-ranges))))]
-      (swap! state-atom #(-> %1
-                             (update ::bytes-counter (+ (count max-range)))
-                             (update ::bytes (concat (vec max-range)))))
+                          (< (inc idx) (count (last ranges))) (first min-ranges)
+                          :default (recur (inc idx) min-ranges))))]
+      (swap! state-atom update ::bytes #(concat %1 (vec max-range)))
       max-range))
   proto/Interval
   (push-interval [_ interval-name]
