@@ -138,6 +138,7 @@
      (let [shrunk-source (-> bytes
                              (snip-intervals intervals f)
                              (repeatedly-move-towards-zero f)
+                             (snip-intervals intervals f)
                              (fixed-source/make-fixed-source))]
        (f shrunk-source)                                    ;So we get the right intervals in place. TODO: remove this.
        shrunk-source)

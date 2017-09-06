@@ -115,7 +115,7 @@
         result)))
 
 (deftest should-shrink-vec-to-smallest-failing-case
-  (let [result (->> #(let [values (undertaker/vec-of undertaker/byte)]
+  (let [result (->> #(let [values (undertaker/vec-of undertaker/byte 1 2)]
                        (is (every? even? values)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
@@ -129,10 +129,10 @@
                     (undertaker/run-prop {}))]
     (is (= 1 (::undertaker/iterations-run result)))))
 
-#_(deftest should-shrink-to-below-one
+(deftest should-shrink-to-below-one
     (let [result (->> (fn [] (let [value (undertaker/double)]
                                (is (> 0.9 value))))
                       (undertaker/run-prop {}))
           shrunk-val (first (::undertaker/shrunk-values result))]
-      (is (> 0.9 shrunk-val))
-      (is (< 1 shrunk-val))))
+      (is (<= 0.9 shrunk-val))
+      (is (< shrunk-val 1))))
