@@ -333,11 +333,10 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([min] (double-without-NaN min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval (format-interval-name "double-without-NaN" floor ceiling)
-     (with-interval (format-interval-name "double" floor ceiling)
-       (-> (filled-array 8)
-           (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
-                                  start-of-NaN-values)
-           (bytes/bytes->double))))))
+     (-> (filled-array 8)
+         (bytes/map-into-ranges (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+                                start-of-NaN-values)
+         (bytes/bytes->double)))))
 
 (s/fdef double-without-NaN
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
