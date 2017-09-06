@@ -3,7 +3,7 @@ undertaker.source.multi-source
   (:require [undertaker.proto :as proto]
             [undertaker.source.always-max-source :as source.max]
             [undertaker.source.wrapped-random :as source.random]
-            [undertaker.source.always-zero-source :as source.zero]))
+            [undertaker.source.always-min-source :as source.zero]))
 
 (defn next-source [state]
   (let [next-source (first (::sources state))]
@@ -20,6 +20,8 @@ undertaker.source.multi-source
 (defrecord MultiSource [state-atom]
   proto/UnsignedByteSource
   (get-ubyte [_ ceiling] (proto/get-ubyte (::current-source @state-atom) ceiling))
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip] (proto/get-bytes (::current-source @state-atom) ranges skip))
   proto/Interval
   (push-interval [_ interval-name] (proto/push-interval (::current-source @state-atom) interval-name))
   (pop-interval [_ interval-id generated-value] (proto/pop-interval (::current-source @state-atom) interval-id generated-value))

@@ -49,6 +49,14 @@
     (let [byte (byte-or-throw-overrun @state-atom)]
       (swap! state-atom update ::cursor inc)
       (squish-ubyte byte ceiling)))
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip]
+    (let [size (count (first (first ranges)))
+          bytes (byte-array (repeatedly size byte-or-throw-overrun))]
+      (swap! state-atom #(-> %1
+                             (update ::bytes-counter (+ size))
+                             (update ::bytes (concat (vec bytes)))))
+      bytes))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

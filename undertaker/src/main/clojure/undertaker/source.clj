@@ -66,6 +66,12 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
    (check-invariants source)
    (proto/get-ubyte source max)))
 
+(defn get-bytes
+  ([source ranges] (get-bytes source ranges #{}))
+  ([source ranges skip]
+   (check-invariants source)
+   (proto/get-bytes source ranges skip)))
+
 (s/fdef get-ubyte
   :args (s/cat :source ::source :max (s/? ::util/byte))
   :ret ::util/byte

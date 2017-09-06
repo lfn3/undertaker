@@ -1,7 +1,8 @@
 (ns undertaker.source.forgetful
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
-            [undertaker.util :as util])
+            [undertaker.util :as util]
+            [undertaker.bytes :as bytes])
   (:import (java.util Random)))
 
 (defn squish-ubyte [b ceiling]
@@ -16,12 +17,19 @@
   (get-ubyte [this max]
     (let [output (byte-array 1)]
       (.nextBytes this output)
-      (squish-ubyte (aget output 0) max))))
+      (squish-ubyte (aget output 0) max)))
+  (get-bytes [this ranges skip-bytes]
+    (let [unmapped (byte-array (count (first (first ranges))))]
+      (.nextBytes this unmapped)
+      (bytes/map-into-ranges unmapped ranges skip-bytes))))
 
 (defrecord ForgetfulSource
   [rnd]
   proto/UnsignedByteSource
   (get-ubyte [_ max] (proto/get-ubyte rnd max))
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip]
+    (proto/get-bytes rnd ranges skip))
   proto/Interval
   (push-interval [_ interval-name])
   (pop-interval [_ interval-id generated-value])

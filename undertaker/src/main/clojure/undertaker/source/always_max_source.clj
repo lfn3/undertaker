@@ -36,6 +36,25 @@
   (get-ubyte [_ ceiling]
     (swap! state-atom update ::bytes conj ceiling)
     ceiling)
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip]
+    (let [flattened-ranges (mapcat identity ranges)
+          max-range (loop [idx 0
+                           ranges ranges]
+                      (let [max-value (->> ranges
+                                           (map #(nth %1 idx))
+                                           (reduce min))
+                            max-ranges (->> ranges
+                                            (filter (= max-value (nth %1 idx))))]
+                        (cond
+                          (= 0 (count max-ranges)) (first range)
+                          (= 1 (count max-ranges)) (first max-ranges)
+                          :default (recur (inc idx)
+                                          max-ranges))))]
+      (swap! state-atom #(-> %1
+                             (update ::bytes-counter (+ (count max-range)))
+                             (update ::bytes (concat (vec max-range)))))
+      max-range))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

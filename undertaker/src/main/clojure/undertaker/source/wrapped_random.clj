@@ -1,7 +1,8 @@
 (ns undertaker.source.wrapped-random
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
-            [undertaker.util :as util])
+            [undertaker.util :as util]
+            [undertaker.bytes :as bytes])
   (:import (java.util Random)))
 
 (defn squish-ubyte [b ceiling]
@@ -16,7 +17,12 @@
   (get-ubyte [this max]
     (let [output (byte-array 1)]
       (.nextBytes this output)
-      (squish-ubyte (aget output 0) max))))
+      (squish-ubyte (aget output 0) max)))
+  proto/ByteArraySource
+  (get-bytes [this ranges skip-bytes]
+    (let [unmapped (byte-array (count (first (first ranges))))]
+      (.nextBytes this unmapped)
+      (bytes/map-into-ranges unmapped ranges skip-bytes))))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -70,6 +76,13 @@
                              (update ::bytes-counter inc)
                              (update ::bytes conj byte)))
       byte))
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip]
+    (let [bytes (proto/get-bytes rnd ranges skip)]
+      (swap! state-atom #(-> %1
+                             (update ::bytes-counter (+ (count bytes)))
+                             (update ::bytes (concat (vec bytes)))))
+      bytes))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

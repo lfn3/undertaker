@@ -1,4 +1,4 @@
-(ns undertaker.source.always-zero-source
+(ns undertaker.source.always-min-source
   (:require [undertaker.proto :as proto]))
 
 (defn- push-interval* [state interval-name]
@@ -36,6 +36,25 @@
   (get-ubyte [_ ceiling]
     (swap! state-atom update ::bytes conj 0)
     0)
+  proto/ByteArraySource
+  (get-bytes [_ ranges skip]
+    (let [flattened-ranges (mapcat identity ranges)
+          max-range (loop [idx 0
+                           ranges ranges]
+                      (let [min-value (->> ranges
+                                           (map #(nth %1 idx))
+                                           (reduce min))
+                            min-ranges (->> ranges
+                                            (filter (= min-value (nth %1 idx))))]
+                        (cond
+                          (= 0 (count min-ranges)) (first range)
+                          (= 1 (count min-ranges)) (first min-ranges)
+                          :default (recur (inc idx)
+                                          min-ranges))))]
+      (swap! state-atom #(-> %1
+                             (update ::bytes-counter (+ (count max-range)))
+                             (update ::bytes (concat (vec max-range)))))
+      max-range))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
