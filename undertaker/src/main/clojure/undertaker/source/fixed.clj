@@ -7,23 +7,23 @@
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
-        (update ::interval-stack conj {::proto/interval-name      interval-name
-                                       ::proto/interval-id        id
-                                       ::proto/interval-start     (get state ::cursor)
-                                       ::proto/interval-parent-id (-> state
-                                                                      ::interval-stack
-                                                                      (last)
-                                                                      ::proto/interval-id)}))))
+        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
+                                             ::proto/interval-id        id
+                                             ::proto/interval-start     (get state ::cursor)
+                                             ::proto/interval-parent-id (-> state
+                                                                            ::proto/interval-stack
+                                                                            (last)
+                                                                            ::proto/interval-id)}))))
 
 (defn- pop-interval* [state interval-id generated-value]
-  (let [interval-to-update (last (::interval-stack state))]
+  (let [interval-to-update (last (::proto/interval-stack state))]
     (when (not= (::proto/interval-id interval-to-update) interval-id)
       (throw (ex-info "Popped interval without matching id"
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
     (-> state
-        (update ::interval-stack pop)
+        (update ::proto/interval-stack pop)
         (update ::completed-intervals conj (-> interval-to-update
                                                (assoc ::proto/interval-end (get state ::cursor))
                                                (assoc ::proto/generated-value generated-value))))))
@@ -40,10 +40,9 @@
   (-> state
       (assoc ::cursor 0)
       (assoc ::completed-intervals [])
-      (assoc ::interval-stack [])
+      (assoc ::proto/interval-stack [])
       (assoc ::interval-id-counter 0)))
 
-;TODO should be pre-frozen - should be a validator checking bytes aren't modified
 (defrecord FixedSource [state-atom]
   proto/UnsignedByteSource
   (get-ubyte [_ ceiling]
@@ -77,9 +76,9 @@
     (swap! state-atom reset-state)))
 
 (defn make-fixed-source [bytes]
-  (let [state (atom {::cursor              0
-                     ::interval-id-counter 0
-                     ::bytes               bytes
-                     ::interval-stack      []
-                     ::completed-intervals []})]
+  (let [state (atom {::cursor               0
+                     ::interval-id-counter  0
+                     ::bytes                bytes
+                     ::proto/interval-stack []
+                     ::completed-intervals  []})]
     (->FixedSource state)))

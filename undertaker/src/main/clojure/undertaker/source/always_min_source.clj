@@ -5,31 +5,31 @@
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
-        (update ::interval-stack conj {::proto/interval-name      interval-name
-                                       ::proto/interval-id        id
-                                       ::proto/interval-start     (count (get state ::bytes))
-                                       ::proto/interval-parent-id (-> state
-                                                                      ::interval-stack
-                                                                      (last)
-                                                                      ::proto/interval-id)}))))
+        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
+                                             ::proto/interval-id        id
+                                             ::proto/interval-start     (count (get state ::bytes))
+                                             ::proto/interval-parent-id (-> state
+                                                                            ::proto/interval-stack
+                                                                            (last)
+                                                                            ::proto/interval-id)}))))
 
 (defn- pop-interval* [state interval-id generated-value]
-  (let [interval-to-update (last (::interval-stack state))]
+  (let [interval-to-update (last (::proto/interval-stack state))]
     (when (not= (::proto/interval-id interval-to-update) interval-id)
       (throw (ex-info "Popped interval without matching id"
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
     (-> state
-        (update ::interval-stack pop)
+        (update ::proto/interval-stack pop)
         (update ::completed-intervals conj (-> interval-to-update
                                                (assoc ::proto/interval-end (count (get state ::bytes)))
                                                (assoc ::proto/generated-value generated-value))))))
 
-(def initial-state {::interval-id-counter 0
-                    ::bytes               []
-                    ::interval-stack      []
-                    ::completed-intervals []})
+(def initial-state {::interval-id-counter  0
+                    ::bytes                []
+                    ::proto/interval-stack []
+                    ::completed-intervals  []})
 
 (defrecord AlwaysMaxSource [state-atom]
   proto/UnsignedByteSource

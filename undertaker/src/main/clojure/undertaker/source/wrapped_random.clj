@@ -26,12 +26,11 @@
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
-(s/def ::interval-stack (s/coll-of ::proto/wip-interval))
 (s/def ::completed-intervals (s/coll-of ::proto/interval))
 (s/def ::frozen boolean?)
 (s/def ::source-state (s/keys :req [::interval-id-counter
                                     ::bytes-counter
-                                    ::interval-stack
+                                    ::proto/interval-stack
                                     ::completed-intervals
                                     ::frozen]))
 
@@ -39,33 +38,33 @@
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
-        (update ::interval-stack conj {::proto/interval-name      interval-name
-                                       ::proto/interval-id        id
-                                       ::proto/interval-start     (get state ::bytes-counter)
-                                       ::proto/interval-parent-id (-> state
-                                                                      ::interval-stack
-                                                                      (last)
-                                                                      ::proto/interval-id)}))))
+        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
+                                             ::proto/interval-id        id
+                                             ::proto/interval-start     (get state ::bytes-counter)
+                                             ::proto/interval-parent-id (-> state
+                                                                            ::proto/interval-stack
+                                                                            (last)
+                                                                            ::proto/interval-id)}))))
 
 (defn- pop-interval* [state interval-id generated-value]
-  (let [interval-to-update (last (::interval-stack state))]
+  (let [interval-to-update (last (::proto/interval-stack state))]
     (when (not= (::proto/interval-id interval-to-update) interval-id)
       (throw (ex-info "Popped interval without matching id"
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
     (-> state
-        (update ::interval-stack pop)
+        (update ::proto/interval-stack pop)
         (update ::completed-intervals conj (-> interval-to-update
                                                (assoc ::proto/interval-end (get state ::bytes-counter))
                                                (assoc ::proto/generated-value generated-value))))))
 
-(def initial-state {::interval-id-counter 0
-                    ::bytes-counter       0
-                    ::interval-stack      []
-                    ::completed-intervals []
-                    ::frozen              false
-                    ::bytes               []})
+(def initial-state {::interval-id-counter  0
+                    ::bytes-counter        0
+                    ::proto/interval-stack []
+                    ::completed-intervals  []
+                    ::frozen               false
+                    ::bytes                []})
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
@@ -81,7 +80,7 @@
     (let [bytes (proto/get-bytes rnd ranges skip)]
       (swap! state-atom #(-> %1
                              (update ::bytes-counter (partial + (count bytes)))
-                             (update ::bytes (fn [bytes] (concat bytes (vec bytes))))))
+                             (update ::bytes (fn [existing-bytes] (concat existing-bytes (vec bytes))))))
       bytes))
   proto/Interval
   (push-interval [_ interval-name]
@@ -103,7 +102,7 @@
     (throw (ex-info "Did not match spec" {:explained (s/explain ::source-state state)})))
   (when-not (= (::bytes-counter state) (count (::bytes state)))
     (throw (ex-info "Bytes counter out of step with array" {:counter (::bytes-counter state)
-                                                            :bytes (vec (::bytes state))})))
+                                                            :bytes   (vec (::bytes state))})))
   (->> state
        (map ::completed-intervals)
        (filter #(>= (::bytes-counter state) (::proto/interval-start %1))))

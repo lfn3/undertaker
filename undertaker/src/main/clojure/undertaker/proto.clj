@@ -12,6 +12,8 @@
 (s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value]
                           :opt [::interval-parent-id]))
 
+(s/def ::interval-stack (s/coll-of ::wip-interval))
+
 (defprotocol UnsignedByteSource
   (get-ubyte [this max]))
 
