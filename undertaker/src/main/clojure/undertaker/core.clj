@@ -36,10 +36,14 @@
   (str name " [" (str/join " " args) "]"))
 
 (defmacro with-interval [name & body]
-  `(let [interval-token# (source/push-interval *source* ~name)
-         result# (do ~@body)]
-     (source/pop-interval *source* interval-token# result#)
-     result#))
+  `(let [interval-token# (source/push-interval *source* ~name)]
+     (try
+       (let [result# (do ~@body)]
+         (source/pop-interval *source* interval-token# result#)
+         result#)
+       (catch Exception e#
+         (source/pop-interval *source* interval-token# nil)
+         (throw e#)))))
 
 (defn ^String already-bound-source-error-string []
   (str
@@ -350,9 +354,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (def default-max-size 64)
 
 ;TODO bias this so it's more likely to produce longer seqs.
-(defn should-generate-elem? [source min max len]
+(defn should-generate-elem? [min max len]
   (with-interval (format-interval-name "should-generate-elem" min max len)
-    (= 1 (let [value (source/get-ubyte source 1)]           ;Side-effecty
+    (= 1 (let [value (byte 0 1)]           ;Side-effecty
            (cond (> min len) 1
                  (< max (inc len)) 0
                  :default value)))))
@@ -365,7 +369,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
      (loop [result []]
        (let [i (count result)]
          (if-let [next (with-interval (format-interval-name "chunk for vector" i)
-                         (when-let [gen-next? (should-generate-elem? *source* min max i)]
+                         (when-let [gen-next? (should-generate-elem? min max i)]
                            (elem-gen)))]
            (recur (conj result next))
            result))))))

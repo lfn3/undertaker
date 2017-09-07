@@ -57,7 +57,9 @@
                                  (::bytes)
                                  (drop (::cursor state))
                                  (take size)))]
-      (when-not (= (count bytes) size) (throw (OverrunException.)))
+      (when-not (= (count bytes) size)
+        (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
+                                                                   "but only " (count bytes) " were available.") ))))
       (swap! state-atom update ::cursor + size)
       (bytes/map-into-ranges bytes ranges skip)))
   proto/Interval
@@ -66,6 +68,7 @@
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
   (get-intervals [_] (::completed-intervals @state-atom))
+  (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]
     (-> state-atom

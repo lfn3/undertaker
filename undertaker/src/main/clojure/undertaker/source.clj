@@ -34,7 +34,7 @@ If you're using Java and jUnit:
 
 (defn throw-if-source-is-nil [source]
   (when (nil? source)
-    (throw (ex-info (missing-source-err-msg) {}))))
+    (throw (ex-info (missing-source-err-msg) {:source source}))))
 
 (defn ^String more-than-one-source-in-test-scope-err-msg []
   (str "There's more than one source being used in this test.
@@ -45,7 +45,7 @@ It might also mean you've found a bug, if so, please report it at " util/bug-tra
 
 (defn every-call-in-scope-of-test-should-use-same-source [source]
   (when (and (not shrinking?) (not= 1 (count (swap! source-in-use conj source))))
-    (throw (IllegalStateException. (more-than-one-source-in-test-scope-err-msg)))))
+    (throw (ex-info (more-than-one-source-in-test-scope-err-msg) {:source source}))))
 
 (defn ^String non-fixed-source-during-shrinking-error-msg []
   (str "The source used during shrinking was not a fixed source.
@@ -53,7 +53,7 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
 
 (defn should-only-use-fixed-source-while-shrinking [source]
   (when (and (shrinking?) (not (instance? undertaker.source.fixed.FixedSource source)))
-    (throw (IllegalStateException. (non-fixed-source-during-shrinking-error-msg)))))
+    (throw (ex-info (non-fixed-source-during-shrinking-error-msg) {:source source}))))
 
 (defn check-invariants [source]
   (throw-if-source-is-nil source)
@@ -88,6 +88,10 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
   (proto/pop-interval source interval-id generated-value))
 (defn get-intervals [source]
   (check-invariants source)
+  (when-let [wip-intervals (seq (proto/get-wip-intervals source))]
+    (throw (ex-info "Tried to get intervals when test has not finished generating input!"
+                    {:source        source
+                     :wip-intervals wip-intervals})))
   (proto/get-intervals source))
 
 (defn get-sourced-bytes [source]

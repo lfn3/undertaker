@@ -23,7 +23,8 @@
 (defprotocol Interval
   (push-interval [this interval-name])
   (pop-interval [this interval-id generated-value])
-  (get-intervals [this]))
+  (get-intervals [this])
+  (get-wip-intervals [this]))
 
 (defprotocol Recall
   "Allows you to get the sequence of bytes this source of randomness has emitted since the last reset."

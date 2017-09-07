@@ -25,14 +25,21 @@
                  (bit-and 0xff (:byte args)))))))
 
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
-  (let [range (- interval-end interval-start)
-        output (byte-array (- (count bytes) range))]
-    (System/arraycopy bytes 0 output 0 interval-start)
-    (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
-    output))
+  (try
+    (let [range (- interval-end interval-start)
+          output (byte-array (- (count bytes) range))]
+      (System/arraycopy bytes 0 output 0 interval-start)
+      (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
+      output)
+    (catch Exception e
+      false)))
 
 (defn is-overrun? [result-map]
   (or (instance? OverrunException (:undertaker.core/cause result-map))
+      (->> result-map
+           :undertaker.core/cause
+           :actual
+           (instance? OverrunException))
       (->> result-map
            :undertaker.core/cause
            (map :actual)
@@ -51,22 +58,24 @@
          bytes bytes]
     (if (not-empty intervals)
       (let [interval (nth intervals index)
-            shrunk-bytes (snip-interval bytes interval)
-            source (fixed-source/make-fixed-source shrunk-bytes)
-            result (fn source)
-            passed? (:undertaker.core/result result)
-            overrun? (is-overrun? result)
             continue? (< (inc index) (count intervals))]
-        (cond
-          (and continue? (or overrun? passed?)) (recur (inc index)
-                                                       intervals
-                                                       bytes)
-          ;TODO: figure out if I can optimize this a bit.
-          (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
-                                                              (source/get-intervals source)
-                                                              shrunk-bytes)
-          (and (not continue?) (or overrun? passed?)) bytes
-          (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes))
+        (if-let [shrunk-bytes (snip-interval bytes interval)]
+          (let [source (fixed-source/make-fixed-source shrunk-bytes)
+                result (fn source)
+                passed? (:undertaker.core/result result)
+                overrun? (is-overrun? result)]
+            (cond
+              (and continue? (or overrun? passed?)) (recur (inc index)
+                                                           intervals
+                                                           bytes)
+              ;TODO: figure out if I can optimize this a bit.
+              (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
+                                                                  (source/get-intervals source)
+                                                                  shrunk-bytes)
+              (and (not continue?) (or overrun? passed?)) bytes
+              (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes))
+          (when continue?
+            (recur (inc index) intervals bytes))))
       bytes)))
 
 (defn shrink-at!

@@ -58,6 +58,7 @@
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
   (get-intervals [_] (::completed-intervals @state-atom))
+  (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]
     (-> state-atom

@@ -26,6 +26,7 @@ undertaker.source.multi-source
   (push-interval [_ interval-name] (proto/push-interval (::current-source @state-atom) interval-name))
   (pop-interval [_ interval-id generated-value] (proto/pop-interval (::current-source @state-atom) interval-id generated-value))
   (get-intervals [_] (proto/get-intervals (::current-source @state-atom)))
+  (get-wip-intervals [_] (proto/get-wip-intervals (::current-source @state-atom)))
   proto/Recall
   (get-sourced-bytes [_] (proto/get-sourced-bytes (::current-source @state-atom)))
   (reset [_] (if (first (::sources @state-atom))

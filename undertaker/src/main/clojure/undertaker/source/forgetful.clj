@@ -33,6 +33,7 @@
   (push-interval [_ interval-name])
   (pop-interval [_ interval-id generated-value])
   (get-intervals [_] [])
+  (get-wip-intervals [_] [])
   proto/Recall
   (get-sourced-bytes [_] (byte-array 1))
   (reset [_]))
