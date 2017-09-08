@@ -36,7 +36,7 @@
       (is (>= value (- Double/MAX_VALUE)))
       (is (<= value Double/MAX_VALUE)))))
 
-(undertaker/defprop real-double {:debug true}
+(undertaker/defprop real-double {}
   (let [real-double (undertaker/real-double)]
     (is (not (Double/isNaN real-double)))
     (is (Double/isFinite real-double))))
