@@ -25,14 +25,11 @@
                  (bit-and 0xff (:byte args)))))))
 
 (defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
-  (try
-    (let [range (- interval-end interval-start)
-          output (byte-array (- (count bytes) range))]
-      (System/arraycopy bytes 0 output 0 interval-start)
-      (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
-      output)
-    (catch Exception e
-      false)))
+  (let [range (- interval-end interval-start)
+        output (byte-array (- (count bytes) range))]
+    (System/arraycopy bytes 0 output 0 interval-start)
+    (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
+    output))
 
 (defn is-overrun? [result-map]
   (or (instance? OverrunException (:undertaker.core/cause result-map))
@@ -147,6 +144,10 @@
      (let [shrunk-source (-> bytes
                              (snip-intervals intervals f)
                              (repeatedly-move-towards-zero f)
+                             (fixed-source/make-fixed-source))
+           _ (f shrunk-source)
+           intervals (proto/get-intervals shrunk-source)
+           shrunk-source (-> (proto/get-sourced-bytes shrunk-source)
                              (snip-intervals intervals f)
                              (fixed-source/make-fixed-source))]
        (f shrunk-source)                                    ;So we get the right intervals in place. TODO: remove this.

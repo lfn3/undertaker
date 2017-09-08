@@ -7,7 +7,8 @@
             [undertaker.shrink :as shrink]
             [clojure.string :as str]
             [clojure.spec.test.alpha :as s.test]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [undertaker.source.fixed :as source.fixed]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
@@ -103,6 +104,19 @@
                                           (undertaker/wrap-fn #(is (boolean? (undertaker/byte)))))
                    (vec)))))
 
+(deftest shrinking-vec-with-overrun
+  (let [bytes-to-shrink (byte-array [1 22 1 77 0])
+        test-fn (-> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
+                    (undertaker/wrap-fn))
+        source (source.fixed/make-fixed-source bytes-to-shrink)
+        result (test-fn source)
+        intervals (source/get-intervals source)
+        shrunk-source (shrink/shrink bytes-to-shrink intervals test-fn)]
+    (is (= [1] (->> (source/get-intervals shrunk-source)
+                    (filter (comp nil? ::proto/interval-parent-id))
+                    (map ::proto/generated-value)
+                    (first))))))
+
 (deftest should-shrink-middle-byte
   (let [result (->> #(let [bool-1 (undertaker/bool)
                            a-number (undertaker/int)
@@ -115,8 +129,7 @@
         result)))
 
 (deftest should-shrink-vec-to-smallest-failing-case
-  (let [result (->> #(let [values (undertaker/vec-of undertaker/byte 1 2)]
-                       (is (every? even? values)))
+  (let [result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
                            ::undertaker/shrunk-values
