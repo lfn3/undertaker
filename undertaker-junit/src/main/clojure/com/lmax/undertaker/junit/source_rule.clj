@@ -6,6 +6,10 @@
                  com.lmax.undertaker.junit.generators.ByteGen
                  com.lmax.undertaker.junit.generators.IntGen
                  com.lmax.undertaker.junit.generators.LongGen
+                 com.lmax.undertaker.junit.generators.CharGen
+                 com.lmax.undertaker.junit.generators.DoubleGen
+                 com.lmax.undertaker.junit.generators.FloatGen
+                 com.lmax.undertaker.junit.generators.ShortGen
                  com.lmax.undertaker.junit.generators.BoolGen
                  com.lmax.undertaker.junit.generators.ListGen
                  com.lmax.undertaker.junit.generators.LongArrayGen
@@ -66,8 +70,8 @@
     (evaluate []
       (let [seed (get-annotation-value Seed description (undertaker/next-seed (System/nanoTime)))
             trials (get-annotation-value Trials description 1000)
-            result (undertaker/run-prop {::undertaker/seed       seed
-                                         ::undertaker/iterations trials} #(.evaluate base))]
+            result (undertaker/run-prop {:seed       seed
+                                         :iterations trials} #(.evaluate base))]
         (when (false? (::undertaker/result result))
           (let [test-name (first (str/split (.getDisplayName description) #"\("))
                 message (undertaker/format-results test-name result)]
@@ -87,6 +91,11 @@
   ([this max] (-getByte this Byte/MIN_VALUE max))
   ([this min max] (undertaker/byte min max)))
 
+(defn ^short -getShort
+  ([this] (-getShort this Short/MIN_VALUE Short/MAX_VALUE))
+  ([this max] (-getShort this Integer/MIN_VALUE max))
+  ([this min max] (undertaker/short min max)))
+
 (defn ^int -getInt
   ([this] (-getInt this Integer/MIN_VALUE Integer/MAX_VALUE))
   ([this max] (-getInt this Integer/MIN_VALUE max))
@@ -99,6 +108,19 @@
 
 (defn ^boolean -getBool
   ([this] (undertaker/bool)))
+
+(defn ^char -getChar
+  ([this] (undertaker/char)))
+
+(defn ^float -getFloat
+  ([this] (-getFloat this (- Float/MAX_VALUE) Float/MAX_VALUE))
+  ([this max] (-getFloat this (- Float/MAX_VALUE) max))
+  ([this min max] (undertaker/float min max)))
+
+(defn ^double -getDouble
+  ([this] (-getDouble this (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([this max] (-getDouble this (- Double/MAX_VALUE) max))
+  ([this min max] (undertaker/double min max)))
 
 (defn ^List -getList
   ([this ^Function generator]

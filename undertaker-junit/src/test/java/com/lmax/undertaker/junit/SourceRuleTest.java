@@ -85,6 +85,34 @@ public class SourceRuleTest {
     }
 
     @Test
+    public void canGetAShort() throws Exception
+    {
+        final short aShort = source.getShort();
+        Assert.assertTrue(aShort >= Short.MIN_VALUE);
+        Assert.assertTrue(aShort <= Short.MAX_VALUE);
+    }
+
+    @Test
+    public void canGetAFloat() throws Exception
+    {
+        final float aFloat = source.getFloat();
+        if (Double.isFinite(aFloat) && !Double.isNaN(aFloat)) {
+            Assert.assertTrue(aFloat >= -Float.MAX_VALUE);
+            Assert.assertTrue(aFloat <= Float.MAX_VALUE);
+        }
+    }
+
+    @Test
+    public void canGetADouble() throws Exception
+    {
+        final double aDouble = source.getDouble();
+        if (Double.isFinite(aDouble) && !Double.isNaN(aDouble)) {
+            Assert.assertTrue(aDouble >= -Double.MAX_VALUE);
+            Assert.assertTrue(aDouble <= Double.MAX_VALUE);
+        }
+    }
+
+    @Test
     public void canGetALong() throws Exception
     {
         final long aLong = source.getLong();
@@ -107,7 +135,7 @@ public class SourceRuleTest {
     @Trials(1)
     public void annotationsWork() throws Exception
     {
-        Assert.assertEquals(7320916221699310354L, source.getLong());
+        Assert.assertEquals(-9223372036854775808L, source.getLong());
     }
 
     public static <T, V> Supplier<V> bind(Function<T, V> f, T input)
