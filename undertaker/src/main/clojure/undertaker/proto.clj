@@ -14,9 +14,6 @@
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
 
-(defprotocol UnsignedByteSource
-  (get-ubyte [this max]))
-
 (defprotocol ByteArraySource
   (get-bytes [this ranges skip]))
 

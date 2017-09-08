@@ -44,11 +44,6 @@
       (assoc ::interval-id-counter 0)))
 
 (defrecord FixedSource [state-atom]
-  proto/UnsignedByteSource
-  (get-ubyte [_ ceiling]
-    (let [byte (byte-or-throw-overrun @state-atom)]
-      (swap! state-atom update ::cursor inc)
-      (squish-ubyte byte ceiling)))
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [size (count (first (first ranges)))

@@ -209,29 +209,9 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat :results ::results-map)
   :ret string?)
 
-(defn filled-array [size]
-  (let [output (byte-array size)]
-    (dorun (map-indexed (fn [idx _] (aset-byte output idx (source/get-ubyte *source*))) output))
-    output))
-
-(s/fdef filled-array
-  :args (s/cat :size integer?)
-  :ret ::util/bytes)
-
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
-
-(defn bool
-  ([]
-   (with-interval (format-interval-name "bool")
-     (if (= 1 (source/get-ubyte *source* 1))
-       true
-       false))))
-
-(s/fdef bool
-  :args (s/cat)
-  :ret boolean?)
 
 (defn byte
   ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
@@ -251,6 +231,17 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                       max Byte/MAX_VALUE}} args]
           (and (<= min ret)
                (<= ret max)))))
+
+(defn bool
+  ([]
+   (with-interval (format-interval-name "bool")
+     (if (= 1 (byte 0 1))
+       true
+       false))))
+
+(s/fdef bool
+  :args (s/cat)
+  :ret boolean?)
 
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))

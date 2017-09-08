@@ -32,10 +32,6 @@
                     ::completed-intervals  []})
 
 (defrecord AlwaysMaxSource [state-atom]
-  proto/UnsignedByteSource
-  (get-ubyte [_ ceiling]
-    (swap! state-atom update ::bytes conj ceiling)
-    ceiling)
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [flattened-ranges (mapcat identity ranges)

@@ -18,8 +18,6 @@ undertaker.source.multi-source
                      (source.random/make-source seed)]})
 
 (defrecord MultiSource [state-atom]
-  proto/UnsignedByteSource
-  (get-ubyte [_ ceiling] (proto/get-ubyte (::current-source @state-atom) ceiling))
   proto/ByteArraySource
   (get-bytes [_ ranges skip] (proto/get-bytes (::current-source @state-atom) ranges skip))
   proto/Interval

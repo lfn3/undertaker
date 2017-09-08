@@ -13,11 +13,7 @@
       :default (unchecked-byte (mod b range)))))
 
 (extend-type Random
-  proto/UnsignedByteSource
-  (get-ubyte [this max]
-    (let [output (byte-array 1)]
-      (.nextBytes this output)
-      (squish-ubyte (aget output 0) max)))
+  proto/ByteArraySource
   (get-bytes [this ranges skip-bytes]
     (let [unmapped (byte-array (count (first (first ranges))))]
       (.nextBytes this unmapped)
@@ -25,8 +21,6 @@
 
 (defrecord ForgetfulSource
   [rnd]
-  proto/UnsignedByteSource
-  (get-ubyte [_ max] (proto/get-ubyte rnd max))
   proto/ByteArraySource
   (get-bytes [_ ranges skip] (proto/get-bytes rnd ranges skip))
   proto/Interval
@@ -44,4 +38,4 @@
 
 (s/fdef make-source
   :args (s/cat :seed integer?)
-  :ret (comp (partial extends? proto/UnsignedByteSource) class))
+  :ret (comp (partial extends? proto/ByteArraySource) class))

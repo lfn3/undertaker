@@ -13,11 +13,6 @@
       :default (unchecked-byte (mod b range)))))
 
 (extend-type Random
-  proto/UnsignedByteSource
-  (get-ubyte [this max]
-    (let [output (byte-array 1)]
-      (.nextBytes this output)
-      (squish-ubyte (aget output 0) max)))
   proto/ByteArraySource
   (get-bytes [this ranges skip-bytes]
     (let [unmapped (byte-array (count (first (first ranges))))]
@@ -68,13 +63,6 @@
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
-  proto/UnsignedByteSource
-  (get-ubyte [_ max]
-    (let [byte (proto/get-ubyte rnd max)]
-      (swap! state-atom #(-> %1
-                             (update ::bytes-counter inc)
-                             (update ::bytes conj byte)))
-      byte))
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [bytes (proto/get-bytes rnd ranges skip)]
@@ -118,4 +106,4 @@
 
 (s/fdef make-source
   :args (s/cat :seed integer?)
-  :ret (comp (partial extends? proto/UnsignedByteSource) class))
+  :ret (comp (partial extends? proto/ByteArraySource) class))

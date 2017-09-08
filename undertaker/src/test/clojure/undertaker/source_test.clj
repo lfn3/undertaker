@@ -30,21 +30,23 @@
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
 
 (deftest should-emit-bytes
-  (let [value (source/get-ubyte forgetful-source)]
+  (let [value (first (source/get-bytes forgetful-source [[[-128] [-1]] [[0] [127]]]))]
     (is util/byte? value)
     (is (contains? (set (range -128 127)) value))))
 
 (deftest should-emit-positive-number
-  (let [value (source/get-ubyte forgetful-source 127)]
+  (let [value (first (source/get-bytes forgetful-source [[[0] [127]]]))]
     (is pos-int? value)
     (is (contains? (set (range 1 127)) value))))
 
 (deftest should-emit-unsigned-numbers-in-range
-  (is (= 0 (source/get-ubyte forgetful-source 0)))
-  (let [values (repeatedly 10 #(source/get-ubyte forgetful-source 1))]
+  (is (= 0 (first (source/get-bytes forgetful-source [[[0] [0]]]))))
+  (let [values (source/get-bytes forgetful-source [[(vec (repeat 10 0)) (vec (repeat 10 1))]])]
     (is (not-every? (partial = 0) values))
     (is (not-every? (partial = 1) values)))
-  (let [values (repeatedly 100000 #(source/get-ubyte forgetful-source -1))]
+  (let [size 10000
+        values (source/get-bytes forgetful-source [[(vec (repeat size -128)) (vec (repeat size -1))]
+                                                   [(vec (repeat size 0)) (vec (repeat size 127))]])]
     (is (->> values
              (map (fn [val] [((set (range -128 128)) val) val]))
              (filter (comp nil? first))
