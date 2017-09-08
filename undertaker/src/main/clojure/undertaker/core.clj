@@ -331,11 +331,33 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                      (and (>= ret floor)
                                           (<= ret ceiling))))))
 
-(defn double
-  ([] (double (- Double/MAX_VALUE) Double/MAX_VALUE))
-  ([min] (double min Double/MAX_VALUE))
+(def start-of-unreal-doubles (->> (range -1 -17 -1)
+                                  (mapcat (fn [i] [[127 i] [-1 i]]))
+                                  (set)))
+
+(defn real-double
+  ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "double" floor ceiling)
+   (with-interval (format-interval-name "double-without-NaN" floor ceiling)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+          (source/get-bytes *source* start-of-unreal-doubles)
+          (bytes/bytes->double)))))
+
+(s/fdef real-double
+  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
+  :ret double?
+  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
+                                      :or   {floor   (- Double/MAX_VALUE)
+                                             ceiling Double/MAX_VALUE}} args]
+                                 (and (>= ret floor)
+                                      (<= ret ceiling)))))
+
+(defn double
+  ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([min] (real-double min Double/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "finite-double" floor ceiling)
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->double)))))
@@ -347,53 +369,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                       :or   {floor   (- Double/MAX_VALUE)
                                              ceiling Double/MAX_VALUE}} args]
                                  (or (Double/isNaN ret)
-                                     (not (Double/isFinite ret))
-                                     (and (>= ret floor)
-                                          (<= ret ceiling))))))
-
-(def start-of-NaN-doubles (->> (range -1 -16 -1)
-                               (mapcat (fn [i] [[127 i] [-1 i]]))
-                               (set)))
-
-(defn double-without-NaN
-  ([] (double-without-NaN (- Double/MAX_VALUE) Double/MAX_VALUE))
-  ([min] (double-without-NaN min Double/MAX_VALUE))
-  ([floor ceiling]
-   (with-interval (format-interval-name "double-without-NaN" floor ceiling)
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
-          (source/get-bytes *source* start-of-NaN-doubles)
-          (bytes/bytes->double)))))
-
-(s/fdef double-without-NaN
-  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
-  :ret double?
-  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or   {floor   (- Double/MAX_VALUE)
-                                             ceiling Double/MAX_VALUE}} args]
-                                 (or (not (Double/isFinite ret))
-                                     (and (>= ret floor)
-                                          (<= ret ceiling))))))
-
-(def start-of-infinite-doubles #{[127 -16] [-1 -16]})
-
-(defn finite-double
-  ([] (double-without-NaN (- Double/MAX_VALUE) Double/MAX_VALUE))
-  ([min] (double-without-NaN min Double/MAX_VALUE))
-  ([floor ceiling]
-   (with-interval (format-interval-name "finite-double" floor ceiling)
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
-          (source/get-bytes *source* start-of-infinite-doubles)
-          (bytes/bytes->double)))))
-
-(s/fdef finite-double
-  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
-  :ret double?
-  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or   {floor   (- Double/MAX_VALUE)
-                                             ceiling Double/MAX_VALUE}} args]
-                                 (or (Double/isNaN ret)
-                                     (and (Double/isFinite ret)
-                                          (<= floor ret)
+                                     (Double/isInfinite ret)
+                                     (and (<= floor ret)
                                           (<= ret ceiling))))))
 
 (def default-max-size 64)

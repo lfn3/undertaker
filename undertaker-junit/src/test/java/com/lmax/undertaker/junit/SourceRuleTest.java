@@ -113,6 +113,18 @@ public class SourceRuleTest {
     }
 
     @Test
+    public void canGetRealDouble() throws Exception
+    {
+        final double realDouble = source.getRealDouble();
+
+        Assert.assertFalse(Double.isInfinite(realDouble));
+        Assert.assertFalse(Double.isNaN(realDouble));
+
+        Assert.assertTrue(realDouble >= -Double.MAX_VALUE);
+        Assert.assertTrue(realDouble <= Double.MAX_VALUE);
+    }
+
+    @Test
     public void canGetALong() throws Exception
     {
         final long aLong = source.getLong();

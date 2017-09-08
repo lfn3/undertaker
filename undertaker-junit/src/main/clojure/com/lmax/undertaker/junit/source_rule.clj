@@ -122,6 +122,11 @@
   ([this max] (-getDouble this (- Double/MAX_VALUE) max))
   ([this min max] (undertaker/double min max)))
 
+(defn ^double -getRealDouble
+  ([this] (-getRealDouble this (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([this max] (-getRealDouble this (- Double/MAX_VALUE) max))
+  ([this min max] (undertaker/real-double min max)))
+
 (defn ^List -getList
   ([this ^Function generator]
    (let [result-vec (undertaker/vec-of #(.apply generator this))

@@ -118,37 +118,37 @@
 (deftest double-without-NaN-test
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -8 0 0 0 0 0 0
                                                                          127 -8 0 0 0 0 0 0])}
-    (is (not (Double/isNaN (undertaker/double-without-NaN)))))
+    (is (not (Double/isNaN (undertaker/real-double)))))
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [127 -15 0 0 0 0 0 0
                                                                          127 -15 0 0 0 0 0 0])}
-    (is (not (Double/isNaN (undertaker/double-without-NaN)))))
+    (is (not (Double/isNaN (undertaker/real-double)))))
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [-1 -1 0 0 0 0 0 0
                                                                          -1 -1 0 0 0 0 0 0])}
-    (is (not (Double/isNaN (undertaker/double-without-NaN)))))
+    (is (not (Double/isNaN (undertaker/real-double)))))
   (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
-    (is (not (Double/isNaN (undertaker/double-without-NaN))))))
+    (is (not (Double/isNaN (undertaker/real-double))))))
 
 (deftest should-generate-max-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (bytes/double->bytes Double/MAX_VALUE))}
-    (let [value (undertaker/double-without-NaN)]
+    (let [value (undertaker/real-double)]
       (is (= Double/MAX_VALUE value) (str "Produced bytes were: " (vec (bytes/double->bytes value))
                                           ",\n       but expected: " (vec (bytes/double->bytes Double/MAX_VALUE)))))))
 
 (deftest should-generate-min-double
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source (bytes/double->bytes Double/MIN_VALUE))}
-    (let [value (undertaker/double-without-NaN)]
+    (let [value (undertaker/real-double)]
       (is (= Double/MIN_VALUE value) (str "Produced bytes were: " (vec (bytes/double->bytes value))
                                           ",\n       but expected: " (vec (bytes/double->bytes Double/MIN_VALUE)))))))
 
 (deftest double-without-NaN-should-generate-numbers-in-range
   (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
-    (let [double (undertaker/double-without-NaN -1.0 1.0)]
+    (let [double (undertaker/real-double -1.0 1.0)]
       (is (<= double 1.0))
       (is (<= -1.0 double)))))
 
 (deftest double-without-NaN-should-generate-numbers-above-one
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [0 16 0 0 0 0 0 0])}
-    (let [double (undertaker/double-without-NaN 1.0)]
+    (let [double (undertaker/real-double 1.0)]
       (is (<= 1.0 double)))))
 
 (deftest short-should-generate-numbers-above-one

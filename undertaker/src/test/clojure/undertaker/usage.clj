@@ -36,19 +36,18 @@
       (is (>= value (- Double/MAX_VALUE)))
       (is (<= value Double/MAX_VALUE)))))
 
-(undertaker/defprop double-without-NaN {}
-  (is (not (Double/isNaN (undertaker/double-without-NaN)))))
-
-(undertaker/defprop finite-double {}
-  (is (Double/isFinite (undertaker/finite-double))))
+(undertaker/defprop real-double {:debug true}
+  (let [real-double (undertaker/real-double)]
+    (is (not (Double/isNaN real-double)))
+    (is (Double/isFinite real-double))))
 
 (undertaker/defprop double-around-one {}
-  (let [value (undertaker/double-without-NaN -1.0 1.0)]
+  (let [value (undertaker/real-double -1.0 1.0)]
     (is (<= value 1.0))
     (is (>= value -1.0))))
 
 (undertaker/defprop double-above-one {}
-  (let [double (undertaker/double-without-NaN 1.0)]
+  (let [double (undertaker/real-double 1.0)]
     (is (<= 1.0 double))))
 
 (undertaker/defprop short-above-one {}
