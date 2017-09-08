@@ -39,6 +39,9 @@
 (undertaker/defprop double-without-NaN {}
   (is (not (Double/isNaN (undertaker/double-without-NaN)))))
 
+(undertaker/defprop finite-double {}
+  (is (Double/isFinite (undertaker/finite-double))))
+
 (undertaker/defprop double-around-one {}
   (let [value (undertaker/double-without-NaN -1.0 1.0)]
     (is (<= value 1.0))
