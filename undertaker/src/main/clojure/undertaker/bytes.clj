@@ -178,6 +178,18 @@
     (.putLong wrapped i)
     out))
 
+(defn bytes->float [arr]
+  (-> arr
+      (cond-> (not (bytes? arr)) (byte-array))
+      (ByteBuffer/wrap)
+      (.getFloat)))
+
+(defn float->bytes [^Float f]
+  (let [out (byte-array 4)
+        wrapped (ByteBuffer/wrap out)]
+    (.putFloat wrapped f)
+    out))
+
 (defn bytes->double [arr]
   (-> arr
       (cond-> (not (bytes? arr)) (byte-array))

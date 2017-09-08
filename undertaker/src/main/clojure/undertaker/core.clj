@@ -252,6 +252,17 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
           (source/get-bytes *source*)
           (bytes/bytes->short)))))
 
+(s/fdef short
+  :args (s/cat :min (s/? int?)
+               :max (s/? int?))
+  :ret int?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min Short/MIN_VALUE
+                      max Short/MAX_VALUE}} args]
+          (and (<= min ret)
+               (>= max ret)))))
+
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
@@ -269,9 +280,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         (let [{:keys [min max]
                :or   {min Integer/MIN_VALUE
                       max Integer/MAX_VALUE}} args]
-          (and                                              ;(<= min max)
-            (<= min ret)
-            (>= max ret)))))
+          (and (<= min ret)
+               (>= max ret)))))
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
@@ -290,14 +300,28 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         (let [{:keys [min max]
                :or   {min Long/MIN_VALUE
                       max Long/MAX_VALUE}} args]
-          (and                                              ;(<= min max)
-            (<= min ret)
-            (>= max ret)))))
+          (and (<= min ret)
+               (>= max ret)))))
 
-;This is another tricky case.
-;Have to deal with the exponent and mantissa separately I think.
-;Seems like the bytes in a double (at least in the exponent) are treated as unsigned.
-;I.e. -1 > -2
+(defn float
+  ([] (float (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([min] (float min Double/MAX_VALUE))
+  ([floor ceiling]
+   (with-interval (format-interval-name "float" floor ceiling)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
+          (source/get-bytes *source*)
+          (bytes/bytes->float)))))
+
+(s/fdef float
+  :args (s/cat :floor (s/? float?) :ceiling (s/? float?))
+  :ret float?
+  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
+                                      :or   {floor   (- Float/MAX_VALUE)
+                                             ceiling Float/MAX_VALUE}} args]
+                                 (or (= Float/NaN ret)
+                                     (not (Float/isFinite ret))
+                                     (and (>= ret floor)
+                                          (<= ret ceiling))))))
 
 (defn double
   ([] (double (- Double/MAX_VALUE) Double/MAX_VALUE))
@@ -347,7 +371,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [min max len]
   (with-interval (format-interval-name "should-generate-elem" min max len)
-    (= 1 (let [value (byte 0 1)]           ;Side-effecty
+    (= 1 (let [value (byte 0 1)]                            ;Side-effecty
            (cond (> min len) 1
                  (< max (inc len)) 0
                  :default value)))))
