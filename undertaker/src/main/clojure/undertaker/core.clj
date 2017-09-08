@@ -1,6 +1,6 @@
 (ns undertaker.core
   (:gen-class)
-  (:refer-clojure :exclude [int byte long double short])
+  (:refer-clojure :exclude [int byte long double short char float])
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
@@ -282,6 +282,14 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                       max Integer/MAX_VALUE}} args]
           (and (<= min ret)
                (>= max ret)))))
+
+(defn char
+  "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
+  ([] (clojure.core/char (int 0x0000 0xD800))))
+
+(s/fdef char
+  :args (s/cat)
+  :ret char?)
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
