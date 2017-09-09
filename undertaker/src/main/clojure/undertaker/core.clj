@@ -306,6 +306,23 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat)
   :ret char?)                                               ;TODO: check against set in undertaker.usage. Need to move it to a different ns first though.
 
+(def alphanumeric-range [[[48] [57]]
+                         [[65] [90]]
+                         [[97] [122]]])
+
+(defn char-alphanumeric
+  "Generates characters 0 -> 9, a -> z and A -> Z"
+  ([]
+   (with-interval (format-interval-name "char-alphanumeric")
+     (->> alphanumeric-range
+          (source/get-bytes *source*)
+          (first)
+          (clojure.core/char)))))
+
+(s/fdef char-ascii
+  :args (s/cat)
+  :ret char?)                                               ;TODO: check against set in undertaker.usage. Need to move it to a different ns first though.
+
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
