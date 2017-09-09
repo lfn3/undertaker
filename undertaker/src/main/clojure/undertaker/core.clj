@@ -339,7 +339,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "double-without-NaN" floor ceiling)
+   (with-interval (format-interval-name "real-double" floor ceiling)
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source* start-of-unreal-doubles)
           (bytes/bytes->double)))))
@@ -357,7 +357,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "finite-double" floor ceiling)
+   (with-interval (format-interval-name "double" floor ceiling)
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->double)))))
