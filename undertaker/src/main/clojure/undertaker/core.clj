@@ -206,8 +206,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
     :default nil))
 
 (s/fdef format-results
-  :args (s/cat :results ::results-map)
-  :ret string?)
+  :args (s/cat :name string? :results ::results-map)
+  :ret (s/nilable string?))
 
 ;; === === === === === === === ===
 ;; Public api
@@ -373,7 +373,19 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                                      (and (<= floor ret)
                                           (<= ret ceiling))))))
 
-(def default-max-size 64)
+(def default-string-max-size 2048)
+
+(defn string
+  ([] (string 0 default-string-max-size))
+  ([min] (string min (+ default-string-max-size min)))
+  ([min max]
+   (with-interval (format-interval-name "string" min max)
+     (let [size (int min max)]
+       (-> (source/get-bytes *source* [[(vec (repeat size -128)) (vec (repeat size -1))]
+                                       [(vec (repeat size 0)) (vec (repeat size 127))]])
+           (String.))))))
+
+(def default-collection-max-size 64)
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [min max len]
@@ -385,7 +397,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
-  ([elem-gen min] (vec-of elem-gen min (+ min default-max-size)))
+  ([elem-gen min] (vec-of elem-gen min (+ min default-collection-max-size)))
   ([elem-gen min max]
    (with-interval (format-interval-name "vec" min max)
      (loop [result []]

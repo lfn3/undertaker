@@ -10,6 +10,11 @@
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
 
+(s/def ::range (s/tuple ::util/bytes ::util/bytes))
+(s/def ::ranges (s/coll-of ::range))
+(s/def ::bytes-to-skip (s/and (s/coll-of ::util/bytes)
+                              set?))
+
 (def source-in-use (atom #{}))
 (defn done-with-test! [] (reset! source-in-use #{}))
 
@@ -60,11 +65,15 @@ This is most likely a bug in Undertaker, please report it at " util/bug-tracker-
   (every-call-in-scope-of-test-should-use-same-source source)
   (should-only-use-fixed-source-while-shrinking source))
 
-(defn get-bytes
+(defn ^"[B" get-bytes
   ([source ranges] (get-bytes source #{} ranges))
   ([source skip ranges]
    (check-invariants source)
    (proto/get-bytes source ranges skip)))
+
+(s/fdef get-bytes
+  :args (s/cat :source ::source :skip (s/? ::bytes-to-skip) :ranges vector?)
+  :ret bytes?)
 
 (defn push-interval [source interval-name]
   (check-invariants source)

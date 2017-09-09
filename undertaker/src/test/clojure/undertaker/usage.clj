@@ -1,6 +1,11 @@
 (ns undertaker.usage
   (:require [clojure.test :refer [deftest is] :as t]
-            [undertaker.core :as undertaker]))
+            [undertaker.core :as undertaker]
+            [orchestra.spec.test :as orchestra.test]))
+
+(t/use-fixtures :once #(do (orchestra.test/instrument)
+                           (%1)
+                           (orchestra.test/unstrument)))
 
 (undertaker/defprop vector-coll-identity {}
   (let [actions (undertaker/vec-of (partial undertaker/from #{#(conj %1 (undertaker/any))
@@ -57,3 +62,8 @@
 (undertaker/defprop int-above-one {}
   (let [int (undertaker/int 1)]
     (is (<= 1 int))))
+
+(undertaker/defprop can-get-a-string-of-length-1 {:debug true}
+  (let [string (undertaker/string 1 1)]
+    (is (instance? String string))
+    (is (= 1 (count string)))))

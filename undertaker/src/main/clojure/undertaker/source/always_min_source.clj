@@ -35,7 +35,7 @@
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [flattened-ranges (mapcat identity ranges)
-          max-range (loop [idx 0
+          min-range (loop [idx 0
                            ranges flattened-ranges]
                       (let [min-value (->> ranges
                                            (map #(nth %1 idx))
@@ -47,8 +47,8 @@
                           (= 1 (count min-ranges)) (first min-ranges)
                           (< (inc idx) (count (last ranges))) (first min-ranges)
                           :default (recur (inc idx) min-ranges))))]
-      (swap! state-atom update ::bytes #(concat %1 (vec max-range)))
-      max-range))
+      (swap! state-atom update ::bytes #(concat %1 (vec min-range)))
+      (byte-array min-range)))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

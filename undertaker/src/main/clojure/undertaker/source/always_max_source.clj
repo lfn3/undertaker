@@ -47,7 +47,7 @@
                           (< (inc idx) (count (last ranges))) (first max-ranges)
                           :default (recur (inc idx) max-ranges))))]
       (swap! state-atom update ::bytes #(concat %1 (vec max-range)))
-      max-range))
+      (byte-array max-range)))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
