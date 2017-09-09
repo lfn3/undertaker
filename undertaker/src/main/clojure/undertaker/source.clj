@@ -12,8 +12,8 @@
 
 (s/def ::range (s/tuple ::util/bytes ::util/bytes))
 (s/def ::ranges (s/coll-of ::range))
-(s/def ::bytes-to-skip (s/and (s/coll-of ::util/bytes)
-                              set?))
+(s/def ::bytes-to-skip (s/with-gen (s/and (s/coll-of ::util/bytes) set?)
+                                   #(s.gen/fmap set (s/gen (s/coll-of ::util/bytes)))))
 
 (def source-in-use (atom #{}))
 (defn done-with-test! [] (reset! source-in-use #{}))
