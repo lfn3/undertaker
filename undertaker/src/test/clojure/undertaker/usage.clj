@@ -63,7 +63,7 @@
   (let [int (undertaker/int 1)]
     (is (<= 1 int))))
 
-(undertaker/defprop can-get-a-string-of-length-1 {:debug true}
+(undertaker/defprop can-get-a-string-of-length-1 {}
   (let [string (undertaker/string 1 1)]
     (is (instance? String string))
     (is (= 1 (count string)))))
