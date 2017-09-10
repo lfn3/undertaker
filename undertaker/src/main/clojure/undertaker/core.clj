@@ -323,6 +323,18 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
   :args (s/cat)
   :ret char?)                                               ;TODO: check against set in undertaker.usage. Need to move it to a different ns first though.
 
+(def alpha-range [[[65] [90]]
+                  [[97] [122]]])
+
+(defn char-alpha
+  "Generates characters a -> z and A -> Z"
+  ([]
+    (with-interval (format-interval-name "char-alpha")
+      (->> alpha-range
+           (source/get-bytes *source*)
+           (first)
+           (clojure.core/char)))))
+
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
