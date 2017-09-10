@@ -329,11 +329,11 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
   ([]
-    (with-interval (format-interval-name "char-alpha")
-      (->> alpha-range
-           (source/get-bytes *source*)
-           (first)
-           (clojure.core/char)))))
+   (with-interval (format-interval-name "char-alpha")
+     (->> alpha-range
+          (source/get-bytes *source*)
+          (first)
+          (clojure.core/char)))))
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
@@ -419,15 +419,39 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (def default-string-max-size 2048)
 
+(defn repeat-range [ranges size]
+  (->> ranges
+       (map (comp vec (partial map (comp vec (partial mapcat (partial repeat size))))))
+       (vec)))
+
+(s/fdef repeat-range
+  :args (s/cat :ranges ::source/ranges :size int?)
+  :ret ::source/ranges
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [size]} args]
+          (= size (count (first (first ret)))))))
+
 (defn string
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
   ([min max]
    (with-interval (format-interval-name "string" min max)
-     (let [size (int min max)]
-       (-> (source/get-bytes *source* [[(vec (repeat size -128)) (vec (repeat size -1))]
-                                       [(vec (repeat size 0)) (vec (repeat size 127))]])
-           (String.))))))
+     (let [size (int min max)
+           ranges (-> (bytes/split-number-line-min-max-into-bytewise-min-max -128 127 bytes/byte->bytes)
+                      (repeat-range size))]
+       (->> ranges
+            (source/get-bytes *source*)
+            (String.))))))
+
+(s/fdef string
+  :args (s/cat :min (s/? int?) :max (s/? int?))
+  :ret string?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min 0
+                      max (+ min default-string-max-size)}} args]
+          (and (<= min (count ret))
+               (<= (count ret) max)))))
 
 (def default-collection-max-size 64)
 
