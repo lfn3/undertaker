@@ -121,6 +121,26 @@
 (defn ^char -getAlphaChar
   ([this] (undertaker/char-alpha)))
 
+(defn ^String -getString
+  ([this] (undertaker/string))
+  ([this max] (undertaker/string 0 max))
+  ([this min max] (undertaker/string min max)))
+
+(defn ^String -getAsciiString
+  ([this] (undertaker/string-ascii))
+  ([this max] (undertaker/string-ascii 0 max))
+  ([this min max] (undertaker/string-ascii min max)))
+
+(defn ^String -getAlphanumericString
+  ([this] (undertaker/string-alphanumeric))
+  ([this max] (undertaker/string-alphanumeric 0 max))
+  ([this min max] (undertaker/string-alphanumeric min max)))
+
+(defn ^String -getAlphaString
+  ([this] (undertaker/string-alpha))
+  ([this max] (undertaker/string-alpha 0 max))
+  ([this min max] (undertaker/string-alpha min max)))
+
 (defn ^float -getFloat
   ([this] (-getFloat this (- Float/MAX_VALUE) Float/MAX_VALUE))
   ([this max] (-getFloat this (- Float/MAX_VALUE) max))
