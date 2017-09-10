@@ -34,8 +34,10 @@
 (defrecord AlwaysMaxSource [state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
-    (let [flattened-ranges (mapcat identity ranges)
-          min-range (loop [idx 0
+    (let [flattened-ranges (mapcat identity ranges)]
+      (if (every? nil? (map seq flattened-ranges))          ;i.e. range of size zero
+        (byte-array 0)
+        (let [min-range (loop [idx 0
                            ranges flattened-ranges]
                       (let [min-value (->> ranges
                                            (map #(nth %1 idx))
@@ -48,7 +50,7 @@
                           (< (inc idx) (count (last ranges))) (first min-ranges)
                           :default (recur (inc idx) min-ranges))))]
       (swap! state-atom update ::bytes #(concat %1 (vec min-range)))
-      (byte-array min-range)))
+      (byte-array min-range)))))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))

@@ -77,6 +77,11 @@
     (is (instance? Character c))
     (is (ascii-chars c))))
 
+(undertaker/defprop can-get-ascii-string {}
+  (let [s (undertaker/string-ascii)]
+    (is (instance? String s))
+    (is (every? ascii-chars s))))
+
 (def alphanumeric-chars #{\A \a \B \b \C \c \D \d \E \e \F \f \G \g \H \h \I \i \J \j \K \k \L \l \M \m \N \n \O \o \0
                           \P \p \1 \Q \q \2 \R \r \3 \S \s \4 \T \t \5 \U \u \6 \V \v \7 \W \w \8 \X \x \9 \Y \y \Z \z})
 
@@ -85,6 +90,11 @@
     (is (instance? Character c))
     (is (alphanumeric-chars c))))
 
+(undertaker/defprop can-get-alphanumeric-string {}
+  (let [s (undertaker/string-alphanumeric)]
+    (is (instance? String s))
+    (is (every? alphanumeric-chars s))))
+
 (def alpha-chars #{\A \a \B \b \C \c \D \d \E \e \F \f \G \g \H \h \I \i \J \j \K \k \L \l \M \m \N \n \O \o \P \p \Q
                    \q \R \r \S \s \T \t \U \u \V \v \W \w \X \x \Y \y \Z \z})
 
@@ -92,3 +102,9 @@
   (let [c (undertaker/char-alpha)]
     (is (instance? Character c))
     (is (alpha-chars c))))
+
+(undertaker/defprop can-get-alpha-string {}
+  (let [s (undertaker/string-alpha)]
+    (is (instance? String s))
+    (is (every? alpha-chars s))))
+

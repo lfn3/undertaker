@@ -431,30 +431,6 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
         (let [{:keys [size]} args]
           (= size (count (first (first ret)))))))
 
-(defn string
-  ([] (string 0 default-string-max-size))
-  ([min] (string min (+ default-string-max-size min)))
-  ([min max]
-   (with-interval (format-interval-name "string" min max)
-     (let [size (int min max)
-           ranges (-> (bytes/split-number-line-min-max-into-bytewise-min-max -128 127 bytes/byte->bytes)
-                      (repeat-range size))]
-       (->> ranges
-            (source/get-bytes *source*)
-            (String.))))))
-
-(s/fdef string
-  :args (s/cat :min (s/? int?) :max (s/? int?))
-  :ret string?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min 0
-                      max (+ min default-string-max-size)}} args]
-          (and (<= min (count ret))
-               (<= (count ret) max)))))
-
-(def default-collection-max-size 64)
-
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [min max len]
   (with-interval (format-interval-name "should-generate-elem" min max len)
@@ -462,6 +438,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
            (cond (> min len) 1
                  (< max (inc len)) 0
                  :default value)))))
+
+(def default-collection-max-size 64)
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
@@ -475,6 +453,82 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
                            (elem-gen)))]
            (recur (conj result next))
            result))))))
+
+(defn string
+  ([] (string 0 default-string-max-size))
+  ([min] (string min (+ default-string-max-size min)))
+  ([min max]
+   (with-interval (format-interval-name "string" min max)
+     (-> (vec-of char min max)
+         (char-array)
+         (String.)))))
+
+(s/fdef string
+  :args (s/cat :min (s/? int?) :max (s/? int?))
+  :ret string?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min 0
+                      max (+ min default-string-max-size)}} args]
+          (and (<= min (count ret))
+               (<= (count ret) max)))))
+
+(defn string-ascii
+  ([] (string-ascii 0 default-string-max-size))
+  ([min] (string-ascii min (+ default-string-max-size min)))
+  ([min max]
+   (with-interval (format-interval-name "string" min max)
+     (-> (vec-of char-ascii min max)
+         (char-array)
+         (String.)))))
+
+(s/fdef string-ascii
+  :args (s/cat :min (s/? int?) :max (s/? int?))
+  :ret string?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min 0
+                      max (+ min default-string-max-size)}} args]
+          (and (<= min (count ret))
+               (<= (count ret) max)))))
+
+(defn string-alphanumeric
+  ([] (string-alphanumeric 0 default-string-max-size))
+  ([min] (string-alphanumeric min (+ default-string-max-size min)))
+  ([min max]
+   (with-interval (format-interval-name "string" min max)
+     (-> (vec-of char-alphanumeric min max)
+         (char-array)
+         (String.)))))
+
+(s/fdef string-alphanumeric
+  :args (s/cat :min (s/? int?) :max (s/? int?))
+  :ret string?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min 0
+                      max (+ min default-string-max-size)}} args]
+          (and (<= min (count ret))
+               (<= (count ret) max)))))
+
+(defn string-alpha
+  ([] (string-alpha 0 default-string-max-size))
+  ([min] (string-alpha min (+ default-string-max-size min)))
+  ([min max]
+   (with-interval (format-interval-name "string" min max)
+     (-> (vec-of char-alpha min max)
+         (char-array)
+         (String.)))))
+
+(s/fdef string-alpha
+  :args (s/cat :min (s/? int?) :max (s/? int?))
+  :ret string?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min max]
+               :or   {min 0
+                      max (+ min default-string-max-size)}} args]
+          (and (<= min (count ret))
+               (<= (count ret) max)))))
 
 (defn from
   ([coll]
