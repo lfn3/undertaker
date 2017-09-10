@@ -112,6 +112,15 @@
 (defn ^char -getChar
   ([this] (undertaker/char)))
 
+(defn ^char -getAsciiChar
+  ([this] (undertaker/char-ascii)))
+
+(defn ^char -getAlphanumericChar
+  ([this] (undertaker/char-alphanumeric)))
+
+(defn ^char -getAlphaChar
+  ([this] (undertaker/char-alpha)))
+
 (defn ^float -getFloat
   ([this] (-getFloat this (- Float/MAX_VALUE) Float/MAX_VALUE))
   ([this max] (-getFloat this (- Float/MAX_VALUE) max))

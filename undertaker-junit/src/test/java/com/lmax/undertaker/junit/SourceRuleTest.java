@@ -143,6 +143,19 @@ public class SourceRuleTest {
     }
 
     @Test
+    public void canGetEveryKindOfChar() throws Exception
+    {
+        final char c = source.getChar();
+        final char ascii = source.getAsciiChar();
+
+        final char alpha = source.getAlphaChar();
+        Assert.assertTrue(Character.isAlphabetic(alpha));
+
+        final char alphaNum = source.getAlphanumericChar();
+        Assert.assertTrue(Character.isAlphabetic(alphaNum) || Character.isDigit(alphaNum));
+    }
+
+    @Test
     @Seed(1234567)
     @Trials(1)
     public void annotationsWork() throws Exception
