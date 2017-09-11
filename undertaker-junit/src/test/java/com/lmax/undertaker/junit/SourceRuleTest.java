@@ -1,10 +1,7 @@
 package com.lmax.undertaker.junit;
 
 import com.lmax.undertaker.junit.generators.ByteGen;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.time.Instant;
 import java.util.Date;
@@ -13,8 +10,23 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class SourceRuleTest {
+    private int clearedBefore;
+
     @Rule
     public Source source = new SourceRule();
+
+    @Before
+    public void before()
+    {
+        clearedBefore = 0;
+    }
+
+    @Test
+    public void beforeRunsWithEveryIteration()
+    {
+        Assert.assertEquals(0, clearedBefore);
+        clearedBefore = source.getInt();
+    }
 
     @Test
     public void compilesAndRuns()
