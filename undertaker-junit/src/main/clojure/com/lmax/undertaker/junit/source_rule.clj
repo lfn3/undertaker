@@ -179,8 +179,28 @@
           (dorun))
      result-vec)))
 
-(defn #^"[J" -getLongArray
-  ([this] (long-array (undertaker/vec-of undertaker/long)))
-  ([this ^Function generator] (long-array (undertaker/vec-of #(.apply generator this))))
-  ([this ^Function generator min] (long-array (undertaker/vec-of #(.apply generator this) min (+ min 64))))
-  ([this ^Function generator min max] (long-array (undertaker/vec-of #(.apply generator this) min max))))
+(defmacro get-array-fn [type-hint type-str & [array-fn-name]]
+  (let [fn-name (symbol (str "-get" (str/upper-case (first type-str))
+                             (apply str (rest type-str))
+                             "Array"))
+        array-fn-name (if array-fn-name
+                        (symbol array-fn-name)
+                        (symbol (str type-str "-array")))
+        generator-name (symbol "undertaker" type-str)]
+    `(defn ^{:tag type-hint} ~fn-name
+       ([_#] (~array-fn-name (undertaker/vec-of ~generator-name)))
+       ([this# ^java.util.function.Function generator#]
+         (~array-fn-name (undertaker/vec-of #(.apply generator# this#))))
+       ([this# ^java.util.function.Function generator# min#]
+         (~array-fn-name (undertaker/vec-of #(.apply generator# this#)) min (+ min 64)))
+       ([this# ^java.util.function.Function generator# min# max#]
+         (~array-fn-name (undertaker/vec-of #(.apply generator# this#)) min max)))))
+
+(get-array-fn "[J" "long")
+(get-array-fn "[B" "byte")
+(get-array-fn "[C" "char")
+(get-array-fn "[D" "double")
+(get-array-fn "[F" "float")
+(get-array-fn "[I" "int")
+(get-array-fn "[S" "short")
+(get-array-fn "[Z" "bool" "boolean-array")
