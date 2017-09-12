@@ -15,7 +15,7 @@
                  com.lmax.undertaker.junit.generators.LongArrayGen
                  com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
-           (org.junit.runner Description)
+           (org.junit.runner Description JUnitCore Computer Request)
            (java.util List ArrayList)
            (java.util.function Function)
            (java.lang.reflect Modifier)
@@ -23,6 +23,8 @@
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
+
+(def ^:dynamic *nested* false)
 
 (defn add-tag-meta-if-applicable [symbol ^Class type]
   (if (and (.isPrimitive type)
@@ -68,17 +70,29 @@
 (defn ^Statement -apply [this ^Statement base ^Description description]
   (proxy [Statement] []
     (evaluate []
-      (let [seed (get-annotation-value Seed description (undertaker/next-seed (System/nanoTime)))
-            trials (get-annotation-value Trials description 1000)
-            result (undertaker/run-prop {:seed       seed
-                                         :iterations trials} #(.evaluate base))]
-        (when (false? (::undertaker/result result))
-          (let [test-name (first (str/split (.getDisplayName description) #"\("))
-                message (undertaker/format-results test-name result)]
-            (throw (override-delegate
-                     java.lang.Throwable
-                     (::undertaker/cause result)
-                     (getMessage [] message)))))))))
+      (if (not *nested*)                                    ;Check we're not already inside this rule
+        (let [seed (get-annotation-value Seed description (undertaker/next-seed (System/nanoTime)))
+              trials (get-annotation-value Trials description 1000)
+              junit (JUnitCore.)
+              computer (Computer.)
+              class (resolve (symbol (.getClassName description)))
+              test-request (Request/method class (.getMethodName description))
+              result (undertaker/run-prop {:seed       seed
+                                           :iterations trials}
+                                          #(with-bindings {#'*nested* true}
+                                             (->> (.run junit test-request)
+                                                  (.getFailures)
+                                                  (map (fn [f] (-> (.getException f) ;TODO: process failures in a function
+                                                                   (throw))))
+                                                  (dorun))))]
+          (when (false? (::undertaker/result result))
+            (let [test-name (first (str/split (.getDisplayName description) #"\("))
+                  message (undertaker/format-results test-name result)]
+              (throw (override-delegate
+                       java.lang.Throwable
+                       (::undertaker/cause result)
+                       (getMessage [] message))))))
+        (.evaluate base)))))
 
 (defn ^long -pushInterval [_ ^String interval-name]
   (source/push-interval undertaker/*source* interval-name))

@@ -4,6 +4,7 @@ import com.lmax.undertaker.junit.generators.ByteGen;
 import org.junit.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
@@ -11,6 +12,7 @@ import java.util.function.Supplier;
 
 public class SourceRuleTest {
     private int clearedBefore;
+    private List<Long> aList = new ArrayList<>();
 
     @Rule
     public Source source = new SourceRule();
@@ -26,6 +28,13 @@ public class SourceRuleTest {
     {
         Assert.assertEquals(0, clearedBefore);
         clearedBefore = source.getInt();
+    }
+
+    @Test
+    public void runsOnANewlyInstansiatedClass()
+    {
+        Assert.assertEquals(0, aList.size());
+        aList.add(source.getLong());
     }
 
     @Test
