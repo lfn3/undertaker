@@ -171,8 +171,10 @@
   ([this min max] (undertaker/real-double min max)))
 
 (defn ^List -getList
-  ([this ^Function generator]
-   (let [result-vec (undertaker/vec-of #(.apply generator this))
+  ([this ^Function generator] (-getList this generator 0 64))
+  ([this ^Function generator max] (-getList this generator 0 max))
+  ([this ^Function generator min max]
+   (let [result-vec (undertaker/vec-of #(.apply generator this) min max)
          result-list (ArrayList. (count result-vec))]
      (->> result-vec
           (map #(.add result-list %1))
@@ -180,14 +182,18 @@
      result-vec)))
 
 (defn -getArray
-  ([this ^Class c ^Function generator]
+  ([this ^Class c ^Function generator] (-getArray this c generator 0 64))
+  ([this ^Class c ^Function generator max] (-getArray this c generator 0 max))
+  ([this ^Class c ^Function generator min max]
    (-> (ArrayGenImpl. this)
-       (.getArray c generator))))
+       (.getArray c generator min max))))
 
 (defn -repeatedly
-  ([this ^Runnable r]
+  ([this ^Runnable r] (-repeatedly this r 0 64))
+  ([this ^Runnable r max] (-repeatedly this r 0 max))
+  ([this ^Runnable r min max]
    (loop [counter 0]
-     (when (undertaker/should-generate-elem? 0 64 counter)
+     (when (undertaker/should-generate-elem? min max counter)
        (.run r)
        (recur (inc counter))))))
 

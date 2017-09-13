@@ -7,5 +7,13 @@ import java.util.function.Function;
 
 public interface ListGen
 {
-    <T> List<T> getList(Function<Source, T> generator);
+    default <T> List<T> getList(Function<Source, T> generator) {
+        return getList(generator, 0, 64);
+    }
+
+    default <T> List<T> getList(Function<Source, T> generator, int max) {
+        return getList(generator, 0, max);
+    }
+
+    <T> List<T> getList(Function<Source, T> generator, int min, int max);
 }

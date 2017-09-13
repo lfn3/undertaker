@@ -15,9 +15,10 @@ public class ArrayGenImpl implements ArrayGen {
     }
 
     @Override
-    public <T> T[] getArray(Class<T> klass, Function<Source, T> generator) {
+    public <T> T[] getArray(Class<T> klass, Function<Source, T> generator, int min, int max) {
         ArrayList<T> result = new ArrayList<>();
-        s.repeatedly(() -> result.add(generator.apply(s)));
+        s.repeatedly(() -> result.add(generator.apply(s)), min, max);
+        //noinspection unchecked
         return result.toArray((T[]) Array.newInstance(klass, 0));
     }
 }
