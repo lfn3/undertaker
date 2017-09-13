@@ -108,7 +108,7 @@ public class SourceRuleTest {
     @Test
     public void canGetAnArray() throws Exception
     {
-        final Date[] anArray = source.getArray(SourceRuleTest::generateDate);
+        final Date[] anArray = source.getArray(Date.class, SourceRuleTest::generateDate);
         Assert.assertTrue(anArray != null);
         final byte[] aByteArray = source.getByteArray();
         Assert.assertTrue(aByteArray != null);

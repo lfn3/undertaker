@@ -17,9 +17,9 @@
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
            (java.util List ArrayList Arrays)
-           (java.util.function Function)
+           (java.util.function Function Supplier)
            (java.lang.reflect Modifier)
-           (com.lmax.undertaker.junit Seed Trials))
+           (com.lmax.undertaker.junit Seed Trials ArrayGenImpl))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
@@ -180,12 +180,16 @@
      result-vec)))
 
 (defn -getArray
-  ([this ^Function generator]
-   (let [res (->> #(.apply generator this)
-                  (undertaker/vec-of)
-                  (into-array))]
-     (prn (vec res) (type res))
-     res)))
+  ([this ^Class c ^Function generator]
+   (-> (ArrayGenImpl. this)
+       (.getArray c generator))))
+
+(defn -repeatedly
+  ([this ^Runnable r]
+   (loop [counter 0]
+     (when (undertaker/should-generate-elem? 0 64 counter)
+       (.run r)
+       (recur (inc counter))))))
 
 (defmacro get-array-fn [type-hint type-str & [array-fn-name]]
   (let [fn-name (symbol (str "-get" (str/upper-case (first type-str))

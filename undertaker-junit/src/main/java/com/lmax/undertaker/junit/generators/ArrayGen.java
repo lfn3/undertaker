@@ -5,5 +5,5 @@ import com.lmax.undertaker.junit.Source;
 import java.util.function.Function;
 
 public interface ArrayGen {
-    <T> T[] getArray(Function<Source, T> generator);
+    <T> T[] getArray(Class<T> klass, Function<Source, T> generator);
 }
