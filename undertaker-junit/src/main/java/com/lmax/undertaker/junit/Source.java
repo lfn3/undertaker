@@ -21,6 +21,7 @@ public interface Source extends BoolGen,
                                 DoubleArrayGen,
                                 StringGen,
                                 ListGen,
+                                ArrayGen,
                                 TestRule {
     long pushInterval(String intervalName);
 

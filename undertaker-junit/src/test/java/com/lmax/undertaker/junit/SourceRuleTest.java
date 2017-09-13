@@ -106,6 +106,15 @@ public class SourceRuleTest {
     }
 
     @Test
+    public void canGetAnArray() throws Exception
+    {
+        final Date[] anArray = source.getArray(SourceRuleTest::generateDate);
+        Assert.assertTrue(anArray != null);
+        final byte[] aByteArray = source.getByteArray();
+        Assert.assertTrue(aByteArray != null);
+    }
+
+    @Test
     public void canGetAShort() throws Exception
     {
         final short aShort = source.getShort();
