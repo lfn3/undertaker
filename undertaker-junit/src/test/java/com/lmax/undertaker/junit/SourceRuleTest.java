@@ -115,6 +115,13 @@ public class SourceRuleTest {
     }
 
     @Test
+    public void canGenerateWithFunction() throws Exception
+    {
+        final Date generated = source.generate(SourceRuleTest::generateDate);
+        Assert.assertNotNull(generated);
+    }
+
+    @Test
     public void canGetAShort() throws Exception
     {
         final short aShort = source.getShort();

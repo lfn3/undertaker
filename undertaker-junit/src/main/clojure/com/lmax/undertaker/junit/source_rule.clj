@@ -19,7 +19,8 @@
            (java.util List ArrayList Arrays)
            (java.util.function Function Supplier)
            (java.lang.reflect Modifier)
-           (com.lmax.undertaker.junit Seed Trials ArrayGenImpl))
+           (com.lmax.undertaker.junit Seed Trials)
+           (com.lmax.undertaker.junit.generators Generator))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
@@ -188,6 +189,9 @@
      (when (undertaker/should-generate-elem? min max counter)
        (.run r)
        (recur (inc counter))))))
+
+(defn -generate
+  ([this ^Generator g] (.apply g this)))
 
 (defmacro get-array-fn [type-hint type-str & [array-fn-name]]
   (let [fn-name (symbol (str "-get" (str/upper-case (first type-str))
