@@ -1,6 +1,7 @@
 package com.lmax.undertaker.junit;
 
 import com.lmax.undertaker.junit.generators.ByteGen;
+import com.lmax.undertaker.junit.generators.Generator;
 import org.junit.*;
 
 import java.time.Instant;
@@ -11,6 +12,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class SourceRuleTest {
+    private static final Generator<Date> DATE_GENERATOR = s -> Date.from(Instant.ofEpochSecond(s.getInt(0, Integer.MAX_VALUE)));
+    private static final Generator<String> DATE_STRING_GENERATOR = Generator.asGenerator(DATE_GENERATOR.andThen(Date::toString));
+
     private int clearedBefore;
     private List<Long> aList = new ArrayList<>();
 
@@ -119,6 +123,12 @@ public class SourceRuleTest {
     {
         final Date generated = source.generate(SourceRuleTest::generateDate);
         Assert.assertNotNull(generated);
+
+        final Date functionGenerated = source.generate(DATE_GENERATOR);
+        Assert.assertNotNull(functionGenerated);
+
+        final String composedFunctionGenerated = source.generate(DATE_STRING_GENERATOR);
+        Assert.assertNotNull(composedFunctionGenerated);
     }
 
     @Test
