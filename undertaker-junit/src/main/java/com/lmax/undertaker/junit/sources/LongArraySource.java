@@ -1,13 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.sources.LongSource;
 
 import java.util.function.ToLongFunction;
 
-public interface LongArrayGen {
+public interface LongArraySource {
     default long[] getLongArray()
     {
-        return getLongArray(LongGen::getLong);
+        return getLongArray(LongSource::getLong);
     }
     default long[] getLongArray(ToLongFunction<Source> generator)
     {

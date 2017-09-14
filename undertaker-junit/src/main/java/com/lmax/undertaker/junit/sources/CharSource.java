@@ -1,6 +1,6 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
-public interface CharGen {
+public interface CharSource {
     char getChar();
     char getAsciiChar();
     char getAlphanumericChar();

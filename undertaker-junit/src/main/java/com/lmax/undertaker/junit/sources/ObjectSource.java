@@ -1,13 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
+import com.lmax.undertaker.junit.Generator;
 import com.lmax.undertaker.junit.Source;
 
 import java.util.function.Function;
 
-import static com.lmax.undertaker.junit.generators.Generator.asGenerator;
+import static com.lmax.undertaker.junit.Generator.asGenerator;
 
 @FunctionalInterface
-public interface ObjectGen {
+public interface ObjectSource {
     <T> T generate(Generator<T> generator);
 
     default <T> T generate(Function<Source, T> f)

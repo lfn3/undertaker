@@ -1,13 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.primitive.functions.ToCharFunction;
 
 import java.util.function.ToDoubleFunction;
 
-public interface CharArrayGen {
+public interface CharArraySource {
     default char[] getCharArray()
     {
-        return getCharArray(CharGen::getChar);
+        return getCharArray(CharSource::getChar);
     }
     default char[] getCharArray(ToCharFunction<Source> generator)
     {

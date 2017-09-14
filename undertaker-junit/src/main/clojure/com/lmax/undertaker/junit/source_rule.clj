@@ -3,15 +3,15 @@
     :name com.lmax.undertaker.junit.SourceRule
     :state state
     :implements [org.junit.rules.TestRule
-                 com.lmax.undertaker.junit.generators.ByteGen
+                 com.lmax.undertaker.junit.generators.ByteSource
                  com.lmax.undertaker.junit.generators.IntGen
                  com.lmax.undertaker.junit.generators.LongGen
-                 com.lmax.undertaker.junit.generators.CharGen
+                 com.lmax.undertaker.junit.generators.CharSource
                  com.lmax.undertaker.junit.generators.DoubleGen
                  com.lmax.undertaker.junit.generators.FloatGen
                  com.lmax.undertaker.junit.generators.ShortGen
                  com.lmax.undertaker.junit.generators.BoolGen
-                 com.lmax.undertaker.junit.generators.ListGen
+                 com.lmax.undertaker.junit.generators.ListSource
                  com.lmax.undertaker.junit.generators.LongArrayGen
                  com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
@@ -180,15 +180,6 @@
   ([this ^Class c ^Function generator] (-getArray this c generator 0 64))
   ([this ^Class c ^Function generator max] (-getArray this c generator 0 max))
   ([this ^Class c ^Function generator min max] (into-array c (undertaker/vec-of #(.apply generator this) min max))))
-
-(defn -repeatedly
-  ([this ^Runnable r] (-repeatedly this r 0 64))
-  ([this ^Runnable r max] (-repeatedly this r 0 max))
-  ([this ^Runnable r min max]
-   (loop [counter 0]
-     (when (undertaker/should-generate-elem? min max counter)
-       (.run r)
-       (recur (inc counter))))))
 
 (defn -generate
   ([this ^Generator g] (.apply g this)))

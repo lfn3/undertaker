@@ -1,6 +1,6 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
-public interface LongGen {
+public interface LongSource {
     default long getLong()
     {
         return getLong(Long.MIN_VALUE, Long.MAX_VALUE);

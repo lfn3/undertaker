@@ -1,6 +1,6 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
-public interface DoubleGen {
+public interface DoubleSource {
     double getDouble();
     double getDouble(double max);
     double getDouble(double min, double max);

@@ -1,13 +1,12 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.primitive.functions.ToShortFunction;
 
-import java.util.function.ToIntFunction;
-
-public interface ShortArrayGen {
+public interface ShortArraySource {
     default short[] getShortArray()
     {
-        return getShortArray(ShortGen::getShort);
+        return getShortArray(ShortSource::getShort);
     }
     default short[] getShortArray(ToShortFunction<Source> generator)
     {

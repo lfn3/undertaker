@@ -1,29 +1,28 @@
 package com.lmax.undertaker.junit;
 
+import com.lmax.undertaker.junit.sources.*;
 import org.junit.rules.TestRule;
-import com.lmax.undertaker.junit.generators.*;
 
-public interface Source extends BoolGen,
-                                BoolArrayGen,
-                                ByteGen,
-                                ByteArrayGen,
-                                ShortGen,
-                                ShortArrayGen,
-                                IntGen,
-                                IntArrayGen,
-                                CharGen,
-                                CharArrayGen,
-                                LongGen,
-                                LongArrayGen,
-                                FloatGen,
-                                FloatArrayGen,
-                                DoubleGen,
-                                DoubleArrayGen,
-                                StringGen,
-                                ListGen,
-                                ArrayGen,
-                                RepeaterGen,
-                                ObjectGen,
+public interface Source extends BoolSource,
+                                BoolArraySource,
+                                ByteSource,
+                                ByteArraySource,
+                                ShortSource,
+                                ShortArraySource,
+                                IntSource,
+                                IntArraySource,
+                                CharSource,
+                                CharArraySource,
+                                LongSource,
+                                LongArraySource,
+                                FloatSource,
+                                FloatArraySource,
+                                DoubleSource,
+                                DoubleArraySource,
+                                StringSource,
+                                ListSource,
+                                ArraySource,
+                                ObjectSource,
                                 TestRule {
     long pushInterval(String intervalName);
 

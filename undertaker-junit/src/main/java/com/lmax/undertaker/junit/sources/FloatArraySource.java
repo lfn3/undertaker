@@ -1,13 +1,12 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.primitive.functions.ToFloatFunction;
 
-import java.util.function.ToDoubleFunction;
-
-public interface FloatArrayGen {
+public interface FloatArraySource {
     default float[] getFloatArray()
     {
-        return getFloatArray(FloatGen::getFloat);
+        return getFloatArray(FloatSource::getFloat);
     }
     default float[] getFloatArray(ToFloatFunction<Source> generator)
     {

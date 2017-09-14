@@ -1,4 +1,4 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.primitive.functions;
 
 @FunctionalInterface
 public interface ToFloatFunction<T> {

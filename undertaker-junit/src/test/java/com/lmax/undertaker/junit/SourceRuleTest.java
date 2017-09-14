@@ -1,7 +1,7 @@
 package com.lmax.undertaker.junit;
 
-import com.lmax.undertaker.junit.generators.ByteGen;
-import com.lmax.undertaker.junit.generators.Generator;
+import com.lmax.undertaker.junit.generators.CodePoints;
+import com.lmax.undertaker.junit.sources.ByteSource;
 import org.junit.*;
 
 import java.time.Instant;
@@ -105,7 +105,7 @@ public class SourceRuleTest {
     {
         final List<Date> list = source.getList(SourceRuleTest::generateDate);
         Assert.assertTrue(list != null);
-        final List<Byte> aListAOfBytes = source.getList(ByteGen::getByte);
+        final List<Byte> aListAOfBytes = source.getList(ByteSource::getByte);
         Assert.assertTrue(aListAOfBytes != null);
     }
 
@@ -206,14 +206,14 @@ public class SourceRuleTest {
     public void canGetEveryKindOfString() throws Exception
     {
         final String s = source.getString();
-        final String ascii = source.getAsciiString();
+        final String ascii = source.getString(CodePoints.ASCII);
 
-        final String alpha = source.getAlphaString();
+        final String alpha = source.getString(CodePoints.ALPHA);
         for (char c : alpha.toCharArray()) {
             Assert.assertTrue(Character.isAlphabetic(c));
         }
 
-        final String alphaNum = source.getAlphanumericString();
+        final String alphaNum = source.getString(CodePoints.ALPHANUMERIC);
         for (char c : alpha.toCharArray()) {
             Assert.assertTrue(Character.isAlphabetic(c) || Character.isDigit(c));
         }

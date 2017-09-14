@@ -1,13 +1,13 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
 
 import java.util.function.ToDoubleFunction;
 
-public interface DoubleArrayGen {
+public interface DoubleArraySource {
     default double[] getDoubleArray()
     {
-        return getDoubleArray(DoubleGen::getDouble);
+        return getDoubleArray(DoubleSource::getDouble);
     }
     default double[] getDoubleArray(ToDoubleFunction<Source> generator)
     {

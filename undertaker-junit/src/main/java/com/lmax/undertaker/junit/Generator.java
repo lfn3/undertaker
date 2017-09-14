@@ -1,4 +1,4 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit;
 
 import com.lmax.undertaker.junit.Source;
 

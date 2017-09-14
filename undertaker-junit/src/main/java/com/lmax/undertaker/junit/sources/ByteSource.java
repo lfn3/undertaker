@@ -1,6 +1,6 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
-public interface ByteGen {
+public interface ByteSource {
     default byte getByte()
     {
         return getByte(Byte.MIN_VALUE, Byte.MAX_VALUE);

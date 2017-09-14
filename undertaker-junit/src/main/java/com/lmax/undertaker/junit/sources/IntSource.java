@@ -1,6 +1,6 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
-public interface IntGen {
+public interface IntSource {
     default int getInt()
     {
         return getInt(Integer.MIN_VALUE, Integer.MAX_VALUE);

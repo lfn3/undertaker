@@ -1,11 +1,12 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
+import com.lmax.undertaker.junit.Generator;
 import com.lmax.undertaker.junit.Source;
 
 import java.util.List;
 import java.util.function.Function;
 
-public interface ListGen
+public interface ListSource
 {
     default <T> List<T> getList(Generator<T> generator) {
         return getList(generator, 0, 64);

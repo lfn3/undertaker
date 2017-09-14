@@ -1,13 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.primitive.functions.ToByteFunction;
 
 import java.util.function.ToLongFunction;
 
-public interface ByteArrayGen {
+public interface ByteArraySource {
     default byte[] getByteArray()
     {
-        return getByteArray(ByteGen::getByte);
+        return getByteArray(ByteSource::getByte);
     }
     default byte[] getByteArray(ToByteFunction<Source> generator)
     {

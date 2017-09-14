@@ -1,13 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
+import com.lmax.undertaker.junit.primitive.functions.ToBoolFunction;
 
 import java.util.function.ToDoubleFunction;
 
-public interface BoolArrayGen {
+public interface BoolArraySource {
     default boolean[] getBoolArray()
     {
-        return getBoolArray(BoolGen::getBool);
+        return getBoolArray(BoolSource::getBool);
     }
     default boolean[] getBoolArray(ToBoolFunction<Source> generator)
     {

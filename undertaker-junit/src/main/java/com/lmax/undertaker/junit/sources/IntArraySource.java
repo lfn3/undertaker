@@ -1,14 +1,14 @@
-package com.lmax.undertaker.junit.generators;
+package com.lmax.undertaker.junit.sources;
 
 import com.lmax.undertaker.junit.Source;
 
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
-public interface IntArrayGen {
+public interface IntArraySource {
     default int[] getIntArray()
     {
-        return getIntArray(IntGen::getInt);
+        return getIntArray(IntSource::getInt);
     }
     default int[] getIntArray(ToIntFunction<Source> generator)
     {
