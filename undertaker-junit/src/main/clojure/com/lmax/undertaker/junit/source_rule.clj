@@ -173,20 +173,12 @@
 (defn ^List -getList
   ([this ^Function generator] (-getList this generator 0 64))
   ([this ^Function generator max] (-getList this generator 0 max))
-  ([this ^Function generator min max]
-   (let [result-vec (undertaker/vec-of #(.apply generator this) min max)
-         result-list (ArrayList. (count result-vec))]
-     (->> result-vec
-          (map #(.add result-list %1))
-          (dorun))
-     result-vec)))
+  ([this ^Function generator min max] (ArrayList. (undertaker/vec-of #(.apply generator this) min max))))
 
 (defn -getArray
   ([this ^Class c ^Function generator] (-getArray this c generator 0 64))
   ([this ^Class c ^Function generator max] (-getArray this c generator 0 max))
-  ([this ^Class c ^Function generator min max]
-   (-> (ArrayGenImpl. this)
-       (.getArray c generator min max))))
+  ([this ^Class c ^Function generator min max] (into-array c (undertaker/vec-of #(.apply generator this) min max))))
 
 (defn -repeatedly
   ([this ^Runnable r] (-repeatedly this r 0 64))
