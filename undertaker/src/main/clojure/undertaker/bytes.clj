@@ -1,5 +1,6 @@
 (ns undertaker.bytes
-  (:require [clojure.spec.alpha :as s])
+  (:require [clojure.spec.alpha :as s]
+            [clojure.spec.gen.alpha :as s.gen])
   (:import (java.nio ByteBuffer)))
 
 (defn unsign [b] (bit-and 0xff b))
@@ -20,6 +21,9 @@
 
 (s/def ::bytes (s/or :arr bytes?
                      :coll (s/coll-of ::byte)))
+
+(s/def ::range (s/tuple ::bytes ::bytes))
+(s/def ::ranges (s/coll-of ::range))
 
 (defn abs [i]
   (if (neg-int? i) (- i) i))
@@ -145,6 +149,12 @@
           (and (neg? floor) (neg? ceiling)))
     [[(->bytes-fn floor) (->bytes-fn ceiling)]]
     [[(->bytes-fn floor) (->bytes-fn -1)] [(->bytes-fn 0) (->bytes-fn ceiling)]]))
+
+(s/fdef split-number-line-min-max-into-bytewise-min-max
+  :args (s/cat :floor number?
+               :ceiling number?
+               :->bytes-fn fn?)
+  :ret ::ranges)
 
 (defn bytes->byte [arr]
   (nth arr 0))

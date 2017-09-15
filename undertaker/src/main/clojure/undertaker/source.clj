@@ -11,8 +11,6 @@
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
 
-(s/def ::range (s/tuple ::bytes/bytes ::bytes/bytes))
-(s/def ::ranges (s/coll-of ::range))
 (s/def ::bytes-to-skip (s/with-gen (s/and (s/coll-of ::bytes/bytes) set?)
                                    #(s.gen/fmap set (s/gen (s/coll-of ::bytes/bytes)))))
 
@@ -48,7 +46,7 @@
    (proto/get-bytes source ranges skip)))
 
 (s/fdef get-bytes
-  :args (s/cat :source ::source :skip (s/? ::bytes-to-skip) :ranges vector?)
+  :args (s/cat :source ::source :skip (s/? ::bytes-to-skip) :ranges ::bytes/ranges)
   :ret bytes?)
 
 (defn push-interval [source interval-name]

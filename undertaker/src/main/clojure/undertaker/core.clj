@@ -381,8 +381,8 @@
        (vec)))
 
 (s/fdef repeat-range
-  :args (s/cat :ranges ::source/ranges :size int?)
-  :ret ::source/ranges
+  :args (s/cat :ranges ::bytes/ranges :size int?)
+  :ret ::bytes/ranges
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [size]} args]
           (= size (count (first (first ret)))))))
