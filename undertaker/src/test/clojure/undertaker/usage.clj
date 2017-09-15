@@ -70,7 +70,14 @@
             (and (<= 4 i)
                  (<= i 5))
             (and (<= 7 i)
-                 (<= i 9))))))
+                 (<= i 9)))))
+  (let [with--ve (undertaker/int -5 -3 -1 1 3 5)]
+    (is (or (and (<= -5 with--ve)
+                 (<= with--ve -3))
+            (and (<= -1 with--ve)
+                 (<= with--ve 1))
+            (and (<= 3 with--ve)
+                 (<= with--ve 5))))))
 
 (undertaker/defprop can-get-a-string-of-length-1 {}
   (let [string (undertaker/string 1 1)]

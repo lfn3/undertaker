@@ -112,14 +112,15 @@
     (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))))
 
 (deftest test-split-number-line-ranges-into-bytewise-min-max
-  (let [vectorized (fn [& args] (->> (apply split-number-line-ranges-into-bytewise-min-max short->bytes args)
+  (let [vectorized (fn [& args] (->> (split-number-line-ranges-into-bytewise-min-max short->bytes args)
                                      (map (partial map vec))
                                      (map vec)
                                      (vec)))]
     (is (= [[[0 0] [0 1]]] (vectorized 0 1)))
     (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))
     (is (= [[[0 0] [0 1]] [[0 3] [0 4]]] (vectorized 0 1 3 4)))
-    (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]] [[0 3] [0 4]]] (vectorized -1 1 3 4)))))
+    (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]] [[0 3] [0 4]]] (vectorized -1 1 3 4)))
+    (is (= [[[-1 -4] [-1 -3]] [[-1 -1] [-1 -1]] [[0 0] [0 1]] [[0 3] [0 4]]] (vectorized -4 -3 -1 1 3 4)))))
 
 (deftest double-arrays-examples
   (is (= (vec (double->bytes -2.563353952042129E75))
