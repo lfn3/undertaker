@@ -10,9 +10,9 @@
             [undertaker.source.multi-source :as source.multi]
             [undertaker.source.fixed :as fixed-source]
             [clojure.test.check.generators :as gen]
-            [undertaker.util :as util]
             [undertaker.shrink :as shrink]
-            [undertaker.bytes :as bytes])
+            [undertaker.bytes :as bytes]
+            [undertaker.messages :as messages])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException)))
@@ -45,14 +45,6 @@
          (source/pop-interval *source* interval-token# nil)
          (throw e#)))))
 
-(defn ^String already-bound-source-error-string []
-  (str
-    "The *source* var has already been set, and something is trying to bind another value to it.
-This probably means you've nested tests inside each other.
-
-If you can't find the cause of the error, please raise an issue at "
-    util/bug-tracker-url))
-
 (defn failure? [test-report]
   (-> test-report
       :type
@@ -75,7 +67,7 @@ If you can't find the cause of the error, please raise an issue at "
     (let [result (atom [])
           report-fn (make-report-fn result)]
       (when-not (nil? *source*)
-        (throw (IllegalStateException. (already-bound-source-error-string))))
+        (throw (IllegalStateException. (messages/already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}
         (try
@@ -151,58 +143,18 @@ If you can't find the cause of the error, please raise an issue at "
 
 (s/def ::iterations integer?)
 (s/def ::prop-opts-map (s/keys :opt-un [::seed ::iterations]))
-(s/def ::disallowed-values (s/coll-of ::util/bytes))
+(s/def ::disallowed-values (s/coll-of ::bytes/bytes))
 
 (s/fdef run-prop
   :args (s/cat :opts-map ::prop-opts-map
                :fn fn?)
   :ret ::results-map)
 
-(defn format-failed [name results]
-  (format "%s failed after running %d times.
-
-The simplest values we could make the test fail with were:
-%s
-
-The initial failing values were:
-%s
-
-The seed that generated the initial case was %s.
-If you want to rerun this particular failing case, you can add this seed to the test.
-
-If you're using Clojure, you can add :undertaker.core/seed to this test's options map:
-(defprop %s {:seed %s} ...)
-
-If you're using Java and jUnit, you can add an annotation to the test:
-@Test
-@com.lmax.undertaker.junit.Seed(%s)
-public void %s() { ... }"
-          name
-          (::iterations-run results)
-          (vec (::shrunk-values results))
-          (vec (::generated-values results))
-          (::seed results)
-          name
-          (::seed results)
-          (::seed results)
-          name))
-
-(defn format-not-property-test-failed [name results]
-  (format "This test did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
-          name))
-
-(defn format-not-property-passed [name results]
-  (format "%s did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.
-You probably want to replace (defprop %s { opts... } test-body...) with (deftest %s test-body...)"
-          name
-          name
-          name))
-
 (defn format-results [name results]
   (cond
-    (and (not (::source-used results)) (::result results)) (format-not-property-passed name results)
-    (not (::source-used results)) (format-not-property-test-failed name results)
-    (not (::result results)) (format-failed name results)
+    (and (not (::source-used results)) (::result results)) (messages/format-not-property-passed name results)
+    (not (::source-used results)) (messages/format-not-property-test-failed name results)
+    (not (::result results)) (messages/format-failed name results)
     :default nil))
 
 (s/fdef format-results
@@ -223,8 +175,8 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
           (bytes/bytes->byte)))))
 
 (s/fdef byte
-  :args (s/cat :min (s/? ::util/byte) :max (s/? ::util/byte))
-  :ret ::util/byte
+  :args (s/cat :min (s/? ::bytes/byte) :max (s/? ::bytes/byte))
+  :ret ::bytes/byte
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [min max]
                :or   {min Byte/MIN_VALUE
@@ -266,7 +218,7 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
-  ([floor ceiling]
+  ([floor ceiling & more-ranges]
    (with-interval (format-interval-name "int" floor ceiling)
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/int->bytes)
           (source/get-bytes *source*)
@@ -274,14 +226,18 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
 
 (s/fdef int
   :args (s/cat :min (s/? int?)
-               :max (s/? int?))
+               :max (s/? int?)
+               :more-ranges (s/? (s/and (s/coll-of int?)
+                                        (comp even? count))))
   :ret int?
   :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
+        (let [{:keys [min max more-ranges]
                :or   {min Integer/MIN_VALUE
-                      max Integer/MAX_VALUE}} args]
+                      max Integer/MAX_VALUE
+                      more-ranges []}} args]
           (and (<= min ret)
-               (>= max ret)))))
+               (>= max ret)
+               (even? (count more-ranges))))))
 
 (defn char
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."

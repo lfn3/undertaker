@@ -1,9 +1,44 @@
 (ns undertaker.bytes
-  (:require [undertaker.util :as util]
-            [clojure.spec.alpha :as s])
+  (:require [clojure.spec.alpha :as s])
   (:import (java.nio ByteBuffer)))
 
 (defn unsign [b] (bit-and 0xff b))
+
+(defn byte? [b]
+  (and (integer? b)
+       (>= Byte/MAX_VALUE b)
+       (<= Byte/MIN_VALUE b)))
+
+(s/fdef byte?
+  :args (s/cat :b number?)
+  :ret boolean?)
+
+(s/def ::byte (s/with-gen
+                (s/and integer?
+                       byte?)
+                #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
+
+(s/def ::bytes (s/or :arr bytes?
+                     :coll (s/coll-of ::byte)))
+
+(defn abs [i]
+  (if (neg-int? i) (- i) i))
+
+(s/fdef abs
+  :args (s/cat :i integer?)
+  :ret (s/or :pos pos-int? :zero zero?))
+
+(defn unsigned<= [x y]
+  (not= 1 (Long/compareUnsigned x y)))
+
+(s/fdef unsigned<=
+  :args (s/cat :x int? :y int?)
+  :ret boolean?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [x y]} args]
+          (if (= (Long/signum x) (Long/signum y))
+            (= ret (<= x y))
+            (= ret (or (zero? x) (neg? y)))))))
 
 (defn skip-disallowed-values
   [generated-byte disallowed-values]
@@ -23,12 +58,12 @@
 (defn move-into-range
   ([b floor ceiling] (move-into-range b floor ceiling #{}))
   ([b floor ceiling skip-values]
-   (let [[floor ceiling] (if (util/unsigned<= floor ceiling) [floor ceiling] [ceiling floor])
+   (let [[floor ceiling] (if (unsigned<= floor ceiling) [floor ceiling] [ceiling floor])
          unchecked-floor (unsign floor)
          range (- (unsigned-range floor ceiling) (count skip-values))]
      (cond
-       (and (util/unsigned<= floor b)
-            (util/unsigned<= b ceiling)                          ;If the value is within the range,
+       (and (unsigned<= floor b)
+            (unsigned<= b ceiling)                          ;If the value is within the range,
             (not ((set skip-values) b))) b                  ;just pass it through unchanged.
        (zero? range) floor
        :default (-> (unsign b)
@@ -37,8 +72,8 @@
                     (skip-disallowed-values skip-values))))))
 
 (defn is-in-range [value range]
-  (and (util/unsigned<= (first range) value)
-       (util/unsigned<= value (last range))))
+  (and (unsigned<= (first range) value)
+       (unsigned<= value (last range))))
 
 (defn is-in-ranges [value ranges]
   (->> ranges
@@ -46,8 +81,8 @@
        (seq)))
 
 (defn distance-to-range [value range]
-  (min (util/abs (- (unsign value) (unsign (first range))))
-       (util/abs (- (unsign value) (unsign (last range))))))
+  (min (abs (- (unsign value) (unsign (first range))))
+       (abs (- (unsign value) (unsign (last range))))))
 
 (defn closest-range [value ranges]
   (when (seq ranges)
@@ -56,11 +91,11 @@
       (drop 1 (last (filter #(= min-distance (first %1)) with-distances))))))
 
 (defn value-in-range? [value floor ceiling]
-  (let [[floor ceiling] (if (util/unsigned<= ceiling floor)
+  (let [[floor ceiling] (if (unsigned<= ceiling floor)
                           [ceiling floor]
                           [floor ceiling])]
-    (and (util/unsigned<= floor value)
-         (util/unsigned<= value ceiling))))
+    (and (unsigned<= floor value)
+         (unsigned<= value ceiling))))
 
 (defn values-in-range? [values range]
   (->> (map-indexed #(value-in-range? %2
@@ -96,7 +131,7 @@
                ceiling (if all-maxes (last range) -1)       ;Closest range
                skip-values (->> skip-values
                                 (potentially-matched-disallowed-values (take idx output-arr))
-                                (filter #(and (util/unsigned<= floor %1) (util/unsigned<= %1 ceiling))))
+                                (filter #(and (unsigned<= floor %1) (unsigned<= %1 ceiling))))
                next-val (move-into-range input-val floor ceiling skip-values)]
            (aset-byte output-arr idx next-val)
            (recur (inc idx)
@@ -136,7 +171,7 @@
                       #(<= %1 Short/MAX_VALUE)))
 
 (s/fdef bytes->short
-  :args (s/cat :arr ::util/bytes)
+  :args (s/cat :arr ::bytes)
   :ret ::short
   :fn (fn [{:keys [args ret]}]
         (->> (short->bytes ret)
@@ -147,7 +182,7 @@
 
 (s/fdef short->bytes
   :args (s/cat :s ::short)
-  :ret ::util/bytes
+  :ret ::bytes
   :fn (fn [{:keys [args ret]}] (= (:s args) (bytes->short ret))))
 
 (defn bytes->int [arr]

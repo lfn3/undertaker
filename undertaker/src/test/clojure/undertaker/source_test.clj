@@ -2,10 +2,10 @@
   (:require [clojure.test :refer [deftest is] :as t]
             [undertaker.source.forgetful :as source.forgetful]
             [undertaker.source :as source]
-            [undertaker.util :as util]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
-            [clojure.spec.test.alpha :as s.test]))
+            [clojure.spec.test.alpha :as s.test]
+            [undertaker.bytes :as bytes]))
 
 (def this-ns *ns*)
 
@@ -31,7 +31,7 @@
 
 (deftest should-emit-bytes
   (let [value (first (source/get-bytes forgetful-source [[[-128] [-1]] [[0] [127]]]))]
-    (is util/byte? value)
+    (is bytes/byte? value)
     (is (contains? (set (range -128 127)) value))))
 
 (deftest should-emit-positive-number

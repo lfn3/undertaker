@@ -2,9 +2,9 @@
   (:require [undertaker.source.fixed :as fixed-source]
             [clojure.spec.alpha :as s]
             [undertaker.source :as source]
-            [undertaker.util :as util]
             [clojure.test.check.generators :as gen]
-            [undertaker.proto :as proto])
+            [undertaker.proto :as proto]
+            [undertaker.bytes :as bytes])
   (:import (com.lmax.undertaker OverrunException)))
 
 (defn move-towards-0 [byte]
@@ -16,8 +16,8 @@
         (unchecked-byte))))
 
 (s/fdef move-towards-0
-  :args (s/cat :byte ::util/byte)
-  :ret ::util/byte
+  :args (s/cat :byte ::bytes/byte)
+  :ret ::bytes/byte
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [byte]} args]
           (or (= 0 ret)

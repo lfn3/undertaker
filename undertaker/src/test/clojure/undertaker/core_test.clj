@@ -15,7 +15,6 @@
             [undertaker.proto :as proto]
             [undertaker.source.forgetful :as source.forgetful]
             [undertaker.source.always-max-source :as source.max]
-            [undertaker.util :as util]
             [undertaker.bytes :as bytes]))
 
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))

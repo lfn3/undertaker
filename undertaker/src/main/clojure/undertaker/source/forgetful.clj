@@ -1,7 +1,6 @@
 (ns undertaker.source.forgetful
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
-            [undertaker.util :as util]
             [undertaker.bytes :as bytes])
   (:import (java.util Random)))
 
