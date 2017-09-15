@@ -112,7 +112,7 @@
     (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))))
 
 (deftest test-split-number-line-ranges-into-bytewise-min-max
-  (let [vectorized (fn [& args] (->> (split-number-line-ranges-into-bytewise-min-max short->bytes args)
+  (let [vectorized (fn [& args] (->> (split-number-line-ranges-into-bytewise-min-max args short->bytes)
                                      (map (partial map vec))
                                      (map vec)
                                      (vec)))]
