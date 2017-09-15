@@ -143,17 +143,27 @@
                   (and all-maxes (some true? (map #(= next-val (last %1)) ranges-at-idx)))))))
      output-arr)))
 
-(defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
-  (if (or (and (zero? floor) (pos? ceiling))
-          (and (pos? floor) (pos? ceiling))
-          (and (neg? floor) (neg? ceiling)))
-    [[(->bytes-fn floor) (->bytes-fn ceiling)]]
-    [[(->bytes-fn floor) (->bytes-fn -1)] [(->bytes-fn 0) (->bytes-fn ceiling)]]))
+(defn split-number-line-min-max-into-bytewise-min-max
+  ([floor ceiling ->bytes-fn]
+   (if (or (and (zero? floor) (pos? ceiling))
+           (and (pos? floor) (pos? ceiling))
+           (and (neg? floor) (neg? ceiling)))
+     [[(->bytes-fn floor) (->bytes-fn ceiling)]]
+     [[(->bytes-fn floor) (->bytes-fn -1)] [(->bytes-fn 0) (->bytes-fn ceiling)]])))
 
 (s/fdef split-number-line-min-max-into-bytewise-min-max
-  :args (s/cat :floor number?
-               :ceiling number?
-               :->bytes-fn fn?)
+  :args (s/cat :floor number? :ceiling number? :->bytes-fn fn?)
+  :ret ::ranges)
+
+(defn split-number-line-ranges-into-bytewise-min-max
+  ([->bytes-fn & ranges]
+   (->> ranges
+        (partition 2)
+        (mapcat (fn [[floor ceiling]] (split-number-line-min-max-into-bytewise-min-max floor ceiling ->bytes-fn))))))
+
+(s/fdef split-number-line-ranges-into-bytewise-min-max
+  :args (s/cat :->bytes-fn fn? :ranges (s/and (s/coll-of number?)
+                                              (comp even? count)))
   :ret ::ranges)
 
 (defn bytes->byte [arr]
