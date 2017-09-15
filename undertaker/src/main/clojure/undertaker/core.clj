@@ -220,7 +220,7 @@
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling & more-ranges]
    (with-interval (format-interval-name "int" floor ceiling)
-     (->> (bytes/split-number-line-ranges-into-bytewise-min-max bytes/int->bytes (concat [floor ceiling]))
+     (->> (bytes/split-number-line-ranges-into-bytewise-min-max bytes/int->bytes (concat [floor ceiling] more-ranges))
           (source/get-bytes *source*)
           (bytes/bytes->int)))))
 

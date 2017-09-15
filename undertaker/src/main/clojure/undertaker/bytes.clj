@@ -156,7 +156,7 @@
   :ret ::ranges)
 
 (defn split-number-line-ranges-into-bytewise-min-max
-  ([->bytes-fn & ranges]
+  ([->bytes-fn ranges]
    (->> ranges
         (partition 2)
         (mapcat (fn [[floor ceiling]] (split-number-line-min-max-into-bytewise-min-max floor ceiling ->bytes-fn))))))

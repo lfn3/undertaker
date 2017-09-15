@@ -64,13 +64,13 @@
     (is (<= 1 int))))
 
 (undertaker/defprop int-in-one-of-many-ranges {}
-  (let [int (undertaker/int 1 2 4 5 7 9)]
-    (is (or (and (<= 1 int)
-                 (<= int 2))
-            (and (<= 4 int)
-                 (<= int 5))
-            (and (<= 7 int)
-                 (<= int 9))))))
+  (let [i (undertaker/int 1 2 4 5 7 9)]
+    (is (or (and (<= 1 i)
+                 (<= i 2))
+            (and (<= 4 i)
+                 (<= i 5))
+            (and (<= 7 i)
+                 (<= i 9))))))
 
 (undertaker/defprop can-get-a-string-of-length-1 {}
   (let [string (undertaker/string 1 1)]

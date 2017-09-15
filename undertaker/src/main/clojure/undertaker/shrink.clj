@@ -37,9 +37,9 @@
            :undertaker.core/cause
            :actual
            (instance? OverrunException))
-      (when-not (->> result-map
+      (if-not (->> result-map
                      :undertaker.core/cause
-                     :actual
+                     (map :actual)
                      (seq?))
         (->> result-map
              :undertaker.core/cause
@@ -47,7 +47,8 @@
              (filter (partial instance? OverrunException))
              (not-empty)
              (nil?)
-             (not)))))
+             (not))
+        false)))
 
 (s/fdef is-overrun?
   :args (s/cat :result-map (s/keys :req [:undertaker.core/cause]))
