@@ -98,6 +98,15 @@
   (let [val (undertaker/int -1 1)]
     (is (= (Integer/signum val) val))))
 
+(deftest int-gen-should-generate-from-multiple-ranges
+  (let [val (undertaker/int -5 -3 -1 1 3 5)]
+    (is (or (and (<= -5 val)
+                 (<= val -3))
+            (and (<= -1 val)
+                 (<= val -1))
+            (and (<= 3 val)
+                 (<= val 5))))))
+
 (deftest from-gen-test
   (let [values (set (repeatedly 3 undertaker/int))]
     (is (values (undertaker/from values)))))

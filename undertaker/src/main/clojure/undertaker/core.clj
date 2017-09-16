@@ -225,18 +225,19 @@
           (bytes/bytes->int)))))
 
 (s/fdef int
-  :args (s/cat :min (s/? int?)
-               :max (s/? int?)
-               :more-ranges (s/? (s/and (s/coll-of int?)
-                                        (comp even? count))))
+  :args (s/cat :floor (s/? int?)
+               :ceiling (s/? int?)
+               :more-ranges (s/* int?))
   :ret int?
   :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max more-ranges]
-               :or   {min Integer/MIN_VALUE
-                      max Integer/MAX_VALUE
-                      more-ranges []}} args]
-          (and (<= min ret)
-               (>= max ret)
+        (let [{:keys [floor ceiling more-ranges]
+               :or   {floor       Integer/MIN_VALUE
+                      ceiling     Integer/MAX_VALUE
+                      more-ranges []}} args
+              total-floor (apply min floor more-ranges)
+              total-ceiling (apply max ceiling more-ranges)]
+          (and (<= total-floor ret)
+               (>= total-ceiling ret)
                (even? (count more-ranges))))))
 
 (defn char

@@ -22,6 +22,8 @@
 (s/def ::bytes (s/or :arr bytes?
                      :coll (s/coll-of ::byte)))
 
+(s/def ::bytes-to-skip (s/with-gen (s/and (s/coll-of ::bytes) set?)
+                                   #(s.gen/fmap set (s/gen (s/coll-of ::bytes)))))
 (s/def ::range (s/tuple ::bytes ::bytes))
 (s/def ::ranges (s/coll-of ::range))
 
@@ -142,6 +144,10 @@
                   (and all-mins (some true? (map #(= next-val (first %1)) ranges-at-idx)))
                   (and all-maxes (some true? (map #(= next-val (last %1)) ranges-at-idx)))))))
      output-arr)))
+
+(s/fdef map-into-ranges
+  :args (s/cat :input ::bytes :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
+  :ret ::bytes)
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
   (if (or (and (zero? floor) (pos? ceiling))
