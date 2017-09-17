@@ -79,6 +79,10 @@
                     (+ unchecked-floor)
                     (skip-disallowed-values skip-values))))))
 
+(s/fdef move-into-range
+  :args (s/cat :b ::byte :floor ::byte :ceiling ::byte :skip-values (s/? ::bytes))
+  :ret ::byte)
+
 (defn is-in-range [value range]
   (and (unsigned<= (first range) value)
        (unsigned<= value (last range))))
@@ -111,6 +115,30 @@
            (vec)))))
 
 (s/fdef closest-range
+  :args (s/cat :value ::byte :ranges ::sliced-ranges)
+  :ret (s/nilable ::sliced-range))
+
+(defn size-of-range [range]
+  (inc (- (unsign (last range)) (unsign (first range)))))
+
+(s/fdef size-of-range
+  :args (s/cat :range ::sliced-range)
+  :ret pos-int?)
+
+(defn pick-range [value ranges]
+  (when (seq ranges)
+    (let [size-of-ranges (->> ranges
+                              (map size-of-range)
+                              (reduce +))
+          wrapped-value (mod (unsign value) size-of-ranges)]
+      (loop [value wrapped-value
+             remaining-ranges ranges]
+        (let [next-value (- value (size-of-range (first remaining-ranges)))]
+          (if (<= next-value 0)
+            (first remaining-ranges)
+            (recur next-value (rest remaining-ranges))))))))
+
+(s/fdef pick-range
   :args (s/cat :value ::byte :ranges ::sliced-ranges)
   :ret (s/nilable ::sliced-range))
 
@@ -159,9 +187,9 @@
                ranges (filter (partial values-in-range? (take idx output-arr)) ranges)
                ranges-at-idx (slice-ranges idx ranges)
                range (or (last (is-in-ranges input-val ranges-at-idx))
-                         (closest-range input-val ranges-at-idx)) ;TODO: change this so it isn't as biased.
+                         (pick-range input-val ranges-at-idx)) ;TODO: change this so it isn't as biased.
                floor (if all-mins (first range) 0)          ;Probably some kind of mod thing rather than just into the
-               ceiling (if all-maxes (last range) -1)       ;Closest range
+               ceiling (if all-maxes (last range) -1)       ;Closest range TODO: some kind of short circuit based on all-mins and all-maxes?
                skip-values (->> skip-values
                                 (potentially-matched-disallowed-values (take idx output-arr))
                                 (filter #(and (unsigned<= floor %1) (unsigned<= %1 ceiling))))
