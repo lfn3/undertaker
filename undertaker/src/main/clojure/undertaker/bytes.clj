@@ -26,7 +26,8 @@
                                    #(s.gen/fmap set (s/gen (s/coll-of ::bytes)))))
 (s/def ::range (s/tuple ::bytes ::bytes))
 (s/def ::ranges (s/coll-of ::range))
-(s/def ::sliced-ranges (s/coll-of (s/tuple ::byte ::byte)))
+(s/def ::sliced-range (s/tuple ::byte ::byte))
+(s/def ::sliced-ranges (s/coll-of ::sliced-range))
 
 (defn abs [i]
   (if (neg-int? i) (- i) i))
@@ -82,10 +83,18 @@
   (and (unsigned<= (first range) value)
        (unsigned<= value (last range))))
 
+(s/fdef is-in-range
+  :args (s/cat :value ::byte :range ::sliced-range)
+  :ret boolean?)
+
 (defn is-in-ranges [value ranges]
   (->> ranges
        (filter (partial is-in-range value))
        (seq)))
+
+(s/fdef is-in-ranges
+  :args (s/cat :value ::byte :ranges ::sliced-ranges)
+  :ret (s/nilable ::sliced-ranges))
 
 (defn distance-to-range [value range]
   (min (abs (- (unsign value) (unsign (first range))))
@@ -95,7 +104,15 @@
   (when (seq ranges)
     (let [with-distances (map #(cons (distance-to-range value %1) %1) ranges)
           min-distance (reduce min (map first with-distances))]
-      (drop 1 (last (filter #(= min-distance (first %1)) with-distances))))))
+      (->> with-distances
+           (filter #(= min-distance (first %1)))
+           (last)
+           (drop 1)
+           (vec)))))
+
+(s/fdef closest-range
+  :args (s/cat :value ::byte :ranges ::sliced-ranges)
+  :ret (s/nilable ::sliced-range))
 
 (defn value-in-range? [value floor ceiling]
   (let [[floor ceiling] (if (unsigned<= ceiling floor)
