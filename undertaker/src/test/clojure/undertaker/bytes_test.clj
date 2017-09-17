@@ -155,7 +155,6 @@
   (is (= 4 (skip-disallowed-values 4 #{(byte-array [1])
                                      (byte-array [5])}))))
 
-
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
     (is (= 0 (make-short [0 0] 0 1)))

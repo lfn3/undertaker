@@ -26,6 +26,7 @@
                                    #(s.gen/fmap set (s/gen (s/coll-of ::bytes)))))
 (s/def ::range (s/tuple ::bytes ::bytes))
 (s/def ::ranges (s/coll-of ::range))
+(s/def ::sliced-ranges (s/coll-of (s/tuple ::byte ::byte)))
 
 (defn abs [i]
   (if (neg-int? i) (- i) i))
@@ -119,6 +120,15 @@
        (filter #(every? true? (map = (take (dec (count %1)) bytes) %1))) ;Check if all bar the last byte match the disallowed value.
        (map last)))
 
+(defn slice-ranges [idx ranges]
+  (->> ranges
+       (map (partial map #(nth %1 idx)))
+       (map vec)))
+
+(s/fdef slice-ranges
+  :args (s/cat :idx int? :ranges ::ranges)
+  :ret ::sliced-ranges)
+
 (defn map-into-ranges
   ([input ranges] (map-into-ranges input ranges #{}))
   ([input ranges skip-values]
@@ -130,7 +140,7 @@
        (when (< idx size)
          (let [input-val (aget input idx)
                ranges (filter (partial values-in-range? (take idx output-arr)) ranges)
-               ranges-at-idx (map (partial map #(nth %1 idx)) ranges)
+               ranges-at-idx (slice-ranges idx ranges)
                range (or (last (is-in-ranges input-val ranges-at-idx))
                          (closest-range input-val ranges-at-idx)) ;TODO: change this so it isn't as biased.
                floor (if all-mins (first range) 0)          ;Probably some kind of mod thing rather than just into the
