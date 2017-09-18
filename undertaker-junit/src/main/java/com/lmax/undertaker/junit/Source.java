@@ -23,6 +23,7 @@ public interface Source extends BoolSource,
                                 ListSource,
                                 ArraySource,
                                 ObjectSource,
+                                MapSource,
                                 TestRule {
     long pushInterval(String intervalName);
 

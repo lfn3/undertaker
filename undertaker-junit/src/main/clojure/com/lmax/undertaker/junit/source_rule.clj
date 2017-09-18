@@ -2,26 +2,16 @@
   (:gen-class
     :name com.lmax.undertaker.junit.SourceRule
     :state state
-    :implements [org.junit.rules.TestRule
-                 com.lmax.undertaker.junit.sources.ByteSource
-                 com.lmax.undertaker.junit.sources.IntSource
-                 com.lmax.undertaker.junit.sources.LongSource
-                 com.lmax.undertaker.junit.sources.CharSource
-                 com.lmax.undertaker.junit.sources.DoubleSource
-                 com.lmax.undertaker.junit.sources.FloatSource
-                 com.lmax.undertaker.junit.sources.ShortSource
-                 com.lmax.undertaker.junit.sources.BoolSource
-                 com.lmax.undertaker.junit.sources.ListSource
-                 com.lmax.undertaker.junit.sources.LongArraySource
-                 com.lmax.undertaker.junit.Source])
+    :implements [com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
-           (java.util List ArrayList Arrays)
+           (java.util List ArrayList Arrays Map HashMap Map$Entry)
            (java.util.function Function Supplier)
            (java.lang.reflect Modifier)
            (com.lmax.undertaker.junit Seed Trials)
            (com.lmax.undertaker.junit Generator)
-           (com.lmax.undertaker.junit.generators IntGenerator))
+           (com.lmax.undertaker.junit.generators IntGenerator)
+           (javafx.util Pair))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
@@ -182,6 +172,10 @@
   ([this ^Function generator] (-getList this generator 0 64))
   ([this ^Function generator max] (-getList this generator 0 max))
   ([this ^Function generator min max] (ArrayList. (undertaker/vec-of #(.apply generator this) min max))))
+
+(defn ^Map -getMap
+  ([this ^Function generator] (undertaker/map-of #(let [^Pair entry (.apply generator this)]
+                                                    [(.getKey entry) (.getValue entry)]))))
 
 (defn -getArray
   ([this ^Class c ^Function generator] (-getArray this c generator 0 64))

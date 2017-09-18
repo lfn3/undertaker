@@ -489,6 +489,7 @@
                (<= (count ret) max)))))
 
 (defn from
+  "Pick a random value from the supplied collection"
   ([coll]
    (with-interval (format-interval-name "from" coll)
      (let [target-idx (int 0 (dec (count coll)))]
@@ -512,6 +513,22 @@
 (s/fdef keyword
   :args (s/cat)
   :ret keyword?)
+
+(defn map-of
+  ([kv-gen]
+   (with-interval (format-interval-name "map")
+     (loop [result []]
+       (let [i (count result)]
+         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+                         (when-let [gen-next? (should-generate-elem? 0 64 i)]
+                           (kv-gen)))]
+           (recur (conj result next))
+           (into {} result)))))))
+
+(s/fdef map-of
+  :args (s/cat :kv-gen (s/fspec :args (s/cat)
+                                :ret (s/tuple any? any?)))
+  :ret map?)
 
 (def any-gens #{bool
                 int})

@@ -128,3 +128,10 @@
   (let [k (undertaker/keyword)]
     (is (keyword? k))
     (is (nil? (namespace k)))))
+
+(def kv-pairs #{[:a :b] [\c \d] ["e" "f"] [1 2]})
+
+(undertaker/defprop can-get-map {}
+  (let [m (undertaker/map-of (partial undertaker/from kv-pairs))]
+    (is (map? m))
+    (is (every? kv-pairs m))))

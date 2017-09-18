@@ -2,12 +2,14 @@ package com.lmax.undertaker.junit;
 
 import com.lmax.undertaker.junit.generators.CodePoints;
 import com.lmax.undertaker.junit.sources.ByteSource;
+import javafx.util.Pair;
 import org.junit.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -217,6 +219,24 @@ public class SourceRuleTest {
         for (char c : alpha.toCharArray()) {
             Assert.assertTrue(Character.isAlphabetic(c) || Character.isDigit(c));
         }
+    }
+
+    @Test
+    public void canGetAMap() throws Exception
+    {
+       final Map<String, String> m = source.getMap(s -> new Pair<>(s.getString(CodePoints.ALPHANUMERIC),
+                                                                   s.getString(CodePoints.ALPHA)));
+       m.keySet().forEach(s -> {
+           for (char c : s.toCharArray()) {
+               Assert.assertTrue(Character.isAlphabetic(c) || Character.isDigit(c));
+           }
+       });
+
+        m.values().forEach(s -> {
+            for (char c : s.toCharArray()) {
+                Assert.assertTrue(Character.isAlphabetic(c));
+            }
+        });
     }
 
     @Test
