@@ -1,7 +1,8 @@
 (ns undertaker.core
   (:gen-class)
-  (:refer-clojure :exclude [int byte long double short char float])
-  (:require [clojure.spec.alpha :as s]
+  (:refer-clojure :exclude [int byte long double short char float keyword])
+  (:require [clojure.core :as core]
+            [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
             [clojure.test :as t]
@@ -17,11 +18,11 @@
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException)))
 
-(defonce seed-uniquifier* (volatile! (clojure.core/long 8682522807148012)))
+(defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
 (defn seed-uniquifier []
-  (vswap! seed-uniquifier* #(unchecked-multiply (clojure.core/long %1) ;TODO: get rid of casts.
-                                                (clojure.core/long 181783497276652981))))
+  (vswap! seed-uniquifier* #(unchecked-multiply (core/long %1) ;TODO: get rid of casts.
+                                                (core/long 181783497276652981))))
 
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
@@ -242,7 +243,7 @@
 
 (defn char
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
-  ([] (clojure.core/char (int 0x0000 0xD800))))
+  ([] (core/char (int 0x0000 0xD800))))
 
 (s/fdef char
   :args (s/cat)
@@ -257,7 +258,7 @@
      (->> ascii-range
           (source/get-bytes *source*)
           (first)
-          (clojure.core/char)))))
+          (core/char)))))
 
 (s/fdef char-ascii
   :args (s/cat)
@@ -274,7 +275,7 @@
      (->> alphanumeric-range
           (source/get-bytes *source*)
           (first)
-          (clojure.core/char)))))
+          (core/char)))))
 
 (s/fdef char-ascii
   :args (s/cat)
@@ -290,7 +291,7 @@
      (->> alpha-range
           (source/get-bytes *source*)
           (first)
-          (clojure.core/char)))))
+          (core/char)))))
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
@@ -497,6 +498,20 @@
   :args (s/cat :coll (s/coll-of any?))
   :ret any?
   :fn (fn [{:keys [args ret]}] (contains? (set (:coll args)) ret)))
+
+(def char-symbol-special
+  "Non-alphanumeric characters that can be in a symbol."
+  [\* \+ \! \- \_ \?])
+
+(defn keyword []
+  (with-interval "keyword"
+    (->> (concat [(from char-symbol-special)] (vec-of char-alphanumeric))
+         (apply str)
+         (core/keyword))))
+
+(s/fdef keyword
+  :args (s/cat)
+  :ret keyword?)
 
 (def any-gens #{bool
                 int})

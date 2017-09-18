@@ -124,3 +124,7 @@
     (is (instance? String s))
     (is (every? alpha-chars s))))
 
+(undertaker/defprop can-get-keyword {}
+  (let [k (undertaker/keyword)]
+    (is (keyword? k))
+    (is (nil? (namespace k)))))
