@@ -118,25 +118,9 @@
   :args (s/cat :value ::byte :ranges ::sliced-ranges)
   :ret (s/nilable ::sliced-range))
 
-(defn size-of-range [range]
-  (inc (- (unsign (last range)) (unsign (first range)))))
-
-(s/fdef size-of-range
-  :args (s/cat :range ::sliced-range)
-  :ret pos-int?)
-
 (defn pick-range [value ranges]
   (when (seq ranges)
-    (let [size-of-ranges (->> ranges
-                              (map size-of-range)
-                              (reduce +))
-          wrapped-value (mod (unsign value) size-of-ranges)]
-      (loop [value wrapped-value
-             remaining-ranges ranges]
-        (let [next-value (- value (size-of-range (first remaining-ranges)))]
-          (if (<= next-value 0)
-            (first remaining-ranges)
-            (recur next-value (rest remaining-ranges))))))))
+    (nth ranges (mod value (count ranges)))))
 
 (s/fdef pick-range
   :args (s/cat :value ::byte :ranges ::sliced-ranges)
