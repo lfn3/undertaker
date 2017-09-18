@@ -12,4 +12,6 @@ public interface IntSource {
     }
 
     int getInt(int min, int max);
+
+    int getInt(int min, int max, int... moreRanges);
 }

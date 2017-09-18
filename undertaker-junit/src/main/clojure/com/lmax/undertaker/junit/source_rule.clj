@@ -3,16 +3,16 @@
     :name com.lmax.undertaker.junit.SourceRule
     :state state
     :implements [org.junit.rules.TestRule
-                 com.lmax.undertaker.junit.generators.ByteSource
-                 com.lmax.undertaker.junit.generators.IntGen
-                 com.lmax.undertaker.junit.generators.LongGen
-                 com.lmax.undertaker.junit.generators.CharSource
-                 com.lmax.undertaker.junit.generators.DoubleGen
-                 com.lmax.undertaker.junit.generators.FloatGen
-                 com.lmax.undertaker.junit.generators.ShortGen
-                 com.lmax.undertaker.junit.generators.BoolGen
-                 com.lmax.undertaker.junit.generators.ListSource
-                 com.lmax.undertaker.junit.generators.LongArrayGen
+                 com.lmax.undertaker.junit.sources.ByteSource
+                 com.lmax.undertaker.junit.sources.IntSource
+                 com.lmax.undertaker.junit.sources.LongSource
+                 com.lmax.undertaker.junit.sources.CharSource
+                 com.lmax.undertaker.junit.sources.DoubleSource
+                 com.lmax.undertaker.junit.sources.FloatSource
+                 com.lmax.undertaker.junit.sources.ShortSource
+                 com.lmax.undertaker.junit.sources.BoolSource
+                 com.lmax.undertaker.junit.sources.ListSource
+                 com.lmax.undertaker.junit.sources.LongArraySource
                  com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
@@ -20,7 +20,8 @@
            (java.util.function Function Supplier)
            (java.lang.reflect Modifier)
            (com.lmax.undertaker.junit Seed Trials)
-           (com.lmax.undertaker.junit.generators Generator))
+           (com.lmax.undertaker.junit Generator)
+           (com.lmax.undertaker.junit.generators IntGenerator))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
@@ -114,7 +115,8 @@
 (defn ^int -getInt
   ([this] (-getInt this Integer/MIN_VALUE Integer/MAX_VALUE))
   ([this max] (-getInt this Integer/MIN_VALUE max))
-  ([this min max] (undertaker/int min max)))
+  ([this min max] (undertaker/int min max))
+  ([this min max & more-ranges] (apply undertaker/int min max more-ranges)))
 
 (defn ^long -getLong
   ([this] (-getLong this Long/MIN_VALUE Long/MAX_VALUE))
@@ -138,8 +140,13 @@
 
 (defn ^String -getString
   ([this] (undertaker/string))
-  ([this max] (undertaker/string 0 max))
-  ([this min max] (undertaker/string min max)))
+  ([this ^IntGenerator intGen] (-getString this intGen 0 undertaker/default-string-max-size))
+  ([this ^IntGenerator intGen max] (-getString this intGen 0 max))
+  ([this ^IntGenerator intGen min max]
+   (->> (undertaker/vec-of intGen min max)
+        (map char)
+        (char-array)
+        (String.))))
 
 (defn ^String -getAsciiString
   ([this] (undertaker/string-ascii))
