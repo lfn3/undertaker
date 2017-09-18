@@ -38,9 +38,9 @@
            :actual
            (instance? OverrunException))
       (if (->> result-map
-                     :undertaker.core/cause
-                     (map :actual)
-                     (seq?))
+               :undertaker.core/cause
+               (map :actual)
+               (seq?))
         (->> result-map
              :undertaker.core/cause
              (map :actual)

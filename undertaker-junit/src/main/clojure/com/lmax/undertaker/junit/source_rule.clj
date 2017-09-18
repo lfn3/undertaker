@@ -143,7 +143,7 @@
   ([this ^IntGenerator intGen] (-getString this intGen 0 undertaker/default-string-max-size))
   ([this ^IntGenerator intGen max] (-getString this intGen 0 max))
   ([this ^IntGenerator intGen min max]
-   (->> (undertaker/vec-of intGen min max)
+   (->> (undertaker/vec-of #(.applyAsInt intGen this) min max)
         (map char)
         (char-array)
         (String.))))
