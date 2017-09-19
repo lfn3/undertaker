@@ -221,6 +221,16 @@ public class SourceRuleTest {
         }
     }
 
+    private enum AnEnum { A, B, C }
+
+    @Test
+    public void canGetAnEnum() throws Exception
+    {
+        AnEnum anEnum = source.getEnum(AnEnum.class);
+
+        Assert.assertTrue(anEnum == AnEnum.A || anEnum == AnEnum.B || anEnum == AnEnum.C);
+    }
+
     @Test
     public void canGetAMap() throws Exception
     {

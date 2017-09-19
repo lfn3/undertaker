@@ -182,6 +182,9 @@
   ([this ^Class c ^Function generator max] (-getArray this c generator 0 max))
   ([this ^Class c ^Function generator min max] (into-array c (undertaker/vec-of #(.apply generator this) min max))))
 
+(defn -getEnum
+  ([this ^Class c] (undertaker/from (.getEnumConstants c))))
+
 (defn -generate
   ([this ^Generator g] (.apply g this)))
 
