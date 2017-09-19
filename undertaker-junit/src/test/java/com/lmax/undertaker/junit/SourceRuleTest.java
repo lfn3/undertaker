@@ -6,10 +6,7 @@ import javafx.util.Pair;
 import org.junit.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -229,6 +226,17 @@ public class SourceRuleTest {
         AnEnum anEnum = source.getEnum(AnEnum.class);
 
         Assert.assertTrue(anEnum == AnEnum.A || anEnum == AnEnum.B || anEnum == AnEnum.C);
+    }
+
+    @Test
+    public void canGetFromCollection() throws Exception
+    {
+        AnEnum anEnum = source.from(AnEnum.values());
+        Assert.assertTrue(anEnum == AnEnum.A || anEnum == AnEnum.B || anEnum == AnEnum.C);
+
+        Integer i = source.from(Arrays.asList(1, 2, 3));
+        Assert.assertTrue(i <= 3);
+        Assert.assertTrue(1 <= i);
     }
 
     @Test

@@ -5,7 +5,7 @@
     :implements [com.lmax.undertaker.junit.Source])
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
-           (java.util List ArrayList Arrays Map HashMap Map$Entry)
+           (java.util List ArrayList Arrays Map HashMap Map$Entry Collection)
            (java.util.function Function Supplier)
            (java.lang.reflect Modifier)
            (com.lmax.undertaker.junit Seed Trials)
@@ -184,6 +184,9 @@
 
 (defn -getEnum
   ([this ^Class c] (undertaker/from (.getEnumConstants c))))
+
+(defn -from
+  ([this ^Collection c] (undertaker/from c)))
 
 (defn -generate
   ([this ^Generator g] (.apply g this)))
