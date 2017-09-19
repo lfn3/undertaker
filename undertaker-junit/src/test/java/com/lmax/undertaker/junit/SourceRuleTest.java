@@ -16,9 +16,24 @@ public class SourceRuleTest {
 
     private int clearedBefore;
     private List<Long> aList = new ArrayList<>();
+    private static final Map<Class, Generator> GENERATORS = new HashMap<>();
+
+    static
+    {
+        GENERATORS.put(GeneratorMapTestClass.class, s -> new GeneratorMapTestClass("Hello!"));
+    }
+
+    public static class GeneratorMapTestClass {
+        public final String s;
+
+        public GeneratorMapTestClass(String s)
+        {
+            this.s = s;
+        }
+    }
 
     @Rule
-    public Source source = new SourceRule();
+    public Source source = new SourceRule(GENERATORS);
 
     @Before
     public void before()
@@ -255,6 +270,13 @@ public class SourceRuleTest {
                 Assert.assertTrue(Character.isAlphabetic(c));
             }
         });
+    }
+
+    @Test
+    public void canUseGeneratorsFromSource() throws Exception
+    {
+        GeneratorMapTestClass generated = source.generate(GeneratorMapTestClass.class);
+        Assert.assertNotNull(generated);
     }
 
     @Test

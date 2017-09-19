@@ -2,7 +2,10 @@
   (:gen-class
     :name com.lmax.undertaker.junit.SourceRule
     :state state
-    :implements [com.lmax.undertaker.junit.Source])
+    :implements [com.lmax.undertaker.junit.Source]
+    :init init
+    :constructors {[] []
+                   [java.util.Map] []})
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
            (java.util List ArrayList Arrays Map HashMap Map$Entry Collection)
@@ -15,6 +18,10 @@
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
             [clojure.string :as str]))
+
+(defn -init
+  ([] (-init {}))
+  ([class->generator-map] [[] {:class->generator class->generator-map}]))
 
 (def ^:dynamic *nested* false)
 
@@ -190,6 +197,13 @@
 
 (defn -generate
   ([this ^Generator g] (.apply g this)))
+
+(defn -generate-Class
+  ([this ^Class c]
+   (let [{:keys [class->generator]} (.state this)]
+     (if-let [g (get class->generator c)]
+       (.apply g this)
+       (throw (ex-info (str "Could not find generator for " (.getName c) " in Source's class->generator map") {}))))))
 
 (defmacro get-array-fn [type-hint type-str & [array-fn-name]]
   (let [fn-name (symbol (str "-get" (str/upper-case (first type-str))

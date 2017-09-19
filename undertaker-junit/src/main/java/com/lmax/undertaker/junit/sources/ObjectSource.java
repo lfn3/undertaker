@@ -7,9 +7,10 @@ import java.util.function.Function;
 
 import static com.lmax.undertaker.junit.Generator.asGenerator;
 
-@FunctionalInterface
 public interface ObjectSource {
     <T> T generate(Generator<T> generator);
+
+    <T> T generate(Class<T> aClass);
 
     default <T> T generate(Function<Source, T> f)
     {
