@@ -33,7 +33,7 @@ public class SourceRuleTest {
     }
 
     @Rule
-    public Source source = new SourceRule(GENERATORS);
+    public Source source = Source.create(GENERATORS);
 
     @Before
     public void before()

@@ -3,6 +3,8 @@ package com.lmax.undertaker.junit;
 import com.lmax.undertaker.junit.sources.*;
 import org.junit.rules.TestRule;
 
+import java.util.Map;
+
 public interface Source extends BoolSource,
                                 BoolArraySource,
                                 ByteSource,
@@ -30,4 +32,12 @@ public interface Source extends BoolSource,
     long pushInterval(String intervalName);
 
     void popInterval(long intervalId, Object generatedValue);
+
+    static Source create() {
+        return new SourceRule();
+    }
+
+    static Source create(Map<Class, Generator> defaultGenerators) {
+        return new SourceRule(defaultGenerators);
+    }
 }
