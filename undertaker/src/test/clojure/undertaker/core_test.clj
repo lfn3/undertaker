@@ -100,7 +100,7 @@
     (is (or (and (<= -5 val)
                  (<= val -3))
             (and (<= -1 val)
-                 (<= val -1))
+                 (<= val 1))
             (and (<= 3 val)
                  (<= val 5))))))
 
