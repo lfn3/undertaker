@@ -9,14 +9,16 @@
             [undertaker.proto :as proto]
             [undertaker.source :as source]
             [undertaker.source.multi-source :as source.multi]
-            [undertaker.source.fixed :as fixed-source]
+            [undertaker.source.fixed :as source.fixed]
+            [undertaker.source.sample-source :as source.sample]
             [clojure.test.check.generators :as gen]
             [undertaker.shrink :as shrink]
             [undertaker.bytes :as bytes]
             [undertaker.messages :as messages])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
-           (com.lmax.undertaker OverrunException)))
+           (com.lmax.undertaker OverrunException)
+           (undertaker.source.sample_source SampleSource)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
@@ -31,7 +33,7 @@
   :args (s/cat :seed integer?)
   :ret integer?)
 
-(def ^:dynamic *source* nil)
+(def ^:dynamic *source* (source.sample/make-source (System/nanoTime)))
 
 (defn format-interval-name [name & args]
   (str name " [" (str/join " " args) "]"))
@@ -67,7 +69,7 @@
   (fn [source]
     (let [result (atom [])
           report-fn (make-report-fn result)]
-      (when-not (nil? *source*)
+      (when-not (instance? SampleSource *source*)
         (throw (IllegalStateException. (messages/already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}

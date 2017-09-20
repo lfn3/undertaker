@@ -17,11 +17,8 @@
             [undertaker.source.always-max-source :as source.max]
             [undertaker.bytes :as bytes]))
 
-(def forgetful-source (source.forgetful/make-source (System/nanoTime)))
-
 (t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (with-bindings {#'undertaker/*source* forgetful-source}
-                             (%1))
+                           (%1)
                            (orchestra.test/unstrument)))
 
 (def this-ns *ns*)
