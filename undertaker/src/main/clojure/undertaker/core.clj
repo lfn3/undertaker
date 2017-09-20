@@ -394,7 +394,7 @@
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [min max len]
   (with-interval (format-interval-name "should-generate-elem" min max len)
-    (= 1 (let [value (byte 0 1)]                            ;Side-effecty
+    (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
            (cond (> min len) 1
                  (< max (inc len)) 0
                  :default value)))))
