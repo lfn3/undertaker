@@ -1,5 +1,4 @@
 (ns undertaker.core
-  (:gen-class)
   (:refer-clojure :exclude [int byte long double short char float keyword])
   (:require [clojure.core :as core]
             [clojure.spec.alpha :as s]
@@ -414,6 +413,27 @@
            (recur (conj result next))
            result))))))
 
+;Could work if I can feed in the bytes to skip via `elem-gen`
+;That means I'd have to change the contract on all of the existing generators though.
+;I don't really want to do that if I can avoid it.
+;This problem feels quite similar to the range exhaustion one.
+;If there was some way I could hint to the source that it shouldn't repeat particular values...
+;With intervals seems like the logic target.
+;(with-intervals (format ...) {:no-repeat true} ...)
+;Except it's more like don't repeat child values. Harder to express. And code for.
+;Maybe I need a more general mechanism for wrapping a generator with hints for the source?
+
+(defn set-of
+  ([elem-gen]
+   (with-interval (format-interval-name "set")
+     (loop [result #{}]
+       (let [i (count result)]
+         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+                         (when-let [gen-next? (should-generate-elem? min max i)]
+                           (elem-gen)))]
+           (recur (conj result next))
+           result))))))
+
 (defn string
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
@@ -491,7 +511,7 @@
                (<= (count ret) max)))))
 
 (defn from
-  "Pick a random value from the supplied collection"
+  "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
    (with-interval (format-interval-name "from" coll)
      (let [target-idx (int 0 (dec (count coll)))]
