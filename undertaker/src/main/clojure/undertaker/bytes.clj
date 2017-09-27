@@ -182,7 +182,7 @@
   :ret ::sliced-ranges)
 
 (defn punch-skip-values-out-of-ranges
-  [sliced-ranges sliced-skip-bytes]
+  [sliced-skip-bytes sliced-ranges]
   (loop [sliced-ranges sliced-ranges
          sliced-skip-bytes sliced-skip-bytes]
     (if-let [skip (first sliced-skip-bytes)]
@@ -192,7 +192,7 @@
       (vec sliced-ranges))))
 
 (s/fdef punch-skip-values-out-of-ranges
-  :args (s/cat :ranges ::sliced-ranges :skip ::bytes)
+  :args (s/cat :skip ::bytes :ranges ::sliced-ranges)
   :ret ::sliced-ranges)
 
 (defn map-into-ranges
@@ -205,25 +205,27 @@
             all-maxes true]
        (when (< idx size)
          (let [input-val (aget input idx)
-               ranges (filter (partial values-in-range? (take idx output-arr)) ranges)
-               ranges-at-idx (slice-ranges idx ranges)
-               range (or (last (is-in-ranges input-val ranges-at-idx))
-                         (pick-range input-val ranges-at-idx)) ;TODO: change this so it isn't as biased.
+               skip-values (potentially-matched-disallowed-values (take idx output-arr) skip-values)
+               ranges (->> (filter (partial values-in-range? (take idx output-arr)) ranges)
+                           (slice-ranges idx)
+                           (punch-skip-values-out-of-ranges skip-values))
+               range (or (last (is-in-ranges input-val ranges))
+                         (pick-range input-val ranges)) ;TODO: change this so it isn't as biased.
                floor (if all-mins (first range) 0)          ;Probably some kind of mod thing rather than just into the
                ceiling (if all-maxes (last range) -1)       ;Closest range TODO: some kind of short circuit based on all-mins and all-maxes?
-               skip-values (->> skip-values
-                                (potentially-matched-disallowed-values (take idx output-arr))
-                                (filter #(and (unsigned<= floor %1) (unsigned<= %1 ceiling))))
-               next-val (move-into-range input-val floor ceiling skip-values)]
+               next-val (move-into-range input-val floor ceiling)]
            (aset-byte output-arr idx next-val)
            (recur (inc idx)
-                  (and all-mins (some true? (map #(= next-val (first %1)) ranges-at-idx)))
-                  (and all-maxes (some true? (map #(= next-val (last %1)) ranges-at-idx)))))))
+                  (and all-mins (some true? (map #(= next-val (first %1)) ranges)))
+                  (and all-maxes (some true? (map #(= next-val (last %1)) ranges)))))))
      output-arr)))
 
 (s/fdef map-into-ranges
   :args (s/cat :input ::bytes :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
-  :ret ::bytes)
+  :ret ::bytes
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [input ranges skip-values]} args]
+          (not (skip-values ret)))))
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
   (if (or (and (zero? floor) (pos? ceiling))

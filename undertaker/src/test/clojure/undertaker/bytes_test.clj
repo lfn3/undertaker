@@ -156,9 +156,9 @@
                                      (byte-array [5])}))))
 
 (deftest test-punch-skip-values-out-of-range
-  (is (= (punch-skip-values-out-of-ranges [[1 4]] [1]) [[2 4]]))
-  (is (= (punch-skip-values-out-of-ranges [[1 4]] [2]) [[1 1] [3 4]]))
-  (is (= (punch-skip-values-out-of-ranges [[4 80]] [2]) [[4 80]])))
+  (is (= (punch-skip-values-out-of-ranges [1] [[1 4]]) [[2 4]]))
+  (is (= (punch-skip-values-out-of-ranges [2] [[1 4]]) [[1 1] [3 4]]))
+  (is (= (punch-skip-values-out-of-ranges [2] [[4 80]]) [[4 80]])))
 
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
@@ -194,15 +194,15 @@
     (is (= -1 (make-short [-1 -17] -10 1)))
     (is (= -10 (make-short [-1 -26] -10 1)))
 
-    (is (= -1 (make-short [-1 -1] -1 1 #{-5})))
-    (is (= -1 (make-short [-1 -1] -10 1 #{-5})))
-    (is (= -2 (make-short [-1 -2] -10 1 #{-5})))
-    (is (= -10 (make-short [-1 -10] -10 1 #{-5})))
-    (is (= -8 (make-short [-1 -11] -10 1 #{-5})))
-    (is (= -6 (make-short [-1 -18] -10 1 #{-5})))
-    (is (= -3 (make-short [-1 -15] -10 1 #{-5})))
-    (is (= -4 (make-short [-1 -16] -10 1 #{-5})))
-    (is (= -4 (make-short [-1 -17] -10 1 #{-5})))
-    (is (= -6 (make-short [-1 -18] -10 1 #{-5})))
-    (is (= -7 (make-short [-1 -19] -10 1 #{-5})))
-    (is (= -4 (make-short [-1 -25] -10 1 #{-5})))))
+    (is (not= -5 (make-short [-1 -1] -1 1 #{-5})))
+    (is (not= -5 (make-short [-1 -1] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -2] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -10] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -11] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -18] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -15] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -16] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -17] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -18] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -19] -10 1 #{-5})))
+    (is (not= -5 (make-short [-1 -25] -10 1 #{-5})))))
