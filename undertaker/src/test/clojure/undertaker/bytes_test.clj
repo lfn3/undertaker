@@ -155,6 +155,11 @@
   (is (= 4 (skip-disallowed-values 4 #{(byte-array [1])
                                      (byte-array [5])}))))
 
+(deftest test-punch-skip-values-out-of-range
+  (is (= (punch-skip-values-out-of-ranges [[1 4]] [1]) [[2 4]]))
+  (is (= (punch-skip-values-out-of-ranges [[1 4]] [2]) [[1 1] [3 4]]))
+  (is (= (punch-skip-values-out-of-ranges [[4 80]] [2]) [[4 80]])))
+
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
     (is (= 0 (make-short [0 0] 0 1)))

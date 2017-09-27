@@ -158,6 +158,43 @@
   :args (s/cat :idx int? :ranges ::ranges)
   :ret ::sliced-ranges)
 
+(defn punch-skip-value-out-of-range [sliced-ranges skip-value]
+  (let [ret [[(first sliced-ranges) (dec skip-value)] [(inc skip-value) (last sliced-ranges)]]]
+    (->> ret
+         (filter (comp not (partial reduce >))))))
+
+(s/fdef punch-skip-value-out-of-range
+  :args (s/cat :range ::sliced-range :skip-value ::byte)
+  :ret ::sliced-ranges
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [range skip-value]} args]
+          (if (some (partial = skip-value) range)
+            (= 1 (count ret))
+            (= 2 (count ret))))))
+
+(defn punch-skip-value-out-if-in-range [sliced-range skip-value]
+  (if (is-in-range skip-value sliced-range)
+    (punch-skip-value-out-of-range sliced-range skip-value)
+    [sliced-range]))
+
+(s/fdef punch-skip-value-out-if-in-range
+  :args (s/cat :ranges ::sliced-range :skip ::byte)
+  :ret ::sliced-ranges)
+
+(defn punch-skip-values-out-of-ranges
+  [sliced-ranges sliced-skip-bytes]
+  (loop [sliced-ranges sliced-ranges
+         sliced-skip-bytes sliced-skip-bytes]
+    (if-let [skip (first sliced-skip-bytes)]
+      (recur (->> sliced-ranges
+                  (mapcat #(punch-skip-value-out-if-in-range %1 skip)))
+             (rest sliced-skip-bytes))
+      (vec sliced-ranges))))
+
+(s/fdef punch-skip-values-out-of-ranges
+  :args (s/cat :ranges ::sliced-ranges :skip ::bytes)
+  :ret ::sliced-ranges)
+
 (defn map-into-ranges
   ([input ranges] (map-into-ranges input ranges #{}))
   ([input ranges skip-values]
@@ -207,7 +244,7 @@
 
 (s/fdef split-number-line-ranges-into-bytewise-min-max
   :args (s/cat :ranges (s/and (s/coll-of number?) (comp even? count))
-               :->bytes-fn fn? )
+               :->bytes-fn fn?)
   :ret ::ranges)
 
 (defn bytes->byte [arr]
