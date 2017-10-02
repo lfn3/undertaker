@@ -4,12 +4,10 @@
             [undertaker.bytes :as bytes])
   (:import (java.util Random)))
 
-(extend-type Random
-  proto/ByteArraySource
-  (get-bytes [this ranges skip-bytes]
-    (let [unmapped (byte-array (count (first (first ranges))))]
-      (.nextBytes this unmapped)
-      (bytes/map-into-ranges unmapped ranges skip-bytes))))
+(defn get-bytes-from-java-random [^Random rnd ^long count]
+  (->> count
+       (byte-array)
+       (.nextBytes rnd)))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -61,15 +59,30 @@
                     ::frozen               false
                     ::bytes                []})
 
+(defn get-already-generated-when-unique [wip-intervals completed-intervals]
+  (let [current-interval (last wip-intervals)]
+    (if-let [uniqueness-key (::bytes/uniqueness-key current-interval)]
+      (->> completed-intervals
+           (filter (comp (partial = uniqueness-key) ::bytes/uniqueness-key))
+           (map ::proto/mapped-bytes)
+           (into #{}))
+      #{})))
+
+(s/fdef get-already-generated-when-unique
+  :args (s/cat :wip-intervals ::proto/interval-stack :completed-intervals ::completed-intervals)
+  :ret ::bytes/bytes-to-skip)
+
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip]
-    (let [bytes (proto/get-bytes rnd ranges skip)]
+  (get-bytes [this ranges skip]
+    (let [unmapped (get-bytes-from-java-random rnd (-> ranges (first) (first) (count)))
+          skip-unique (get-already-generated-when-unique (proto/get-wip-intervals this) (proto/get-intervals this))
+          mapped (bytes/map-into-ranges unmapped ranges skip)]
       (swap! state-atom #(-> %1
-                             (update ::bytes-counter (partial + (count bytes)))
-                             (update ::bytes (fn [existing-bytes] (concat existing-bytes (vec bytes))))))
-      bytes))
+                             (update ::bytes-counter (partial + (count mapped)))
+                             (update ::bytes (fn [existing-bytes] (concat existing-bytes (vec mapped))))))
+      mapped))
   proto/Interval
   (push-interval [_ interval-name]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
