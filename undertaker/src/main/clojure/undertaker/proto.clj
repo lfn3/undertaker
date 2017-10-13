@@ -1,5 +1,6 @@
 (ns undertaker.proto
-  (:require [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s]
+            [undertaker.bytes :as bytes]))
 
 (s/def ::interval-name string?)
 (s/def ::interval-parent-id (s/or :nil nil? :id int?))
@@ -7,9 +8,10 @@
 (s/def ::interval-start int?)
 (s/def ::interval-end int?)
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
+(s/def ::mapped-bytes ::bytes/bytes)
 (s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start]
                               :opt [::interval-parent-id]))
-(s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value]
+(s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value ::mapped-bytes]
                           :opt [::interval-parent-id]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))

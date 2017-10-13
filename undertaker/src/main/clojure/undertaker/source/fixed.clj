@@ -22,11 +22,19 @@
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
-    (-> state
-        (update ::proto/interval-stack pop)
-        (update ::completed-intervals conj (-> interval-to-update
-                                               (assoc ::proto/interval-end (get state ::cursor))
-                                               (assoc ::proto/generated-value generated-value))))))
+    (let [started-at (get interval-to-update ::proto/interval-start)
+          ending-at (get state ::cursor)
+          length (- ending-at started-at)]
+      (-> state
+          (update ::proto/interval-stack pop)
+          (update ::completed-intervals conj (-> interval-to-update
+                                                 (assoc ::proto/interval-end ending-at)
+                                                 (assoc ::proto/generated-value generated-value)
+                                                 (assoc ::proto/mapped-bytes (->> state
+                                                                                  ::bytes
+                                                                                  (drop ending-at)
+                                                                                  (take length)
+                                                                                  (vec)))))))))
 
 (defn reset-state [state]
   (-> state
@@ -46,7 +54,7 @@
                                  (take size)))]
       (when-not (= (count bytes) size)
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
-                                                                   "but only " (count bytes) " were available.") ))))
+                                                                   "but only " (count bytes) " were available.")))))
       (swap! state-atom update ::cursor + size)
       (bytes/map-into-ranges bytes ranges skip)))
   proto/Interval

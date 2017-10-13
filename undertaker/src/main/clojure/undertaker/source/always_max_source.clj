@@ -20,11 +20,19 @@
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
-    (-> state
-        (update ::proto/interval-stack pop)
-        (update ::completed-intervals conj (-> interval-to-update
-                                               (assoc ::proto/interval-end (count (get state ::bytes)))
-                                               (assoc ::proto/generated-value generated-value))))))
+    (let [started-at (get interval-to-update ::proto/interval-start)
+          ending-at (count (get state ::bytes))
+          length (- ending-at started-at)]
+      (-> state
+          (update ::proto/interval-stack pop)
+          (update ::completed-intervals conj (-> interval-to-update
+                                                 (assoc ::proto/interval-end ending-at)
+                                                 (assoc ::proto/generated-value generated-value)
+                                                 (assoc ::proto/mapped-bytes (->> state
+                                                                                  ::bytes
+                                                                                  (drop ending-at)
+                                                                                  (take length)
+                                                                                  (vec)))))))))
 
 (def initial-state {::interval-id-counter  0
                     ::bytes                []

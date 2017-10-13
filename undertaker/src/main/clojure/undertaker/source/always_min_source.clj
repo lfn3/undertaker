@@ -20,18 +20,26 @@
                       {:expected-id     interval-id
                        :popped-interval interval-to-update
                        :state           state})))
-    (-> state
-        (update ::proto/interval-stack pop)
-        (update ::completed-intervals conj (-> interval-to-update
-                                               (assoc ::proto/interval-end (count (get state ::bytes)))
-                                               (assoc ::proto/generated-value generated-value))))))
+    (let [started-at (get interval-to-update ::proto/interval-start)
+          ending-at (count (get state ::bytes))
+          length (- ending-at started-at)]
+      (-> state
+          (update ::proto/interval-stack pop)
+          (update ::completed-intervals conj (-> interval-to-update
+                                                 (assoc ::proto/interval-end ending-at)
+                                                 (assoc ::proto/generated-value generated-value)
+                                                 (assoc ::proto/mapped-bytes (->> state
+                                                                                  ::bytes
+                                                                                  (drop ending-at)
+                                                                                  (take length)
+                                                                                  (vec)))))))))
 
 (def initial-state {::interval-id-counter  0
                     ::bytes                []
                     ::proto/interval-stack []
                     ::completed-intervals  []})
 
-(defrecord AlwaysMaxSource [state-atom]
+(defrecord AlwaysMinSource [state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
     (let [flattened-ranges (mapcat identity ranges)]
@@ -67,6 +75,6 @@
   (reset [_]
     (reset! state-atom initial-state)))
 
-(defn make-always-zero-source []
+(defn make-always-min-source []
   (let [state (atom initial-state)]
-    (->AlwaysMaxSource state)))
+    (->AlwaysMinSource state)))

@@ -14,7 +14,7 @@ undertaker.source.multi-source
 
 (defn initial-state [seed]
   {::current-source (source.max/make-always-max-source)
-   ::sources        [(source.zero/make-always-zero-source)
+   ::sources        [(source.zero/make-always-min-source)
                      (source.random/make-source seed)]})
 
 (defrecord MultiSource [state-atom]
