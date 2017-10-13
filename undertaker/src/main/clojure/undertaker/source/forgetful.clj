@@ -4,13 +4,6 @@
             [undertaker.bytes :as bytes])
   (:import (java.util Random)))
 
-(defn squish-ubyte [b ceiling]
-  (let [range (inc (bit-and 0xff ceiling))]
-    (cond
-      (zero? range) 0
-      (= 256 range) b
-      :default (unchecked-byte (mod b range)))))
-
 (extend-type Random
   proto/ByteArraySource
   (get-bytes [this ranges skip-bytes]

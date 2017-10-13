@@ -28,14 +28,6 @@
                                                (assoc ::proto/interval-end (get state ::cursor))
                                                (assoc ::proto/generated-value generated-value))))))
 
-(defn squish-ubyte [b ceiling]
-  (unchecked-byte (min (bit-and 0xff b) (bit-and 0xff ceiling))))
-
-(defn byte-or-throw-overrun [state]
-  (try (nth (::bytes state) (::cursor state))
-       (catch IndexOutOfBoundsException e
-         (throw (OverrunException. e)))))
-
 (defn reset-state [state]
   (-> state
       (assoc ::cursor 0)
