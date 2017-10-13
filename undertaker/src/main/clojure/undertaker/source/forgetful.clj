@@ -21,7 +21,7 @@
   (get-intervals [_] [])
   (get-wip-intervals [_] [])
   proto/Recall
-  (get-sourced-bytes [_] (byte-array 1))
+  (get-sourced-bytes [_] (byte-array 0))
   (reset [_]))
 
 (defn make-source [seed]
