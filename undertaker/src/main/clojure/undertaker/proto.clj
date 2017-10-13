@@ -5,8 +5,8 @@
 (s/def ::interval-name string?)
 (s/def ::interval-parent-id (s/or :nil nil? :id int?))
 (s/def ::interval-id int?)
-(s/def ::interval-start int?)
-(s/def ::interval-end int?)
+(s/def ::interval-start (s/or :pos pos-int? :zero zero?))
+(s/def ::interval-end (s/or :pos pos-int? :zero zero?))
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
 (s/def ::mapped-bytes ::bytes/bytes)
 (s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start]
