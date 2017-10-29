@@ -100,6 +100,26 @@
   :args (s/cat :value ::byte :ranges ::sliced-ranges)
   :ret (s/nilable ::sliced-ranges))
 
+(defn range-by-idx [range]
+  (map (fn [lower upper] [lower upper]) (first range) (last range)))
+
+(defn bytes-are-in-range [value range]
+  (->> range
+       (range-by-idx)
+       (map is-in-range value)
+       (every? true?)))
+
+(s/fdef bytes-are-in-range
+  :args (s/cat :value ::bytes :range ::range)
+  :ret boolean?)
+
+(defn bytes-are-in-ranges [value ranges]
+  (some (partial bytes-are-in-range value) ranges))
+
+(s/fdef bytes-are-in-ranges
+  :args (s/cat :value ::bytes :range ::ranges)
+  :ret boolean?)
+
 (defn distance-to-range [value range]
   (min (abs (- (unsign value) (unsign (first range))))
        (abs (- (unsign value) (unsign (last range))))))
@@ -158,61 +178,93 @@
   :args (s/cat :idx int? :ranges ::ranges)
   :ret ::sliced-ranges)
 
-(defn punch-skip-value-out-of-range [sliced-ranges skip-value]
-  (let [ret [[(first sliced-ranges) (dec skip-value)] [(inc skip-value) (last sliced-ranges)]]]
-    (->> ret
-         (filter (comp not (partial reduce >))))))
+(defn fill [coll target-size value]
+  (let [add (- target-size (count coll))]
+    (concat coll (repeat add value))))
+
+(defn collapse-identical-ranges [ranges]
+  (filter (comp (partial reduce #(or %1 %2)) #(apply map <= %1)) ranges))
+
+(s/fdef collapse-identical-ranges
+  :args (s/cat :ranges ::ranges)
+  :ret ::ranges)
+
+(defn handle-underflow [bytes update-fn]
+  (loop [idx (dec (count bytes))
+         bytes (vec bytes)]
+    (if (<= 0 idx)
+      (let [updated (update-fn (get bytes idx))]
+        (cond
+          (<= updated -1) (recur (dec idx)
+                                 (update bytes idx (constantly -1)))
+          (<= 256 updated) (recur (dec idx)
+                                  (update bytes idx (constantly 0)))
+          :default (update bytes idx update-fn)))
+      [])))
+
+(defn punch-skip-value-out-of-range [range skip-value]
+  (let [size-of-range (count (first range))
+        index-of-last-skip-value (dec (count skip-value))
+        lower-range (some-> skip-value                      ;TODO: this won't handle 0
+                            (handle-underflow dec)
+                            (seq)
+                            (fill size-of-range -1)
+                            (vec)
+                            (->> (vector (first range))))
+        upper-range (some-> skip-value                      ;TODO: this won't handle 255
+                            (handle-underflow inc)
+                            (seq)
+                            (fill size-of-range 0)
+                            (vec)
+                            (vector (last range)))]
+    (->> [lower-range upper-range]
+         (filter (comp not nil?))
+         (collapse-identical-ranges)
+         (vec))))
 
 (s/fdef punch-skip-value-out-of-range
-  :args (s/cat :range ::sliced-range :skip-value ::byte)
-  :ret ::sliced-ranges
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [range skip-value]} args]
-          (if (some (partial = skip-value) range)
-            (= 1 (count ret))
-            (= 2 (count ret))))))
+  :args (s/cat :range ::range :skip-value ::bytes)
+  :ret ::ranges)
 
-(defn punch-skip-value-out-if-in-range [sliced-range skip-value]
-  (if (is-in-range skip-value sliced-range)
-    (punch-skip-value-out-of-range sliced-range skip-value)
-    [sliced-range]))
+(defn punch-skip-value-out-if-in-range [range skip-value]
+  (if (bytes-are-in-range skip-value range)
+    (punch-skip-value-out-of-range range skip-value)
+    [range]))
 
 (s/fdef punch-skip-value-out-if-in-range
-  :args (s/cat :ranges ::sliced-range :skip ::byte)
-  :ret ::sliced-ranges)
+  :args (s/cat :range ::range :skip ::bytes)
+  :ret ::ranges)
 
 (defn punch-skip-values-out-of-ranges
-  [sliced-skip-bytes sliced-ranges]
-  (loop [sliced-ranges sliced-ranges
-         sliced-skip-bytes sliced-skip-bytes]
-    (if-let [skip (first sliced-skip-bytes)]
-      (recur (->> sliced-ranges
-                  (mapcat #(punch-skip-value-out-if-in-range %1 skip)))
-             (rest sliced-skip-bytes))
-      (vec sliced-ranges))))
+  [skip-bytes ranges]
+  (loop [ranges ranges
+         skip-bytes skip-bytes]
+    (if-let [skip (first skip-bytes)]
+      (recur (mapcat #(punch-skip-value-out-if-in-range %1 skip) ranges)
+             (rest skip-bytes))
+      (vec ranges))))
 
 (s/fdef punch-skip-values-out-of-ranges
-  :args (s/cat :skip ::bytes :ranges ::sliced-ranges)
-  :ret ::sliced-ranges)
+  :args (s/cat :skip (s/coll-of ::bytes) :ranges ::ranges)
+  :ret ::ranges)
 
 (defn map-into-ranges
   ([input ranges] (map-into-ranges input ranges #{}))
   ([input ranges skip-values]
    (let [size (count input)
-         output-arr (byte-array size)]
+         output-arr (byte-array size)
+         ranges (punch-skip-values-out-of-ranges skip-values ranges)]
      (loop [idx 0
             all-mins true
             all-maxes true]
        (when (< idx size)
          (let [input-val (aget input idx)
-               skip-values (potentially-matched-disallowed-values (take idx output-arr) skip-values)
                ranges (->> (filter (partial values-in-range? (take idx output-arr)) ranges)
-                           (slice-ranges idx)
-                           (punch-skip-values-out-of-ranges skip-values))
+                           (slice-ranges idx))
                range (or (last (is-in-ranges input-val ranges))
-                         (pick-range input-val ranges)) ;TODO: change this so it isn't as biased.
-               floor (if all-mins (first range) 0)          ;Probably some kind of mod thing rather than just into the
-               ceiling (if all-maxes (last range) -1)       ;Closest range TODO: some kind of short circuit based on all-mins and all-maxes?
+                         (pick-range input-val ranges))
+               floor (if all-mins (first range) 0)
+               ceiling (if all-maxes (last range) -1)       ;TODO: some kind of short circuit based on all-mins and all-maxes?
                next-val (move-into-range input-val floor ceiling)]
            (aset-byte output-arr idx next-val)
            (recur (inc idx)

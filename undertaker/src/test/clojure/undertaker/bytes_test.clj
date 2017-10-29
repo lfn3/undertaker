@@ -156,9 +156,13 @@
                                      (byte-array [5])}))))
 
 (deftest test-punch-skip-values-out-of-range
-  (is (= (punch-skip-values-out-of-ranges [1] [[1 4]]) [[2 4]]))
-  (is (= (punch-skip-values-out-of-ranges [2] [[1 4]]) [[1 1] [3 4]]))
-  (is (= (punch-skip-values-out-of-ranges [2] [[4 80]]) [[4 80]])))
+  (is (= (punch-skip-values-out-of-ranges [[1]] [[[1] [4]]]) [[[2] [4]]]))
+  (is (= (punch-skip-values-out-of-ranges [[2]] [[[1] [4]]]) [[[1] [1]] [[3] [4]]]))
+  (is (= (punch-skip-values-out-of-ranges [[2]] [[[4] [80]]]) [[[4] [80]]]))
+  (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 0] [2 2]]]) [[[1 0] [2 2]]]))
+  (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 1] [2 2]]]) [[[1 0] [2 2]]]))
+  (is (= (punch-skip-values-out-of-ranges [[0 0]] [[[0 0 0] [2 2 2]]]) [[[0 1 0] [2 2 2]]]))
+  (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]])))
 
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
