@@ -29,13 +29,6 @@
 (s/def ::sliced-range (s/tuple ::byte ::byte))
 (s/def ::sliced-ranges (s/coll-of ::sliced-range))
 
-(defn abs [i]
-  (if (neg-int? i) (- i) i))
-
-(s/fdef abs
-  :args (s/cat :i integer?)
-  :ret (s/or :pos pos-int? :zero zero?))
-
 (defn unsigned<= [x y]
   (not= 1 (Long/compareUnsigned x y)))
 
@@ -48,36 +41,21 @@
             (= ret (<= x y))
             (= ret (or (zero? x) (neg? y)))))))
 
-(defn skip-disallowed-values
-  [generated-byte disallowed-values]
-  ;We have to do this repeatedly since we might have pushed the value up into another disallowed value.
-  (let [disallowed-values (set (map unsign disallowed-values))]
-    (loop [last-altered-val generated-byte]
-      (let [next-altered-val (if (disallowed-values last-altered-val)
-                               (inc last-altered-val)
-                               last-altered-val)]
-        (if (= next-altered-val last-altered-val)
-          (unchecked-byte last-altered-val)
-          (recur next-altered-val))))))
-
 (defn unsigned-range [floor ceiling]
   (- (unsign ceiling) (unsign floor)))
 
 (defn move-into-range
-  ([b floor ceiling] (move-into-range b floor ceiling #{}))
-  ([b floor ceiling skip-values]
+  ([b floor ceiling]
    (let [[floor ceiling] (if (unsigned<= floor ceiling) [floor ceiling] [ceiling floor])
          unchecked-floor (unsign floor)
-         range (- (unsigned-range floor ceiling) (count skip-values))]
+         range (unsigned-range floor ceiling)]
      (cond
-       (and (unsigned<= floor b)
-            (unsigned<= b ceiling)                          ;If the value is within the range,
-            (not ((set skip-values) b))) b                  ;just pass it through unchanged.
+       (and (unsigned<= floor b)                            ;If the value is within the range,
+            (unsigned<= b ceiling)) b                       ;just pass it through unchanged.
        (zero? range) floor
        :default (-> (unsign b)
                     (mod (inc range))
-                    (+ unchecked-floor)
-                    (skip-disallowed-values skip-values))))))
+                    (+ unchecked-floor))))))
 
 (s/fdef move-into-range
   :args (s/cat :b ::byte :floor ::byte :ceiling ::byte :skip-values (s/? ::bytes))
@@ -113,31 +91,6 @@
   :args (s/cat :value ::bytes :range ::range)
   :ret boolean?)
 
-(defn bytes-are-in-ranges [value ranges]
-  (some (partial bytes-are-in-range value) ranges))
-
-(s/fdef bytes-are-in-ranges
-  :args (s/cat :value ::bytes :range ::ranges)
-  :ret boolean?)
-
-(defn distance-to-range [value range]
-  (min (abs (- (unsign value) (unsign (first range))))
-       (abs (- (unsign value) (unsign (last range))))))
-
-(defn closest-range [value ranges]
-  (when (seq ranges)
-    (let [with-distances (map #(cons (distance-to-range value %1) %1) ranges)
-          min-distance (reduce min (map first with-distances))]
-      (->> with-distances
-           (filter #(= min-distance (first %1)))
-           (last)
-           (drop 1)
-           (vec)))))
-
-(s/fdef closest-range
-  :args (s/cat :value ::byte :ranges ::sliced-ranges)
-  :ret (s/nilable ::sliced-range))
-
 (defn pick-range [value ranges]
   (when (seq ranges)
     (nth ranges (mod value (count ranges)))))
@@ -162,12 +115,6 @@
 
 (defn byte-array->bits [bytes]
   (map #(.substring (Integer/toBinaryString (+ (bit-and 0xFF %1) 0x100)) 1) bytes))
-
-(defn potentially-matched-disallowed-values [bytes disallowed-values]
-  (->> disallowed-values
-       (filter #(= (inc (count bytes)) (count %1)))         ;Make sure we only check against values we're about to generate
-       (filter #(every? true? (map = (take (dec (count %1)) bytes) %1))) ;Check if all bar the last byte match the disallowed value.
-       (map last)))
 
 (defn slice-ranges [idx ranges]
   (->> ranges

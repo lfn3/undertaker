@@ -73,16 +73,6 @@
   (is (= nil (is-in-ranges 1 [[0 0]])))
   (is (= '([0 1] [0 1]) (is-in-ranges 1 [[0 1] [0 1]]))))
 
-(deftest test-distance-to-range
-  (is (= 1 (distance-to-range 1 [0 0])))
-  (is (= 1 (distance-to-range -1 [-2 -2])))
-  (is (= 1 (distance-to-range -1 [-5 -2]))))
-
-(deftest test-closest-range
-  (is (= [0 1] (closest-range 2 [[0 1] [4 5]])))
-  (is (= [4 5] (closest-range 8 [[0 1] [4 5]])))
-  (is (= [0 0] (closest-range 22 [[0 0]]))))
-
 (deftest test-values-in-range?
   (is (true? (values-in-range? [0 0] [[0 0] [0 1]])))
   (is (true? (values-in-range? [-1 -1] [[-128 -128] [-1 -1]])))
@@ -138,15 +128,6 @@
   (is (= (vec (double->bytes 1.0000000000000002))
          [63 -16 0 0 0 0 0 1])))
 
-#_(deftest test-count-of-potentially-matched-disallowed-values
-  (is (= #{[127]} (set (map vec (potentially-matched-disallowed-values [] #{[127]})))))
-  (is (= '() (potentially-matched-disallowed-values [127] #{[127]})))
-  (is (= #{[127 -1]} (set (map vec (potentially-matched-disallowed-values [127] #{[127 -1]})))))
-  (is (= '() (potentially-matched-disallowed-values [127 1] #{[127 -1]})))
-  (is (= '() (potentially-matched-disallowed-values [127 1] #{[127 -1]})))
-  (is (= '() (potentially-matched-disallowed-values [127] #{[-1 -1]})))
-  (is (= #{[127 -1] [127 -2]} (set (map vec (potentially-matched-disallowed-values [127] #{[127 -1]
-                                                                                           [127 -2]}))))))
 #_(deftest test-skip-disallowed-values
   (is (= -128 (skip-disallowed-values 127 #{(byte-array [127])} )))
   (is (= -2 (skip-disallowed-values -2 #{(byte-array [127])} )))
