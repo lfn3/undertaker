@@ -44,6 +44,11 @@
 (defn unsigned-range [floor ceiling]
   (- (unsign ceiling) (unsign floor)))
 
+(defn checked-byte [b]
+  (if (and (<= 0 b) (<= b 255))
+    (unchecked-byte b)
+    (throw (IllegalArgumentException. (str "Unsigned byte should be between 0 and 255, was " b)))))
+
 (defn move-into-range
   ([b floor ceiling]
    (let [[floor ceiling] (if (unsigned<= floor ceiling) [floor ceiling] [ceiling floor])
@@ -55,7 +60,8 @@
        (zero? range) floor
        :default (-> (unsign b)
                     (mod (inc range))
-                    (+ unchecked-floor))))))
+                    (+ unchecked-floor)
+                    (checked-byte))))))
 
 (s/fdef move-into-range
   :args (s/cat :b ::byte :floor ::byte :ceiling ::byte :skip-values (s/? ::bytes))

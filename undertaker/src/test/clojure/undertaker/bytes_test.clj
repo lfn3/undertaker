@@ -59,9 +59,7 @@
   (is (= 0 (move-into-range 0 0 12)))
   (is (= 0 (move-into-range 4 0 3)))
   (is (= 3 (move-into-range 7 0 3)))
-  (is (= 3 (move-into-range 7 3 3)))
-  (is (not= -5 (move-into-range -18 -10 -1 '(-5))))
-  (is (not= -5 (move-into-range -17 -10 -1 '(-5)))))
+  (is (= 3 (move-into-range 7 3 3))))
 
 (deftest test-is-in-range
   (is (true? (is-in-range 0 [0 0])))
