@@ -6,13 +6,20 @@
 (s/def ::interval-parent-id (s/or :nil nil? :id int?))
 (s/def ::interval-id int?)
 (s/def ::interval-start (s/or :pos pos-int? :zero zero?))
+(s/def ::hint-applies-to #{::immediate-children-of})
+(s/def ::hint-names #{::unique})
+(s/def ::hint (s/tuple ::hint-applies-to ::hint-names))
+(s/def ::hints (s/coll-of ::hint))
+
+(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start ::hints]
+                              :opt [::interval-parent-id]))
+
 (s/def ::interval-end (s/or :pos pos-int? :zero zero?))
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
 (s/def ::mapped-bytes ::bytes/bytes)
-(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start]
-                              :opt [::interval-parent-id]))
+
 (s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value ::mapped-bytes]
-                          :opt [::interval-parent-id]))
+                          :opt [::interval-parent-id ::hints]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
 
@@ -20,7 +27,7 @@
   (get-bytes [this ranges skip]))
 
 (defprotocol Interval
-  (push-interval [this interval-name])
+  (push-interval [this interval-name hints])
   (pop-interval [this interval-id generated-value])
   (get-intervals [this])
   (get-wip-intervals [this]))

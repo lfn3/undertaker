@@ -59,7 +59,7 @@
           (swap! state-atom update ::bytes #(concat %1 (vec max-range)))
           (byte-array max-range)))))
   proto/Interval
-  (push-interval [_ interval-name]
+  (push-interval [_ interval-name hints]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))

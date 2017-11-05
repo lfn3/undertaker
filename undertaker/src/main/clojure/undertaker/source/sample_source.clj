@@ -9,7 +9,7 @@
   proto/ByteArraySource
   (get-bytes [_ ranges skip] (proto/get-bytes wrapped-source ranges skip))
   proto/Interval
-  (push-interval [_ interval-name] (proto/push-interval wrapped-source interval-name))
+  (push-interval [_ interval-name hints] (proto/push-interval wrapped-source interval-name hints))
   (pop-interval [_ interval-id generated-value] (proto/pop-interval wrapped-source interval-id generated-value))
   (get-intervals [_] (proto/get-intervals wrapped-source))
   (get-wip-intervals [_] (proto/get-wip-intervals wrapped-source))

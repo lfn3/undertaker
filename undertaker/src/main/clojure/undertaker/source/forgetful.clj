@@ -16,7 +16,7 @@
   proto/ByteArraySource
   (get-bytes [_ ranges skip] (proto/get-bytes rnd ranges skip))
   proto/Interval
-  (push-interval [_ interval-name])
+  (push-interval [_ interval-name hints] 0)
   (pop-interval [_ interval-id generated-value])
   (get-intervals [_] [])
   (get-wip-intervals [_] [])

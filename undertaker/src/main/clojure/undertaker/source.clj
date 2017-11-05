@@ -46,9 +46,16 @@
   :args (s/cat :source ::source :skip (s/? ::bytes/bytes-to-skip) :ranges ::bytes/ranges)
   :ret bytes?)
 
-(defn push-interval [source interval-name]
-  (check-invariants source)
-  (proto/push-interval source interval-name))
+(defn push-interval
+  ([source interval-name]    (push-interval source interval-name []))
+  ([source interval-name hints]
+   (check-invariants source)
+   (proto/push-interval source interval-name hints)))
+
+(s/fdef push-interval
+  :args (s/cat :source ::source :interval-name ::proto/interval-name :hints (s/? ::proto/hints))
+  :ret ::proto/interval-id)
+
 (defn pop-interval [source interval-id generated-value]
   (check-invariants source)
   (proto/pop-interval source interval-id generated-value))

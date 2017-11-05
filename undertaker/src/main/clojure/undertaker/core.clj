@@ -38,13 +38,23 @@
   (str name " [" (str/join " " args) "]"))
 
 (defmacro with-interval [name & body]
-  `(let [interval-token# (source/push-interval *source* ~name)]
+  `(let [interval-id# (source/push-interval *source* ~name)]
      (try
        (let [result# (do ~@body)]
-         (source/pop-interval *source* interval-token# result#)
+         (source/pop-interval *source* interval-id# result#)
          result#)
        (catch Exception e#
-         (source/pop-interval *source* interval-token# nil)
+         (source/pop-interval *source* interval-id# nil)
+         (throw e#)))))
+
+(defmacro with-interval-and-hints [name hints & body]
+  `(let [interval-id# (source/push-interval *source* ~name ~hints)]
+     (try
+       (let [result# (do ~@body)]
+         (source/pop-interval *source* interval-id# result#)
+         result#)
+       (catch Exception e#
+         (source/pop-interval *source* interval-id# nil)
          (throw e#)))))
 
 (defn failure? [test-report]
@@ -391,11 +401,11 @@
           (= size (count (first (first ret)))))))
 
 ;TODO bias this so it's more likely to produce longer seqs.
-(defn should-generate-elem? [min max len]
-  (with-interval (format-interval-name "should-generate-elem" min max len)
+(defn should-generate-elem? [floor ceiling len]
+  (with-interval (format-interval-name "should-generate-elem" floor ceiling len)
     (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
-           (cond (> min len) 1
-                 (< max (inc len)) 0
+           (cond (> floor len) 1
+                 (< ceiling (inc len)) 0
                  :default value)))))
 
 (def default-collection-max-size 64)
@@ -424,11 +434,12 @@
 ;Maybe I need a more general mechanism for wrapping a generator with hints for the source?
 
 (defn set-of
-  ([elem-gen]
+  ([elem-gen min max]
    (with-interval (format-interval-name "set")
      (loop [result #{}]
        (let [i (count result)]
-         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+         (if-let [next (with-interval-and-hints (format-interval-name "chunk for vector" i)
+                                                [[::proto/immediate-children-of ::proto/unique]]
                          (when-let [gen-next? (should-generate-elem? min max i)]
                            (elem-gen)))]
            (recur (conj result next))

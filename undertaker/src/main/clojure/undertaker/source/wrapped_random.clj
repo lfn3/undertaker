@@ -1,13 +1,14 @@
 (ns undertaker.source.wrapped-random
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
-            [undertaker.bytes :as bytes])
+            [undertaker.bytes :as bytes]
+            [clojure.set :as set])
   (:import (java.util Random)))
 
 (defn get-bytes-from-java-random [^Random rnd ^long count]
-  (->> count
-       (byte-array)
-       (.nextBytes rnd)))
+  (let [arr (byte-array count)]
+    (.nextBytes rnd arr)
+    arr))
 
 (s/def ::interval-id-counter int?)
 (s/def ::bytes-counter int?)
@@ -19,7 +20,7 @@
                                     ::completed-intervals
                                     ::frozen]))
 
-(defn- push-interval* [state interval-name]
+(defn- push-interval* [state interval-name hints]
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
@@ -29,7 +30,8 @@
                                              ::proto/interval-parent-id (-> state
                                                                             ::proto/interval-stack
                                                                             (last)
-                                                                            ::proto/interval-id)}))))
+                                                                            ::proto/interval-id)
+                                             ::proto/hints              hints}))))
 
 (defn- pop-interval* [state interval-id generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
@@ -59,9 +61,45 @@
                     ::frozen               false
                     ::bytes                []})
 
+(defn hints-that-apply
+  "This assumes the current interval is the last one in the wip-intervals stack"
+  [wip-intervals]
+  (let [immediate-children-hints (if (<= 2 (count wip-intervals))
+                                   (::proto/hints (nth wip-intervals (- (count wip-intervals) 2)))
+                                   [])]
+    immediate-children-hints))
+
+(defmulti apply-hint*
+  (fn [wip-intervals completed-intervals ranges skip hint] (last hint)))
+
+(defmethod apply-hint* ::proto/unique
+  [wip-intervals completed-intervals ranges skip hint]
+  [ranges skip])
+
+(defmethod apply-hint* :default
+  [wip-intervals completed-intervals ranges skip hint]
+  (throw (IllegalArgumentException. "Can't apply hint" hint)))
+
+(defn apply-hints [wip-intervals completed-intervals ranges skip hints]
+  (loop [ranges ranges
+         skip skip
+         hints hints]
+    (if-let [hint (first hints)]
+      (let [ranges skip] (apply-hint* wip-intervals completed-intervals ranges skip hint)
+                         (recur ranges skip (rest hints)))
+      [ranges skip])))
+
+(s/fdef apply-hints
+  :args (s/cat :wip-intervals ::proto/interval-stack
+               :completed-intervals ::completed-intervals
+               :ranges ::bytes/ranges
+               :skip ::bytes/bytes-to-skip
+               :hint ::proto/hints)
+  :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))
+
 (defn get-already-generated-when-unique [wip-intervals completed-intervals]
   (let [current-interval (last wip-intervals)]
-    (if-let [uniqueness-key (::bytes/uniqueness-key current-interval)]
+    (if-let [uniqueness-key (get current-interval ::proto/hints)]
       (->> completed-intervals
            (filter (comp (partial = uniqueness-key) ::bytes/uniqueness-key))
            (map ::proto/mapped-bytes)
@@ -77,15 +115,18 @@
   proto/ByteArraySource
   (get-bytes [this ranges skip]
     (let [unmapped (get-bytes-from-java-random rnd (-> ranges (first) (first) (count)))
-          skip-unique (get-already-generated-when-unique (proto/get-wip-intervals this) (proto/get-intervals this))
+          {:keys [::proto/interval-stack ::completed-intervals]} @state-atom
+          [ranges skip] (->> interval-stack
+                             (hints-that-apply)
+                             (apply-hints interval-stack completed-intervals ranges skip))
           mapped (bytes/map-into-ranges unmapped ranges skip)]
       (swap! state-atom #(-> %1
                              (update ::bytes-counter (partial + (count mapped)))
                              (update ::bytes (fn [existing-bytes] (concat existing-bytes (vec mapped))))))
       mapped))
   proto/Interval
-  (push-interval [_ interval-name]
-    (::interval-id-counter (swap! state-atom push-interval* interval-name)))
+  (push-interval [_ interval-name hints]
+    (::interval-id-counter (swap! state-atom push-interval* interval-name hints)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
   (get-intervals [_] (::completed-intervals @state-atom))

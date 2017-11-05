@@ -58,7 +58,7 @@
       (swap! state-atom update ::cursor + size)
       (bytes/map-into-ranges bytes ranges skip)))
   proto/Interval
-  (push-interval [_ interval-name]
+  (push-interval [_ interval-name hints]
     (::interval-id-counter (swap! state-atom push-interval* interval-name)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
