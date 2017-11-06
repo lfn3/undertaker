@@ -141,7 +141,8 @@
   (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 0] [2 2]]]) [[[1 0] [2 2]]]))
   (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 1] [2 2]]]) [[[1 0] [2 2]]]))
   (is (= (punch-skip-values-out-of-ranges [[0 0]] [[[0 0 0] [2 2 2]]]) [[[0 1 0] [2 2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]])))
+  (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]]))
+  (is (= (punch-skip-values-out-of-ranges [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]])))
 
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
