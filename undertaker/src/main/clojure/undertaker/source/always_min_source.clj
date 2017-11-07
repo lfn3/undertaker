@@ -1,7 +1,9 @@
 (ns undertaker.source.always-min-source
-  (:require [undertaker.proto :as proto]))
+  (:require [undertaker.proto :as proto]
+            [undertaker.bytes :as bytes]
+            [undertaker.intervals :as intervals]))
 
-(defn- push-interval* [state interval-name]
+(defn- push-interval* [state interval-name hints]
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
@@ -11,7 +13,8 @@
                                              ::proto/interval-parent-id (-> state
                                                                             ::proto/interval-stack
                                                                             (last)
-                                                                            ::proto/interval-id)}))))
+                                                                            ::proto/interval-id)
+                                             ::proto/hints hints}))))
 
 (defn- pop-interval* [state interval-id generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
@@ -30,7 +33,7 @@
                                                  (assoc ::proto/generated-value generated-value)
                                                  (assoc ::proto/mapped-bytes (->> state
                                                                                   ::bytes
-                                                                                  (drop ending-at)
+                                                                                  (drop started-at)
                                                                                   (take length)
                                                                                   (vec)))))))))
 
@@ -42,7 +45,10 @@
 (defrecord AlwaysMinSource [state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
-    (let [flattened-ranges (mapcat identity ranges)]
+    (let [{:keys [::proto/interval-stack ::completed-intervals]} @state-atom
+          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
+          ranges (bytes/punch-skip-values-out-of-ranges skip ranges)
+          flattened-ranges (mapcat identity ranges)]
       (if (every? nil? (map seq flattened-ranges))          ;i.e. range of size zero
         (byte-array 0)
         (let [min-range (loop [idx 0
@@ -61,7 +67,7 @@
       (byte-array min-range)))))
   proto/Interval
   (push-interval [_ interval-name hints]
-    (::interval-id-counter (swap! state-atom push-interval* interval-name)))
+    (::interval-id-counter (swap! state-atom push-interval* interval-name hints)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
   (get-intervals [_] (::completed-intervals @state-atom))

@@ -1,5 +1,6 @@
 (ns undertaker.source.wrapped-random
   (:require [undertaker.proto :as proto]
+            [undertaker.intervals :as intervals]
             [clojure.spec.alpha :as s]
             [undertaker.bytes :as bytes]
             [clojure.set :as set])
@@ -61,64 +62,13 @@
                     ::frozen               false
                     ::bytes                []})
 
-(defn hints-that-apply
-  "This assumes the current interval is the last one in the wip-intervals stack"
-  [wip-intervals]
-  (let [immediate-children-hints (if (<= 2 (count wip-intervals))
-                                   (::proto/hints (nth wip-intervals (- (count wip-intervals) 2)))
-                                   [])]
-    immediate-children-hints))
-
-(defmulti apply-hint*
-  (fn [wip-intervals completed-intervals ranges skip hint] (last hint)))
-
-(defmethod apply-hint* ::proto/unique
-  [wip-intervals completed-intervals ranges skip hint]
-  [ranges skip])
-
-(defmethod apply-hint* :default
-  [wip-intervals completed-intervals ranges skip hint]
-  (throw (IllegalArgumentException. "Can't apply hint" hint)))
-
-(defn apply-hints [wip-intervals completed-intervals ranges skip hints]
-  (loop [ranges ranges
-         skip skip
-         hints hints]
-    (if-let [hint (first hints)]
-      (let [ranges skip] (apply-hint* wip-intervals completed-intervals ranges skip hint)
-                         (recur ranges skip (rest hints)))
-      [ranges skip])))
-
-(s/fdef apply-hints
-  :args (s/cat :wip-intervals ::proto/interval-stack
-               :completed-intervals ::completed-intervals
-               :ranges ::bytes/ranges
-               :skip ::bytes/bytes-to-skip
-               :hint ::proto/hints)
-  :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))
-
-(defn get-already-generated-when-unique [wip-intervals completed-intervals]
-  (let [current-interval (last wip-intervals)]
-    (if-let [uniqueness-key (get current-interval ::proto/hints)]
-      (->> completed-intervals
-           (filter (comp (partial = uniqueness-key) ::bytes/uniqueness-key))
-           (map ::proto/mapped-bytes)
-           (into #{}))
-      #{})))
-
-(s/fdef get-already-generated-when-unique
-  :args (s/cat :wip-intervals ::proto/interval-stack :completed-intervals ::completed-intervals)
-  :ret ::bytes/bytes-to-skip)
-
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
   (get-bytes [this ranges skip]
     (let [unmapped (get-bytes-from-java-random rnd (-> ranges (first) (first) (count)))
           {:keys [::proto/interval-stack ::completed-intervals]} @state-atom
-          [ranges skip] (->> interval-stack
-                             (hints-that-apply)
-                             (apply-hints interval-stack completed-intervals ranges skip))
+          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
           mapped (bytes/map-into-ranges unmapped ranges skip)]
       (swap! state-atom #(-> %1
                              (update ::bytes-counter (partial + (count mapped)))

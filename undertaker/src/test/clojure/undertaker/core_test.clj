@@ -160,3 +160,8 @@
   (with-bindings {#'undertaker/*source* (source.fixed/make-fixed-source [0 0 0 0 0 0 0 0])}
     (let [short (undertaker/short 1)]
       (is (<= 1 short)))))
+
+(deftest should-generate-set
+  (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
+    (let [s (undertaker/set-of undertaker/int 5 5)]
+      (is (= (count s) 5)))))

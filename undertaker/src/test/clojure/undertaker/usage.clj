@@ -135,3 +135,7 @@
   (let [m (undertaker/map-of (partial undertaker/from kv-pairs))]
     (is (map? m))
     (is (every? kv-pairs m))))
+
+(undertaker/defprop can-get-set {}
+  (let [s (undertaker/set-of (partial undertaker/int 0 5) 5 5)]
+    (is (= (count s) 5))))

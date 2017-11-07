@@ -436,14 +436,16 @@
 (defn set-of
   ([elem-gen min max]
    (with-interval (format-interval-name "set")
-     (loop [result #{}]
-       (let [i (count result)]
-         (if-let [next (with-interval-and-hints (format-interval-name "chunk for vector" i)
-                                                [[::proto/immediate-children-of ::proto/unique]]
-                         (when-let [gen-next? (should-generate-elem? min max i)]
-                           (elem-gen)))]
-           (recur (conj result next))
-           result))))))
+     (let [uniqueness-key 1]                                ;TODO: use the set interval id instead
+       (loop [result #{}]
+         (let [i (count result)]
+           (if-let [next (with-interval (format-interval-name "chunk for set" i)
+                           (when-let [gen-next? (should-generate-elem? min max i)]
+                             (with-interval-and-hints "set uniqueness"
+                                                      [[::proto/immediate-children-of ::proto/unique uniqueness-key]]
+                                                      (elem-gen))))]
+             (recur (conj result next))
+             result)))))))
 
 (defn string
   ([] (string 0 default-string-max-size))

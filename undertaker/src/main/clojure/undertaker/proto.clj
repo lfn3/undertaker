@@ -8,7 +8,7 @@
 (s/def ::interval-start (s/or :pos pos-int? :zero zero?))
 (s/def ::hint-applies-to #{::immediate-children-of})
 (s/def ::hint-names #{::unique})
-(s/def ::hint (s/tuple ::hint-applies-to ::hint-names))
+(s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::interval-id))
 (s/def ::hints (s/coll-of ::hint))
 
 (s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start ::hints]
