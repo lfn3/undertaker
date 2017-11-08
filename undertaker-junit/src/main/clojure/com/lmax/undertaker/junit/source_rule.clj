@@ -10,14 +10,15 @@
            (org.junit.runner Description JUnitCore Computer Request)
            (java.util List ArrayList Arrays Map HashMap Map$Entry Collection)
            (java.util.function Function Supplier)
-           (java.lang.reflect Modifier)
+           (java.lang.reflect Modifier Constructor)
            (com.lmax.undertaker.junit Seed Trials)
            (com.lmax.undertaker.junit Generator)
            (com.lmax.undertaker.junit.generators IntGenerator)
            (javafx.util Pair))
   (:require [undertaker.core :as undertaker]
             [undertaker.source :as source]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.reflect :as reflect]))
 
 (defn -init
   ([] (-init {}))
@@ -205,6 +206,38 @@
        (.apply g this)
        (throw (ex-info (str "Could not find generator for " (.getName c) " in Source's class->generator map") {}))))))
 
+(def generate-from-class)
+
+(defn -reflectively
+  ([this c]
+   (if-let [generated (and (class? c) (generate-from-class this c))]
+     generated
+     (do
+       (when (and (class? c) (.isInterface c))
+         (throw (IllegalArgumentException. (str "Can't reflectively generate an interface. "
+                                                "Please pass a concrete class instead of " c))))
+       (let [constructor (if (class? c)
+                           (let [constructors (->> c
+                                                   (.getConstructors)
+                                                   (filter #(->> %1
+                                                                 (.getParameters)
+                                                                 (map (fn [p] (.getType p)))
+                                                                 (not-any? (fn [parameter-class]
+                                                                             (or (.isInterface parameter-class)
+                                                                                 (= c parameter-class)))))))]
+                             (when (empty? constructors)
+                               (throw (IllegalArgumentException.
+                                        (str "Class " c " did not have any public constructors "
+                                             "with only concrete parameters that were not " c "."))))
+                             (undertaker/from constructors))
+                           c)]
+         (->> constructor
+              (.getParameters)
+              (map #(.getType %1))
+              (map #(-reflectively this %1))
+              (into-array Object)
+              (.newInstance constructor)))))))
+
 (defmacro get-array-fn [type-hint type-str & [array-fn-name]]
   (let [fn-name (symbol (str "-get" (str/upper-case (first type-str))
                              (apply str (rest type-str))
@@ -230,3 +263,39 @@
 (get-array-fn "[I" "int")
 (get-array-fn "[S" "short")
 (get-array-fn "[Z" "bool" "boolean-array")
+
+(defn generate-array-reflectively [this array-class-string]
+  (let [class (Class/forName array-class-string)]
+    (-getArray this class (partial -reflectively this class))))
+
+(defn generate-from-class [this class]
+  (let [{:keys [class->generator]} (.state this)
+        generator (get class->generator class)]
+    (cond
+      generator (.apply generator this)
+
+      (or (= class Long) (= class Long/TYPE)) (undertaker/long)
+      (or (= class Integer) (= class Integer/TYPE)) (undertaker/int)
+      (or (= class Short) (= class Short/TYPE)) (undertaker/short)
+      (or (= class Byte) (= class Byte/TYPE)) (undertaker/byte)
+      (or (= class Float) (= class Float/TYPE)) (undertaker/float)
+      (or (= class Double) (= class Double/TYPE)) (undertaker/double)
+      (or (= class Character) (= class Character/TYPE)) (undertaker/char)
+      (or (= class Boolean) (= class Boolean/TYPE)) (undertaker/bool)
+      (= class String) (undertaker/string)
+
+      (= class (Class/forName "[J")) (-getLongArray this)
+      (= class (Class/forName "[B")) (-getByteArray this)
+      (= class (Class/forName "[C")) (-getCharArray this)
+      (= class (Class/forName "[D")) (-getDoubleArray this)
+      (= class (Class/forName "[F")) (-getFloatArray this)
+      (= class (Class/forName "[I")) (-getIntArray this)
+      (= class (Class/forName "[S")) (-getShortArray this)
+      (= class (Class/forName "[Z")) (-getBoolArray this)
+
+      (str/starts-with? (.getName class) "[L") (->> class
+                                                    (.getName)
+                                                    (drop 2)
+                                                    (apply str)
+                                                    (generate-array-reflectively this))
+      :default nil)))

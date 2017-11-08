@@ -26,6 +26,7 @@ public interface Source extends BoolSource,
                                 MapSource,
                                 EnumSource,
                                 FromCollectionSource,
+                                ReflectiveSource,
                                 TestRule {
     long pushInterval(String intervalName);
 

@@ -6,6 +6,7 @@ import javafx.util.Pair;
 import org.junit.*;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -21,15 +22,6 @@ public class SourceRuleTest {
     static
     {
         GENERATORS.put(GeneratorMapTestClass.class, s -> new GeneratorMapTestClass("Hello!"));
-    }
-
-    public static class GeneratorMapTestClass {
-        public final String s;
-
-        public GeneratorMapTestClass(String s)
-        {
-            this.s = s;
-        }
     }
 
     @Rule
@@ -287,6 +279,24 @@ public class SourceRuleTest {
         Assert.assertEquals(-9223372036854775808L, source.getLong());
     }
 
+    @Test
+    public void reflectiveOverPrimitives() throws Exception
+    {
+        final Long aLong = source.reflectively(Long.class);
+        final Long anotherLong = source.reflectively(long.class);
+    }
+
+    @Test
+    public void reflectiveApi() throws Exception
+    {
+        final Date aDate = source.reflectively(Date.class.getConstructor(long.class));
+        Assert.assertNotNull(aDate);
+
+        final ClassWithStaticConstructor aClass =
+                source.generate(s -> ClassWithStaticConstructor.constructor(s.reflectively(ClassWithConstructor.class)));
+        Assert.assertNotNull(aClass);
+    }
+
     public static <T, V> Supplier<V> bind(Function<T, V> f, T input)
     {
         return () -> f.apply(input);
@@ -299,5 +309,29 @@ public class SourceRuleTest {
         s.popInterval(intervalId, generatedValue);
 
         return generatedValue;
+    }
+
+    public static class GeneratorMapTestClass {
+        public final String s;
+
+        public GeneratorMapTestClass(String s)
+        {
+            this.s = s;
+        }
+    }
+
+    public static class ClassWithConstructor
+    {
+        public ClassWithConstructor(GeneratorMapTestClass c)
+        {
+        }
+    }
+
+    public static class ClassWithStaticConstructor
+    {
+        public static ClassWithStaticConstructor constructor(ClassWithConstructor c)
+        {
+            return new ClassWithStaticConstructor();
+        }
     }
 }
