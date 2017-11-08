@@ -136,6 +136,11 @@
     (is (map? m))
     (is (every? kv-pairs m))))
 
+(undertaker/defprop can-get-from-singleton-collection {}
+  (let [coll [1]
+        f (undertaker/from coll)]
+    (is (= 1 f))))
+
 (undertaker/defprop can-get-set {}
   (let [s (undertaker/set-of (partial undertaker/int 0 5) 5 5)]
     (is (= (count s) 5))))

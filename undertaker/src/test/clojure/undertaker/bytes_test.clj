@@ -97,7 +97,8 @@
                          (map vec)
                          (vec))]
     (is (= [[[0 0] [0 1]]] (vectorized 0 1)))
-    (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))))
+    (is (= [[[-1 -1] [-1 -1]] [[0 0] [0 1]]] (vectorized -1 1)))
+    (is (= [[[0 0] [0 0]]] (vectorized 0 0)))))
 
 (deftest test-split-number-line-ranges-into-bytewise-min-max
   (let [vectorized (fn [& args] (->> (split-number-line-ranges-into-bytewise-min-max args short->bytes)

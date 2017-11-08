@@ -233,7 +233,8 @@
           (not (skip-values ret)))))
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
-  (if (or (and (zero? floor) (pos? ceiling))
+  (if (or (= floor ceiling)
+          (and (zero? floor) (pos? ceiling))
           (and (pos? floor) (pos? ceiling))
           (and (neg? floor) (neg? ceiling)))
     [[(->bytes-fn floor) (->bytes-fn ceiling)]]

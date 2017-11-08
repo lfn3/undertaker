@@ -45,7 +45,8 @@
   (is (boolean? (undertaker/bool))))
 
 (deftest test-int-gen
-  (is (integer? (undertaker/int))))
+  (is (integer? (undertaker/int)))
+  (is (= 0 (undertaker/int 0 0))))
 
 (deftest test-vec-gen
   (is (vector? (undertaker/vec-of undertaker/int)))
