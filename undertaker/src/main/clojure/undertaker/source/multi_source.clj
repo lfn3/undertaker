@@ -31,5 +31,6 @@ undertaker.source.multi-source
                (swap! state-atom next-source)
                (proto/reset (::current-source @state-atom)))))
 
-(defn make-source [seed]
-  (->MultiSource (atom (initial-state seed))))
+(defn make-source
+  ([] (->MultiSource (atom (initial-state (rand-int Integer/MAX_VALUE)))))
+  ([seed] (->MultiSource (atom (initial-state seed)))))

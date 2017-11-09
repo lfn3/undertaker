@@ -1,4 +1,4 @@
 {:benchmarks [{:fn   undertaker.source/get-bytes
                :args [:state/source :state/ranges]}]
  :states     {:ranges {:fn (fn [] (vector [[-1 -1 -1 -1] [0 0 0 0]] [[0 0 0 0] [127 127 127 127]]))}
-              :source {:fn (fn [] (undertaker.source.multi-source/make-source 1))}}}
+              :source {:fn undertaker.source.multi-source/make-source}}}
