@@ -10,3 +10,5 @@
                             generator-fn))
 
 (defn kv-gen [] (fn [] [(undertaker.core/keyword) (undertaker.core/keyword)]))
+
+(defn string-kv-gen [] (fn [] [(undertaker.core/string) (undertaker.core/string)]))

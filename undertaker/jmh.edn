@@ -1,4 +1,9 @@
-{:benchmarks [{:name    :multi-source
+{:benchmarks [{:name    :generate-vecs
+               :fn      undertaker.benchmarks/run-in-prop
+               :args    [:param/times :state/vector-generator]
+               :options {:ops-per-invocation 100}}
+
+              {:name    :multi-source
                :fn      undertaker.benchmarks/repeatedly-get-bytes-from-source
                :args    [:param/times :state/multi-source :state/ranges]
                :options {:ops-per-invocation 100}}
@@ -11,6 +16,11 @@
               {:name    :generate-maps
                :fn      undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/map-generator]
+               :options {:ops-per-invocation 100}}
+
+              {:name    :generate-string-maps
+               :fn      undertaker.benchmarks/run-in-prop
+               :args    [:param/times :state/string-map-generator]
                :options {:ops-per-invocation 100}}]
 
  :states     {:rand-int              (partial rand-int 1184841129)
@@ -28,12 +38,23 @@
 
               :multi-source          {:fn   undertaker.source.multi-source/make-source
                                       :args [:state/rand-int]}
+
               :wrapped-random-source {:fn   undertaker.source.wrapped-random/make-source
                                       :args [:state/rand-int]}
+
               :map-generator         {:fn   undertaker.core/map-of
                                       :args [:state/kv-gen]}
-              :kv-gen                {:fn undertaker.benchmarks/kv-gen}}
+              :kv-gen                undertaker.benchmarks/kv-gen
 
- :params     {:times 100}
+              :string-map-generator  {:fn   undertaker.core/map-of
+                                      :args [:state/string-kv-gen]}
+              :string-kv-gen         undertaker.benchmarks/string-kv-gen
+
+              :char-gen              undertaker.core/char
+              :vector-generator      {:fn   undertaker.core/vec-of
+                                      :args [:state/char-gen]}}
+
+ :params     {:times 100
+              :size  2048}
 
  :options    {:fail-on-error true}}
