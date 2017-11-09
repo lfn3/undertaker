@@ -12,7 +12,7 @@
 
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
-  :test-paths ["src/test/clojure"]
+  :test-paths ["src/test/clojure" "src/test/benchmarks"]
   :target-path "target/%s"
 
   :profiles {:dev {:dependencies [[orchestra "0.3.0"]

@@ -1,13 +1,12 @@
 (ns undertaker.benchmarks
-  (:require [undertaker.core :as undertaker]
-            [criterium.core :as criterium]
-            [clojure.test :as t :refer [deftest]]
-            [clojure.spec.alpha :as s]
-            [clojure.test.check.generators :as gen]
-            [clojure.spec.test.alpha :as s.test]
-            [undertaker.source.forgetful :as source.forgetful]))
+  (:require [undertaker.source :as source]
+            [undertaker.core :as undertaker]))
 
-(deftest benchmark-byte-gen
-  (with-bindings {#'undertaker/*source* (source.forgetful/make-source (System/nanoTime))}
-    (criterium/quick-bench
-      (undertaker/byte))))
+(defn repeatedly-get-bytes-from-source [n source ranges]
+  (doall (repeatedly n (partial source/get-bytes source ranges))))
+
+(defn run-in-prop [n generator-fn]
+  (undertaker.core/run-prop {:iterations n}
+                            generator-fn))
+
+(defn kv-gen [] (fn [] [(undertaker.core/keyword) (undertaker.core/keyword)]))
