@@ -20,8 +20,5 @@
                                   [org.clojure/test.check "0.9.0"]
                                   [criterium "0.4.4"]]}
              :test {:jvm-opts ["-Dundertaker.debug=true"]}
-             :jmh {:jvm-opts []}
-             :benchmarks {:test-paths ^:replace ["src/test/benchmarks"]
-                          :dependencies [[criterium "0.4.4"]
-                                         [org.clojure/test.check "0.9.0"]]}}
+             :jmh {:jvm-opts ["-Dundertaker.debug=false"]}}
   :aliases {"bench" ["with-profile" "benchmarks" "test"]})

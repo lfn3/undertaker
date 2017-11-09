@@ -27,4 +27,37 @@
              :mode        :throughput,
              :params      {:times 100},
              :threads     1,
-             :score       [2707335.757349 "ops/s"]}]}
+             :score       [2707335.757349 "ops/s"]}]
+ "8760054" [{:args :state/ranges,
+             :samples 200,
+             :fn
+             #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
+             :score-error 13824.569405,
+             :index 0,
+             :name :multi-source,
+             :mode :throughput,
+             :params {:times 100},
+             :threads 1,
+             :score [181079.657844 "ops/s"]}
+            {:args :state/ranges,
+             :samples 200,
+             :fn
+             #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
+             :score-error 401.936875,
+             :index 1,
+             :name :wrapped-random,
+             :mode :throughput,
+             :params {:times 100},
+             :threads 1,
+             :score [13627.904809 "ops/s"]}
+            {:args nil,
+             :samples 200,
+             :fn
+             #object[undertaker.benchmarks$run_in_prop 0x77ec6a3d "undertaker.benchmarks$run_in_prop@77ec6a3d"],
+             :score-error 46837.347318,
+             :index 2,
+             :name :generate-maps,
+             :mode :throughput,
+             :params {:times 100},
+             :threads 1,
+             :score [3019307.878031 "ops/s"]}]}
