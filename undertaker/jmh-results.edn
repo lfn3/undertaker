@@ -58,7 +58,7 @@
              :params      {:times 100},
              :threads     1,
              :score       [3019307.878031 "ops/s"]}]
- "400c4cd" [{:args        nil,
+ "c37e8bf" [{:args        nil,
              :samples     20,
              :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "undertaker.benchmarks$run_in_prop@a7ad6e5"],
              :score-error 102120.675758,
