@@ -17,7 +17,7 @@
             [undertaker.debug])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
-           (com.lmax.undertaker OverrunException)
+           (com.lmax.undertaker OverrunException UndertakerDebugException)
            (undertaker.source.sample_source SampleSource)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
@@ -40,23 +40,15 @@
 
 (defmacro with-interval [name & body]
   `(let [interval-id# (source/push-interval *source* ~name)]
-     (try
-       (let [result# (do ~@body)]
-         (source/pop-interval *source* interval-id# result#)
-         result#)
-       (catch Exception e#
-         (source/pop-interval *source* interval-id# nil)
-         (throw e#)))))
+     (let [result# (do ~@body)]
+       (source/pop-interval *source* interval-id# result#)
+       result#)))
 
 (defmacro with-interval-and-hints [name hints & body]
   `(let [interval-id# (source/push-interval *source* ~name ~hints)]
-     (try
-       (let [result# (do ~@body)]
-         (source/pop-interval *source* interval-id# result#)
-         result#)
-       (catch Exception e#
-         (source/pop-interval *source* interval-id# nil)
-         (throw e#)))))
+     (let [result# (do ~@body)]
+       (source/pop-interval *source* interval-id# result#)
+       result#)))
 
 (defn failure? [test-report]
   (-> test-report
@@ -89,6 +81,10 @@
            ::cause    (get-failures-from-test-reports @result)
            ::reported @result}
           (catch Throwable e
+            (when (or (instance? UndertakerDebugException e)
+                      (and (instance? IllegalStateException e)
+                           (instance? UndertakerDebugException (.getCause e))))
+              (throw e))
             {::result   false
              ::cause    e
              ::reported @result})

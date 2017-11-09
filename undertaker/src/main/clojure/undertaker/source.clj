@@ -5,7 +5,8 @@
             [undertaker.source.wrapped-random]
             [undertaker.source.fixed]
             [undertaker.messages :as messages]
-            [undertaker.bytes :as bytes])
+            [undertaker.bytes :as bytes]
+            [undertaker.debug :as debug])
   (:import (java.util Random)))
 
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
@@ -21,20 +22,21 @@
 
 (defn throw-if-source-is-nil [source]
   (when (nil? source)
-    (throw (ex-info (messages/missing-source-err-msg) {:source source}))))
+    (throw (debug/internal-exception (messages/missing-source-err-msg) {:source source}))))
 
 (defn every-call-in-scope-of-test-should-use-same-source [source]
   (when (and (not shrinking?) (not= 1 (count (swap! source-in-use conj source))))
-    (throw (ex-info (messages/more-than-one-source-in-test-scope-err-msg) {:source source}))))
+    (throw (debug/internal-exception (messages/more-than-one-source-in-test-scope-err-msg) {:source source}))))
 
 (defn should-only-use-fixed-source-while-shrinking [source]
   (when (and (shrinking?) (not (instance? undertaker.source.fixed.FixedSource source)))
-    (throw (ex-info (messages/non-fixed-source-during-shrinking-error-msg) {:source source}))))
+    (throw (debug/internal-exception (messages/non-fixed-source-during-shrinking-error-msg) {:source source}))))
 
 (defn check-invariants [source]
-  (throw-if-source-is-nil source)
-  (every-call-in-scope-of-test-should-use-same-source source)
-  (should-only-use-fixed-source-while-shrinking source))
+  (when debug/debug-mode
+    (throw-if-source-is-nil source)
+    (every-call-in-scope-of-test-should-use-same-source source)
+    (should-only-use-fixed-source-while-shrinking source)))
 
 (defn ^"[B" get-bytes
   ([source ranges] (get-bytes source #{} ranges))
@@ -61,10 +63,10 @@
   (proto/pop-interval source interval-id generated-value))
 (defn get-intervals [source]
   (check-invariants source)
-  (when-let [wip-intervals (seq (proto/get-wip-intervals source))]
-    (throw (ex-info "Tried to get intervals when test has not finished generating input!"
-                    {:source        source
-                     :wip-intervals wip-intervals})))
+  (when-let [wip-intervals (and debug/debug-mode (seq (proto/get-wip-intervals source)))]
+    (throw (debug/internal-exception "Tried to get intervals when test has not finished generating input!"
+                                     {:source        source
+                                      :wip-intervals wip-intervals})))
   (proto/get-intervals source))
 
 (defn get-sourced-bytes [source]
