@@ -3,7 +3,8 @@
             [undertaker.intervals :as intervals]
             [clojure.spec.alpha :as s]
             [undertaker.bytes :as bytes]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [undertaker.debug])
   (:import (java.util Random)))
 
 (defn get-bytes-from-java-random [^Random rnd ^long count]
@@ -96,6 +97,7 @@
   (when-not (= (::bytes-counter state) (count (::bytes state)))
     (throw (ex-info "Bytes counter out of step with array" {:counter (::bytes-counter state)
                                                             :bytes   (vec (::bytes state))})))
+  ;TODO: these
   (->> state
        (map ::completed-intervals)
        (filter #(>= (::bytes-counter state) (::proto/interval-start %1))))
@@ -105,7 +107,9 @@
 
 (defn make-source [seed]
   (let [rnd (Random. seed)
-        state (atom initial-state :validator state-validator)]
+        state (if undertaker.debug/debug-mode
+                (atom initial-state :validator state-validator)
+                (atom initial-state))]
     (->WrappedRandomSource rnd state)))
 
 (s/fdef make-source

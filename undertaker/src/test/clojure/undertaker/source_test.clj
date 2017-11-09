@@ -37,7 +37,7 @@
 (deftest should-emit-positive-number
   (let [value (first (source/get-bytes forgetful-source [[[0] [127]]]))]
     (is pos-int? value)
-    (is (contains? (set (range 1 127)) value))))
+    (is (contains? (set (range 0 127)) value))))
 
 (deftest should-emit-unsigned-numbers-in-range
   (is (= 0 (first (source/get-bytes forgetful-source [[[0] [0]]]))))

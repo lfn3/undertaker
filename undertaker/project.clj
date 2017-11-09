@@ -15,9 +15,11 @@
   :test-paths ["src/test/clojure" "src/test/benchmarks"]
   :target-path "target/%s"
 
-  :profiles {:dev {:dependencies [[orchestra "0.3.0"]
+  :profiles {:dev {:jvm-opts ["-Dundertaker.debug=true"]
+                   :dependencies [[orchestra "0.3.0"]
                                   [org.clojure/test.check "0.9.0"]
                                   [criterium "0.4.4"]]}
+             :test {:jvm-opts ["-Dundertaker.debug=true"]}
              :jmh {:jvm-opts []}
              :benchmarks {:test-paths ^:replace ["src/test/benchmarks"]
                           :dependencies [[criterium "0.4.4"]

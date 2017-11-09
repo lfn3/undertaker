@@ -13,7 +13,8 @@
             [clojure.test.check.generators :as gen]
             [undertaker.shrink :as shrink]
             [undertaker.bytes :as bytes]
-            [undertaker.messages :as messages])
+            [undertaker.messages :as messages]
+            [undertaker.debug])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException)
@@ -590,6 +591,6 @@
          (dorun (map t/report (::reported result#)))
          (when-let [message# (format-results ~name-string result#)]
            (println message#))
-         (when (:debug ~opts)
+         (when undertaker.debug/debug-mode
            (println "\n\nDebug output follows:\n")
            (println result#))))))
