@@ -9,12 +9,12 @@
 
               {:name    :multi-source
                :fn      undertaker.benchmarks/repeatedly-get-bytes-from-source
-               :args    [:param/times :state/multi-source :state/ranges]
+               :args    [:param/times :state/multi-source :state/range]
                :options {:ops-per-invocation 100}}
 
               {:name    :wrapped-random
                :fn      undertaker.benchmarks/repeatedly-get-bytes-from-source
-               :args    [:param/times :state/wrapped-random-source :state/ranges]
+               :args    [:param/times :state/wrapped-random-source :state/range]
                :options {:ops-per-invocation 100}}
 
               {:name    :generate-maps
@@ -25,20 +25,25 @@
               {:name    :generate-string-maps
                :fn      undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/string-map-generator]
-               :options {:ops-per-invocation 100}}]
+               :options {:ops-per-invocation 100}}
+
+              {:name :map-into-range
+               :fn   undertaker.bytes/map-into-ranges
+               :args [:state/input-arr :state/range]}]
 
  :states     {:rand-int              (partial rand-int 1184841129)
-              :ranges                {:fn (fn [] (vector
-                                                   [[(rand-int -128)
-                                                     (rand-int -128)
-                                                     (rand-int -128)
-                                                     (rand-int -128)]
-                                                    [0 0 0 0]]
-                                                   [[0 0 0 0]
-                                                    [(rand-int 127)
-                                                     (rand-int 127)
-                                                     (rand-int 127)
-                                                     (rand-int 127)]]))}
+              :input-arr             (fn [] (byte-array (repeatedly 4 (partial rand-int 127))))
+              :range                 (fn [] (vector
+                                              [[(rand-int -128)
+                                                (rand-int -128)
+                                                (rand-int -128)
+                                                (rand-int -128)]
+                                               [0 0 0 0]]
+                                              [[0 0 0 0]
+                                               [(rand-int 127)
+                                                (rand-int 127)
+                                                (rand-int 127)
+                                                (rand-int 127)]]))
 
               :multi-source          {:fn   undertaker.source.multi-source/make-source
                                       :args [:state/rand-int]}

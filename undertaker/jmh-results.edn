@@ -117,4 +117,13 @@
              :mode        :throughput,
              :params      {:size 2048},
              :threads     1,
-             :score       [3.701087 "ops/s"]}]}
+             :score       [3.701087 "ops/s"]}
+            {:args        nil,
+             :samples     10,
+             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "undertaker.bytes$map_into_ranges@d88f893"],
+             :score-error 0.001823,
+             :index       0,
+             :name        :map-into-range,
+             :mode        :single-shot,
+             :threads     1,
+             :score       [0.003998 "s/op"]}]}
