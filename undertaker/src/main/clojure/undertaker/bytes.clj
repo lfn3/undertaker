@@ -14,6 +14,52 @@
   :args (s/cat :b number?)
   :ret boolean?)
 
+(defn range<xf []
+  (fn [xf]
+    (fn
+      ([] (xf))
+      ([result]
+       (if (boolean? result)
+         (xf result)
+         (xf false)))
+      ([result [b1 b2]]
+       (cond
+         (= b1 b2) result
+         (< b1 b2) (reduced true)
+         :default (reduced false))))))
+
+(defn range< [range1 range2]
+  (->> (map (fn [v1 v2] [v1 v2]) (last range1) (first range2))
+       (transduce (range<xf) identity [])))
+
+(s/fdef range<
+  :args (s/cat :range1 ::range :range2 ::range)
+  :ret boolean?)
+;This exists so I can test this and the ranges-are-sorted-fn without tearing my hair out.
+(defn conformed-range< [range1 range2]
+  (range< (val range1) (val range2)))
+
+(defn ranges-are-sorted-xf [range<fn]
+  (fn [xf]
+    (let [last-range (volatile! ::none)]
+      (fn
+        ([] (xf))
+        ([result] (if (boolean? result)
+                    (xf result)
+                    (xf true)))
+        ([result input]
+         (let [prior @last-range]
+           (vreset! last-range input)
+           (if (or (= ::none prior)
+                   (range<fn prior input))
+             result
+             (reduced false))))))))
+
+(defn ranges-are-sorted?                                    ;TODO: check if ranges are internally consistent.
+  ([ranges] (ranges-are-sorted-xf conformed-range<))
+  ([ranges range<fn]
+   (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
+
 (s/def ::byte (s/with-gen
                 (s/and integer?
                        byte?)
@@ -25,7 +71,8 @@
 (s/def ::bytes-to-skip (s/with-gen (s/and (s/coll-of ::bytes) set?)
                                    #(s.gen/fmap set (s/gen (s/coll-of ::bytes)))))
 (s/def ::range (s/tuple ::bytes ::bytes))
-(s/def ::ranges (s/coll-of ::range))
+(s/def ::ranges (s/and (s/coll-of ::range)
+                       ranges-are-sorted?))
 (s/def ::sliced-range (s/tuple ::byte ::byte))
 (s/def ::sliced-ranges (s/coll-of ::sliced-range))
 

@@ -145,6 +145,29 @@
   (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]]))
   (is (= (punch-skip-values-out-of-ranges [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]])))
 
+(deftest test-range<
+  (is (true? (range< [[1] [1]] [[2] [2]])))
+  (is (false? (range< [[1] [1]] [[1] [2]])))
+  (is (false? (range< [[1] [2]] [[1] [2]])))
+
+  (is (true? (range< [(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])])))
+  (is (false? (range< [(byte-array [1]) (byte-array [1])] [(byte-array [1]) (byte-array [2])])))
+  (is (false? (range< [(byte-array [1]) (byte-array [2])] [(byte-array [1]) (byte-array [2])]))))
+
+(deftest test-ranges-are-sorted
+  (let [ranges-are-sorted? #(ranges-are-sorted? %1 range<)]
+    (is (true? (ranges-are-sorted? [[[1] [1]] [[2] [2]]])))
+    (is (true? (ranges-are-sorted? [[[1] [1]] [[2] [2]]
+                                    [[3] [3]] [[4] [4]]])))
+    (is (false? (ranges-are-sorted? [[[3] [3]] [[4] [4]]
+                                     [[1] [1]] [[2] [2]]])))
+
+    (is (true? (ranges-are-sorted? [[(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]])))
+    (is (true? (ranges-are-sorted? [[(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]
+                                    [(byte-array [3]) (byte-array [3])] [(byte-array [4]) (byte-array [4])]])))
+    (is (false? (ranges-are-sorted? [[(byte-array [3]) (byte-array [3])] [(byte-array [4]) (byte-array [4])]
+                                     [(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]])))))
+
 (deftest test-map-into-ranges
   (let [make-short vectorized-move-bytes-into-range]
     (is (= 0 (make-short [0 0] 0 1)))
