@@ -107,4 +107,14 @@
              :mode        :throughput,
              :params      {:times 100},
              :threads     1,
-             :score       [3370731.041328 "ops/s"]}]}
+             :score       [3370731.041328 "ops/s"]}
+            {:args        :state/size5507,
+             :samples     200,
+             :fn          #object[undertaker.benchmarks$java_api_get_string 0x30db5536 "undertaker.benchmarks$java_api_get_string@30db5536"],
+             :score-error 0.055433,
+             :index       0,
+             :name        :java-api-style-string-gen,
+             :mode        :throughput,
+             :params      {:size 2048},
+             :threads     1,
+             :score       [3.701087 "ops/s"]}]}

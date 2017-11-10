@@ -1,4 +1,8 @@
-{:benchmarks [{:name    :generate-vecs
+{:benchmarks [{:name :java-api-style-string-gen
+               :fn   undertaker.benchmarks/java-api-get-string
+               :args [:param/size]}
+
+              {:name    :generate-vecs
                :fn      undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/vector-generator]
                :options {:ops-per-invocation 100}}
