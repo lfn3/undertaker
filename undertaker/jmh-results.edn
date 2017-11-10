@@ -126,4 +126,14 @@
              :name        :map-into-range,
              :mode        :single-shot,
              :threads     1,
-             :score       [0.003998 "s/op"]}]}
+             :score       [0.003998 "s/op"]}
+
+            {:args        nil,
+             :samples     10,
+             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "undertaker.bytes$map_into_ranges@d88f893"],
+             :score-error 0.002992,
+             :index       0,
+             :name        :map-into-ranges,
+             :mode        :single-shot,
+             :threads     1,
+             :score       [0.004731 "s/op"]}]}

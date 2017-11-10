@@ -29,10 +29,14 @@
 
               {:name :map-into-range
                :fn   undertaker.bytes/map-into-ranges
-               :args [:state/input-arr :state/range]}]
+               :args [:state/input-arr :state/range]}
+
+              {:name :map-into-ranges
+               :fn   undertaker.bytes/map-into-ranges
+               :args [:state/input-arr :state/ranges]}]
 
  :states     {:rand-int              (partial rand-int 1184841129)
-              :input-arr             (fn [] (byte-array (repeatedly 4 (partial rand-int 127))))
+              :input-arr             (fn [] (byte-array (repeatedly 4 (partial + -128 (rand-int 256)))))
               :range                 (fn [] (vector
                                               [[(rand-int -128)
                                                 (rand-int -128)
@@ -44,6 +48,48 @@
                                                 (rand-int 127)
                                                 (rand-int 127)
                                                 (rand-int 127)]]))
+              :ranges                (fn [] (vector
+                                              [[(+ -128 (rand-int 32))
+                                                (+ -128 (rand-int 32))
+                                                (+ -128 (rand-int 32))
+                                                (+ -128 (rand-int 32))]
+                                               [-96 -96 -96 -96]]
+                                              [[(+ -96 (rand-int 32))
+                                                (+ -96 (rand-int 32))
+                                                (+ -96 (rand-int 32))
+                                                (+ -96 (rand-int 32))]
+                                               [-64 -64 -64 -64]]
+                                              [[(+ -64 (rand-int 32))
+                                                (+ -64 (rand-int 32))
+                                                (+ -64 (rand-int 32))
+                                                (+ -64 (rand-int 32))]
+                                               [-32 -32 -32 -32]]
+                                              [[(+ -32 (rand-int 32))
+                                                (+ -32 (rand-int 32))
+                                                (+ -32 (rand-int 32))
+                                                (+ -32 (rand-int 32))]
+                                               [0 0 0 0]]
+
+                                              [[0 0 0 0]
+                                               [(rand-int 32)
+                                                (rand-int 32)
+                                                (rand-int 32)
+                                                (rand-int 32)]]
+                                              [[32 32 32 32]
+                                               [(+ 64 (rand-int 32))
+                                                (+ 64 (rand-int 32))
+                                                (+ 64 (rand-int 32))
+                                                (+ 64 (rand-int 32))]]
+                                              [[64 64 64 64]
+                                               [(+ 96 (rand-int 32))
+                                                (+ 96 (rand-int 32))
+                                                (+ 96 (rand-int 32))
+                                                (+ 96 (rand-int 32))]]
+                                              [[96 96 96 96]
+                                               [(+ 128 (rand-int 32))
+                                                (+ 128 (rand-int 32))
+                                                (+ 128 (rand-int 32))
+                                                (+ 128 (rand-int 32))]]))
 
               :multi-source          {:fn   undertaker.source.multi-source/make-source
                                       :args [:state/rand-int]}
