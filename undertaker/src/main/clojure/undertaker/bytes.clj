@@ -55,7 +55,7 @@
              result
              (reduced false))))))))
 
-(defn ranges-are-sorted?                                    ;TODO: check if ranges are internally consistent.
+(defn ranges-are-sorted?                                    ;TODO: check if ranges are internally sorted
   ([ranges] (ranges-are-sorted-xf conformed-range<))
   ([ranges range<fn]
    (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
@@ -205,13 +205,13 @@
 (defn punch-skip-value-out-of-range [range skip-value]
   (let [size-of-range (count (first range))
         index-of-last-skip-value (dec (count skip-value))
-        lower-range (some-> skip-value                      ;TODO: this won't handle 0
+        lower-range (some-> skip-value
                             (handle-underflow dec)
                             (seq)
                             (fill size-of-range -1)
                             (vec)
                             (->> (vector (first range))))
-        upper-range (some-> skip-value                      ;TODO: this won't handle 255
+        upper-range (some-> skip-value
                             (handle-underflow inc)
                             (seq)
                             (fill size-of-range 0)
