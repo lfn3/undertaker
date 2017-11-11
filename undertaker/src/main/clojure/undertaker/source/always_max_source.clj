@@ -28,7 +28,7 @@
           length (- ending-at started-at)]
       (-> state
           (update ::proto/interval-stack pop)
-          (update ::completed-intervals conj (-> interval-to-update
+          (update ::proto/completed-intervals conj (-> interval-to-update
                                                  (assoc ::proto/interval-end ending-at)
                                                  (assoc ::proto/generated-value generated-value)
                                                  (assoc ::proto/mapped-bytes (->> state
@@ -40,12 +40,12 @@
 (def initial-state {::interval-id-counter  0
                     ::bytes                []
                     ::proto/interval-stack []
-                    ::completed-intervals  []})
+                    ::proto/completed-intervals  []})
 
 (defrecord AlwaysMaxSource [state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
-    (let [{:keys [::proto/interval-stack ::completed-intervals]} @state-atom
+    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
           [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
           ranges (bytes/punch-skip-values-out-of-ranges skip ranges)
           flattened-ranges (mapcat identity ranges)]
@@ -69,7 +69,7 @@
     (::interval-id-counter (swap! state-atom push-interval* interval-name hints)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
-  (get-intervals [_] (::completed-intervals @state-atom))
+  (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]

@@ -3,7 +3,7 @@
             [undertaker.bytes :as bytes])
   (:import (com.lmax.undertaker OverrunException)))
 
-(defn- push-interval* [state interval-name]
+(defn- push-interval* [state interval-name hints]
   (let [id (inc (::interval-id-counter state))]
     (-> state
         (update ::interval-id-counter inc)
@@ -13,7 +13,8 @@
                                              ::proto/interval-parent-id (-> state
                                                                             ::proto/interval-stack
                                                                             (last)
-                                                                            ::proto/interval-id)}))))
+                                                                            ::proto/interval-id)
+                                             ::proto/hints              hints}))))
 
 (defn- pop-interval* [state interval-id generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
@@ -27,7 +28,7 @@
           length (- ending-at started-at)]
       (-> state
           (update ::proto/interval-stack pop)
-          (update ::completed-intervals conj (-> interval-to-update
+          (update ::proto/completed-intervals conj (-> interval-to-update
                                                  (assoc ::proto/interval-end ending-at)
                                                  (assoc ::proto/generated-value generated-value)
                                                  (assoc ::proto/mapped-bytes (->> state
@@ -39,7 +40,7 @@
 (defn reset-state [state]
   (-> state
       (assoc ::cursor 0)
-      (assoc ::completed-intervals [])
+      (assoc ::proto/completed-intervals [])
       (assoc ::proto/interval-stack [])
       (assoc ::interval-id-counter 0)))
 
@@ -59,10 +60,10 @@
       (bytes/map-into-ranges bytes ranges skip)))
   proto/Interval
   (push-interval [_ interval-name hints]
-    (::interval-id-counter (swap! state-atom push-interval* interval-name)))
+    (::interval-id-counter (swap! state-atom push-interval* interval-name hints)))
   (pop-interval [_ interval-id generated-value]
     (swap! state-atom pop-interval* interval-id generated-value))
-  (get-intervals [_] (::completed-intervals @state-atom))
+  (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]
@@ -78,5 +79,5 @@
                      ::interval-id-counter  0
                      ::bytes                bytes
                      ::proto/interval-stack []
-                     ::completed-intervals  []})]
+                     ::proto/completed-intervals  []})]
     (->FixedSource state)))

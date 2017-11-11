@@ -4,8 +4,6 @@
             [clojure.spec.alpha :as s]
             [clojure.set :as set]))
 
-(s/def ::completed-intervals (s/coll-of ::proto/interval))
-
 (defmulti apply-hint*
   (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
 
@@ -21,9 +19,9 @@
 
 (s/fdef has-same-hint
         :args (s/cat :hint ::proto/hint :intervals (s/or :wip ::proto/interval-stack
-                                                         :complete ::completed-intervals))
+                                                         :complete ::proto/completed-intervals))
         :ret (s/or :wip ::proto/interval-stack
-                   :complete ::completed-intervals))
+                   :complete ::proto/completed-intervals))
 
 (defn get-already-generated-when-unique [hint wip-intervals completed-intervals]
   (let [current-interval (last wip-intervals)
@@ -36,7 +34,7 @@
       #{})))
 
 (s/fdef get-already-generated-when-unique
-        :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::completed-intervals)
+        :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)
         :ret ::bytes/bytes-to-skip)
 
 (defmethod apply-hint* ::proto/unique
@@ -68,7 +66,7 @@
 
 (s/fdef apply-hints
   :args (s/cat :wip-intervals ::proto/interval-stack
-               :completed-intervals ::completed-intervals
+               :completed-intervals ::proto/completed-intervals
                :ranges ::bytes/ranges
                :skip ::bytes/bytes-to-skip)
   :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))

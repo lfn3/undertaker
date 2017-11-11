@@ -11,17 +11,23 @@
 (s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::interval-id))
 (s/def ::hints (s/coll-of ::hint))
 
-(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start ::hints]
-                              :opt [::interval-parent-id]))
+(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start ::hints ::interval-parent-id]))
 
 (s/def ::interval-end (s/or :pos pos-int? :zero zero?))
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
 (s/def ::mapped-bytes ::bytes/bytes)
 
-(s/def ::interval (s/keys :req [::interval-name ::interval-id ::interval-start ::interval-end ::generated-value ::mapped-bytes]
-                          :opt [::interval-parent-id ::hints]))
+(s/def ::interval (s/keys :req [::interval-name
+                                ::interval-id
+                                ::interval-start
+                                ::interval-end
+                                ::generated-value
+                                ::mapped-bytes
+                                ::interval-parent-id
+                                ::hints]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
+(s/def ::completed-intervals (s/coll-of ::interval))
 
 (defprotocol ByteArraySource
   (get-bytes [this ranges skip]))
