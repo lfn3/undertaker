@@ -1,4 +1,4 @@
-(ns undertaker.shrinking-test
+(ns undertaker.shrink-test
   (:require [undertaker.proto :as proto]
             [undertaker.core :as undertaker]
             [orchestra.spec.test :as orchestra.test]
