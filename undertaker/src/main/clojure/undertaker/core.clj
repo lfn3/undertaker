@@ -18,7 +18,7 @@
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException UndertakerDebugException)
-           (undertaker.source.sample_source SampleSource)))
+           (undertaker.source.sample SampleSource)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
