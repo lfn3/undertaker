@@ -2,7 +2,51 @@
   (:require [undertaker.proto :as proto]
             [undertaker.bytes :as bytes]
             [clojure.spec.alpha :as s]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [undertaker.debug :as debug]))
+
+(defn push-interval [state interval-name hints]
+  (let [id (inc (::proto/interval-id-counter state))]
+    (-> state
+        (update ::proto/interval-id-counter inc)
+        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
+                                             ::proto/interval-id        id
+                                             ::proto/interval-start     (count (get state ::bytes/bytes))
+                                             ::proto/interval-parent-id (-> state
+                                                                            ::proto/interval-stack
+                                                                            (last)
+                                                                            ::proto/interval-id)
+                                             ::proto/hints              hints}))))
+
+(s/fdef push-interval
+  :args (s/cat :state ::proto/source-state :interval-name ::proto/interval-name :hints ::proto/hints)
+  :ret ::proto/source-state)
+
+(defn pop-interval [state interval-id generated-value]
+  (let [interval-to-update (last (::proto/interval-stack state))]
+    (when (and debug/debug-mode
+               (not= (::proto/interval-id interval-to-update) interval-id))
+      (throw (debug/internal-exception "Popped interval without matching id"
+                                       {:expected-id     interval-id
+                                        :popped-interval interval-to-update
+                                        :state           state})))
+    (let [started-at (::proto/interval-start interval-to-update)
+          ending-at (count (get state ::bytes/bytes))
+          length (- ending-at started-at)]
+      (-> state
+          (update ::proto/interval-stack pop)
+          (update ::proto/completed-intervals conj (-> interval-to-update
+                                                       (assoc ::proto/interval-end ending-at)
+                                                       (assoc ::proto/generated-value generated-value)
+                                                       (assoc ::proto/mapped-bytes (->> state
+                                                                                        ::bytes/bytes
+                                                                                        (drop started-at)
+                                                                                        (take length)
+                                                                                        (vec)))))))))
+
+(s/fdef pop-interval
+  :args (s/cat :state ::proto/source-state :interval-id ::proto/interval-id :generated-value ::proto/generated-value)
+  :ret ::proto/source-state)
 
 (defmulti apply-hint*
   (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))

@@ -12,41 +12,6 @@
     (.nextBytes rnd arr)
     arr))
 
-(defn- push-interval* [state interval-name hints]
-  (let [id (inc (::proto/interval-id-counter state))]
-    (-> state
-        (update ::proto/interval-id-counter inc)
-        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
-                                             ::proto/interval-id        id
-                                             ::proto/interval-start     (count (get state ::bytes/bytes))
-                                             ::proto/interval-parent-id (-> state
-                                                                            ::proto/interval-stack
-                                                                            (last)
-                                                                            ::proto/interval-id)
-                                             ::proto/hints              hints}))))
-
-(defn- pop-interval* [state interval-id generated-value]
-  (let [interval-to-update (last (::proto/interval-stack state))]
-    (when (and debug/debug-mode
-               (not= (::proto/interval-id interval-to-update) interval-id))
-      (throw (debug/internal-exception "Popped interval without matching id"
-                                       {:expected-id     interval-id
-                                        :popped-interval interval-to-update
-                                        :state           state})))
-    (let [started-at (::proto/interval-start interval-to-update)
-          ending-at (count (get state ::bytes/bytes))
-          length (- ending-at started-at)]
-      (-> state
-          (update ::proto/interval-stack pop)
-          (update ::proto/completed-intervals conj (-> interval-to-update
-                                                 (assoc ::proto/interval-end ending-at)
-                                                 (assoc ::proto/generated-value generated-value)
-                                                 (assoc ::proto/mapped-bytes (->> state
-                                                                                  ::bytes/bytes
-                                                                                  (drop started-at)
-                                                                                  (take length)
-                                                                                  (vec)))))))))
-
 (def initial-state {::proto/interval-id-counter  0
                     ::proto/interval-stack []
                     ::proto/completed-intervals  []
@@ -65,9 +30,9 @@
       mapped))
   proto/Interval
   (push-interval [_ interval-name hints]
-    (::proto/interval-id-counter (swap! state-atom push-interval* interval-name hints)))
+    (::proto/interval-id-counter (swap! state-atom intervals/push-interval interval-name hints)))
   (pop-interval [_ interval-id generated-value]
-    (swap! state-atom pop-interval* interval-id generated-value))
+    (swap! state-atom intervals/pop-interval interval-id generated-value))
   (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
