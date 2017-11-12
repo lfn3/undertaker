@@ -420,29 +420,19 @@
            (recur (conj result next))
            result))))))
 
-;Could work if I can feed in the bytes to skip via `elem-gen`
-;That means I'd have to change the contract on all of the existing generators though.
-;I don't really want to do that if I can avoid it.
-;This problem feels quite similar to the range exhaustion one.
-;If there was some way I could hint to the source that it shouldn't repeat particular values...
-;With intervals seems like the logic target.
-;(with-intervals (format ...) {:no-repeat true} ...)
-;Except it's more like don't repeat child values. Harder to express. And code for.
-;Maybe I need a more general mechanism for wrapping a generator with hints for the source?
-
 (defn set-of
   ([elem-gen min max]
-   (with-interval (format-interval-name "set")
-     (let [uniqueness-key 1]                                ;TODO: use the set interval id instead
-       (loop [result #{}]
-         (let [i (count result)]
-           (if-let [next (with-interval (format-interval-name "chunk for set" i)
-                           (when-let [gen-next? (should-generate-elem? min max i)]
-                             (with-interval-and-hints "set uniqueness"
-                                                      [[::proto/immediate-children-of ::proto/unique uniqueness-key]]
-                                                      (elem-gen))))]
-             (recur (conj result next))
-             result)))))))
+   (let [interval-id (source/push-interval *source* (format-interval-name "set" min max))]
+     (loop [result #{}]
+       (let [i (count result)]
+         (if-let [next (with-interval (format-interval-name "chunk for set" i)
+                         (when-let [gen-next? (should-generate-elem? min max i)]
+                           (with-interval-and-hints "set uniqueness"
+                                                    [[::proto/immediate-children-of ::proto/unique interval-id]]
+                             (elem-gen))))]
+           (recur (conj result next))
+           (do (source/pop-interval *source* interval-id result)
+               result)))))))
 
 (defn string
   ([] (string 0 default-string-max-size))
