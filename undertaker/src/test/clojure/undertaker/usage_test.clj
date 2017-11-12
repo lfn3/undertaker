@@ -1,4 +1,4 @@
-(ns undertaker.usage
+(ns undertaker.usage-test
   (:require [clojure.test :refer [deftest is] :as t]
             [undertaker.core :as undertaker]
             [orchestra.spec.test :as orchestra.test]))
