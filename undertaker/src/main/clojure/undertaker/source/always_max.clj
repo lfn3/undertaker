@@ -1,4 +1,4 @@
-(ns undertaker.source.always-max-source
+(ns undertaker.source.always-max
   (:require [undertaker.proto :as proto]
             [undertaker.intervals :as intervals]
             [undertaker.bytes :as bytes]))

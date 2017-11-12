@@ -14,7 +14,7 @@
             [undertaker.source.wrapped-random :as source.wrapped]
             [undertaker.proto :as proto]
             [undertaker.source.forgetful :as source.forgetful]
-            [undertaker.source.always-max-source :as source.max]
+            [undertaker.source.always-max :as source.max]
             [undertaker.bytes :as bytes]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)

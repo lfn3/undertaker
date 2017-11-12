@@ -1,4 +1,4 @@
-(ns undertaker.source.always-min-source
+(ns undertaker.source.always-min
   (:require [undertaker.proto :as proto]
             [undertaker.bytes :as bytes]
             [undertaker.intervals :as intervals]))

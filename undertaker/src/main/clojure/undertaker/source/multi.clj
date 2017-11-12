@@ -1,9 +1,9 @@
 (ns ^{:doc "Combines multiple other sources to cover likely corner cases"}
-undertaker.source.multi-source
+undertaker.source.multi
   (:require [undertaker.proto :as proto]
-            [undertaker.source.always-max-source :as source.max]
+            [undertaker.source.always-max :as source.max]
             [undertaker.source.wrapped-random :as source.random]
-            [undertaker.source.always-min-source :as source.zero]))
+            [undertaker.source.always-min :as source.zero]))
 
 (defn next-source [state]
   (let [next-source (first (::sources state))]

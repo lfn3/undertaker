@@ -1,4 +1,4 @@
-(ns undertaker.source.sample-source
+(ns undertaker.source.sample
   (:require [undertaker.source.forgetful :as source.forgetful]
             [undertaker.proto :as proto]
             [clojure.spec.alpha :as s])
