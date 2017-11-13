@@ -21,8 +21,8 @@ undertaker.source.multi
   proto/ByteArraySource
   (get-bytes [_ ranges skip] (proto/get-bytes (::current-source @state-atom) ranges skip))
   proto/Interval
-  (push-interval [_ interval-name hints] (proto/push-interval (::current-source @state-atom) interval-name hints))
-  (pop-interval [_ interval-id generated-value] (proto/pop-interval (::current-source @state-atom) interval-id generated-value))
+  (push-interval [_ hints] (proto/push-interval (::current-source @state-atom) hints))
+  (pop-interval [_ generated-value] (proto/pop-interval (::current-source @state-atom) generated-value))
   (get-intervals [_] (proto/get-intervals (::current-source @state-atom)))
   (get-wip-intervals [_] (proto/get-wip-intervals (::current-source @state-atom)))
   proto/Recall

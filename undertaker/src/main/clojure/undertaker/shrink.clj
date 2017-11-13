@@ -31,6 +31,10 @@
     (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
     output))
 
+(s/fdef snip-interval
+  :args (s/cat :bytes ::bytes/bytes :interval (s/keys :req {::proto/interval-start ::proto/interval-end}))
+  :ret ::bytes/bytes)
+
 (defn is-overrun? [result-map]
   (or (instance? OverrunException (:undertaker.core/cause result-map))
       (->> result-map

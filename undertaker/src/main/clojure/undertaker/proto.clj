@@ -3,36 +3,30 @@
             [undertaker.bytes :as bytes]
             [undertaker.debug :as debug]))
 
-(s/def ::interval-name string?)
-(s/def ::interval-parent-id (s/or :nil nil? :id int?))
-(s/def ::interval-id int?)
 (s/def ::interval-start (s/or :pos pos-int? :zero zero?))
+(s/def ::interval-depth (s/or :pos pos-int? :zero zero?))
 (s/def ::hint-applies-to #{::immediate-children-of})
 (s/def ::hint-names #{::unique})
-(s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::interval-id))
+(s/def ::hint-args any?)
+(s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::hint-args))
 (s/def ::hints (s/coll-of ::hint))
 
-(s/def ::wip-interval (s/keys :req [::interval-name ::interval-id ::interval-start ::hints ::interval-parent-id]))
+(s/def ::wip-interval (s/keys :req [::interval-start ::hints ::interval-depth]))
 
 (s/def ::interval-end (s/or :pos pos-int? :zero zero?))
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
 (s/def ::mapped-bytes ::bytes/bytes)
 
-(s/def ::interval (s/keys :req [::interval-name
-                                ::interval-id
-                                ::interval-start
+(s/def ::interval (s/keys :req [::interval-start
                                 ::interval-end
                                 ::generated-value
                                 ::mapped-bytes
-                                ::interval-parent-id
                                 ::hints]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
 (s/def ::completed-intervals (s/coll-of ::interval))
 
-(s/def ::interval-id-counter ::interval-id)
-(s/def ::source-state (s/keys :req [::interval-id-counter
-                                    ::interval-stack
+(s/def ::source-state (s/keys :req [::interval-stack
                                     ::completed-intervals
                                     ::bytes/bytes]))
 
@@ -59,8 +53,8 @@
   (get-bytes [this ranges skip]))
 
 (defprotocol Interval
-  (push-interval [this interval-name hints])
-  (pop-interval [this interval-id generated-value])
+  (push-interval [this hints])
+  (pop-interval [this generated-value])
   (get-intervals [this])
   (get-wip-intervals [this]))
 

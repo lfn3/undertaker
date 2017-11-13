@@ -49,18 +49,18 @@
   :ret bytes?)
 
 (defn push-interval
-  ([source interval-name]    (push-interval source interval-name []))
-  ([source interval-name hints]
+  ([source] (push-interval source []))
+  ([source hints]
    (check-invariants source)
-   (proto/push-interval source interval-name hints)))
+   (proto/push-interval source hints)))
 
 (s/fdef push-interval
-  :args (s/cat :source ::source :interval-name ::proto/interval-name :hints (s/? ::proto/hints))
-  :ret ::proto/interval-id)
+  :args (s/cat :source ::source :hints (s/? ::proto/hints))
+  :ret nil?)
 
-(defn pop-interval [source interval-id generated-value]
+(defn pop-interval [source generated-value]
   (check-invariants source)
-  (proto/pop-interval source interval-id generated-value))
+  (proto/pop-interval source generated-value))
 (defn get-intervals [source]
   (check-invariants source)
   (when-let [wip-intervals (and debug/debug-mode (seq (proto/get-wip-intervals source)))]

@@ -14,7 +14,7 @@
 
 (def ignored #{})
 
-(deftest check-bytes
+(deftest check-intervals
     (let [target-namespace (first (str/split (str this-ns) #"-test"))
           targets (->> (s/registry)
                        (filter #(str/starts-with? (str (key %1)) target-namespace))

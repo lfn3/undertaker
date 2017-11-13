@@ -12,8 +12,7 @@
     (.nextBytes rnd arr)
     arr))
 
-(def initial-state {::proto/interval-id-counter  0
-                    ::proto/interval-stack []
+(def initial-state {::proto/interval-stack []
                     ::proto/completed-intervals  []
                     ::bytes/bytes                []})
 
@@ -29,10 +28,12 @@
       (swap! state-atom update ::bytes/bytes (fn [existing-bytes] (concat existing-bytes (vec mapped))))
       mapped))
   proto/Interval
-  (push-interval [_ interval-name hints]
-    (::proto/interval-id-counter (swap! state-atom intervals/push-interval interval-name hints)))
-  (pop-interval [_ interval-id generated-value]
-    (swap! state-atom intervals/pop-interval interval-id generated-value))
+  (push-interval [_ hints]
+    (swap! state-atom intervals/push-interval hints)
+    nil)
+  (pop-interval [_ generated-value]
+    (swap! state-atom intervals/pop-interval generated-value)
+    nil)
   (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall

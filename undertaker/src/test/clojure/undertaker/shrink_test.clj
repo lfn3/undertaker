@@ -113,7 +113,7 @@
         intervals (source/get-intervals source)
         shrunk-source (shrink/shrink bytes-to-shrink intervals test-fn)]
     (is (= [1] (->> (source/get-intervals shrunk-source)
-                    (filter (comp nil? ::proto/interval-parent-id))
+                    (filter (comp zero? ::proto/interval-depth))
                     (map ::proto/generated-value)
                     (first))))))
 

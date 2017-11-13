@@ -5,31 +5,17 @@
             [clojure.set :as set]
             [undertaker.debug :as debug]))
 
-(defn push-interval [state interval-name hints]
-  (let [id (inc (::proto/interval-id-counter state))]
-    (-> state
-        (update ::proto/interval-id-counter inc)
-        (update ::proto/interval-stack conj {::proto/interval-name      interval-name
-                                             ::proto/interval-id        id
-                                             ::proto/interval-start     (count (get state ::bytes/bytes))
-                                             ::proto/interval-parent-id (-> state
-                                                                            ::proto/interval-stack
-                                                                            (last)
-                                                                            ::proto/interval-id)
-                                             ::proto/hints              hints}))))
+(defn push-interval [state hints]
+  (update state ::proto/interval-stack conj {::proto/interval-start (count (::bytes/bytes state))
+                                             ::proto/interval-depth (count (::proto/interval-stack state))
+                                             ::proto/hints          hints}))
 
 (s/fdef push-interval
-  :args (s/cat :state ::proto/source-state :interval-name ::proto/interval-name :hints ::proto/hints)
+  :args (s/cat :state ::proto/source-state :hints ::proto/hints)
   :ret ::proto/source-state)
 
-(defn pop-interval [state interval-id generated-value]
+(defn pop-interval [state generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
-    (when (and debug/debug-mode
-               (not= (::proto/interval-id interval-to-update) interval-id))
-      (throw (debug/internal-exception "Popped interval without matching id"
-                                       {:expected-id     interval-id
-                                        :popped-interval interval-to-update
-                                        :state           state})))
     (let [started-at (::proto/interval-start interval-to-update)
           ending-at (count (get state ::bytes/bytes))
           length (- ending-at started-at)]
@@ -45,7 +31,7 @@
                                                                                         (vec)))))))))
 
 (s/fdef pop-interval
-  :args (s/cat :state ::proto/source-state :interval-id ::proto/interval-id :generated-value ::proto/generated-value)
+  :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
   :ret ::proto/source-state)
 
 (defmulti apply-hint*
@@ -56,8 +42,8 @@
         hint-args (last hint)]
     (filter (fn [interval] (->> interval
                                 ::proto/hints
-                                (filter #(= hint-key (nth %1 1)))
-                                (filter #(= hint-args (last %1)))
+                                (filter #(and (= hint-key (nth %1 1))
+                                              (= hint-args (last %1))))
                                 (seq)))
             intervals)))
 
@@ -68,14 +54,9 @@
                    :complete ::proto/completed-intervals))
 
 (defn get-already-generated-when-unique [hint wip-intervals completed-intervals]
-  (let [current-interval (last wip-intervals)
-        uniqueness-key (last hint)
-        same-hint (has-same-hint hint completed-intervals)]
-    (if-let [parent (get current-interval ::proto/interval-parent-id)]
-      (->> same-hint
-           (map ::proto/mapped-bytes)
-           (into #{}))
-      #{})))
+  (->> (seq (has-same-hint hint completed-intervals))
+       (map ::proto/mapped-bytes)
+       (into #{})))
 
 (s/fdef get-already-generated-when-unique
         :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)

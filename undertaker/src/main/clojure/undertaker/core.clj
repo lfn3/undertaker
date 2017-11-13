@@ -14,7 +14,7 @@
             [undertaker.shrink :as shrink]
             [undertaker.bytes :as bytes]
             [undertaker.messages :as messages]
-            [undertaker.debug])
+            [undertaker.debug :as debug])
   (:import (java.util Random Arrays)
            (java.nio ByteBuffer)
            (com.lmax.undertaker OverrunException UndertakerDebugException)
@@ -35,19 +35,20 @@
 
 (def ^:dynamic *source* (source.sample/make-source (System/nanoTime)))
 
-(defn format-interval-name [name & args]
-  (str name " [" (str/join " " args) "]"))
+(def set-uniqueness-id (atom 0))
 
-(defmacro with-interval [name & body]
-  `(let [interval-id# (source/push-interval *source* ~name)]
+(defmacro with-interval [& body]
+  `(do
+     (source/push-interval *source*)
      (let [result# (do ~@body)]
-       (source/pop-interval *source* interval-id# result#)
+       (source/pop-interval *source* result#)
        result#)))
 
-(defmacro with-interval-and-hints [name hints & body]
-  `(let [interval-id# (source/push-interval *source* ~name ~hints)]
+(defmacro with-interval-and-hints [hints & body]
+  `(do
+     (source/push-interval *source* ~hints)
      (let [result# (do ~@body)]
-       (source/pop-interval *source* interval-id# result#)
+       (source/pop-interval *source* result#)
        result#)))
 
 (defn failure? [test-report]
@@ -99,15 +100,16 @@
                        (assoc ::generated-values (map ::proto/generated-value
                                                       (->> source
                                                            (source/get-intervals)
-                                                           (filter (comp nil? ::proto/interval-parent-id))))))]
+                                                           (filter (comp zero? ::proto/interval-depth))))))]
     (if (::result result-map)
       result-map
-      (let [shrunk-source (shrink/shrink (source/get-sourced-bytes source) (source/get-intervals source) f)]
+      (let [shrunk-source (shrink/shrink (source/get-sourced-bytes source) (source/get-intervals source) f)
+            shrunk-intervals (source/get-intervals shrunk-source)]
         (-> result-map
-            (assoc ::shrunk-intervals (source/get-intervals shrunk-source))
+            (assoc ::shrunk-intervals shrunk-intervals)
             (assoc ::shrunk-bytes (vec (source/get-sourced-bytes shrunk-source)))
-            (assoc ::shrunk-values (->> (source/get-intervals shrunk-source)
-                                        (filter (comp nil? ::proto/interval-parent-id))
+            (assoc ::shrunk-values (->> shrunk-intervals
+                                        (filter (comp zero? ::proto/interval-depth))
                                         (map ::proto/generated-value))))))))
 
 (s/def ::result boolean?)
@@ -178,7 +180,7 @@
   ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
-   (with-interval (format-interval-name "byte" min max)     ;This is slightly ridiculous, but consistency is key!
+   (with-interval      ;This is slightly ridiculous, but consistency is key!
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->byte)))))
@@ -195,7 +197,7 @@
 
 (defn bool
   ([]
-   (with-interval (format-interval-name "bool")
+   (with-interval 
      (if (= 1 (byte 0 1))
        true
        false))))
@@ -208,7 +210,7 @@
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "short" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->short)))))
@@ -228,7 +230,7 @@
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling & more-ranges]
-   (with-interval (format-interval-name "int" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->int)))))
@@ -262,7 +264,7 @@
 (defn char-ascii
   "Generates printable ascii characters"
   ([]
-   (with-interval (format-interval-name "char-ascii")
+   (with-interval 
      (->> ascii-range
           (source/get-bytes *source*)
           (first)
@@ -279,7 +281,7 @@
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
   ([]
-   (with-interval (format-interval-name "char-alphanumeric")
+   (with-interval 
      (->> alphanumeric-range
           (source/get-bytes *source*)
           (first)
@@ -295,7 +297,7 @@
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
   ([]
-   (with-interval (format-interval-name "char-alpha")
+   (with-interval 
      (->> alpha-range
           (source/get-bytes *source*)
           (first)
@@ -305,7 +307,7 @@
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "long" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->long)))))
@@ -325,7 +327,7 @@
   ([] (float (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (float min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "float" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->float)))))
@@ -349,7 +351,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "real-double" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source* start-of-unreal-doubles)
           (bytes/bytes->double)))))
@@ -367,7 +369,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval (format-interval-name "double" floor ceiling)
+   (with-interval 
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->double)))))
@@ -399,7 +401,7 @@
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [floor ceiling len]
-  (with-interval (format-interval-name "should-generate-elem" floor ceiling len)
+  (with-interval 
     (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
            (cond (> floor len) 1
                  (< ceiling (inc len)) 0
@@ -411,34 +413,32 @@
   ([elem-gen] (vec-of elem-gen 0))
   ([elem-gen min] (vec-of elem-gen min (+ min default-collection-max-size)))
   ([elem-gen min max]
-   (with-interval (format-interval-name "vec" min max)
+   (with-interval 
      (loop [result []]
        (let [i (count result)]
-         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+         (if-let [next (with-interval
                          (when-let [gen-next? (should-generate-elem? min max i)]
-                           (elem-gen)))]
+                          (elem-gen)))]
            (recur (conj result next))
            result))))))
 
 (defn set-of
   ([elem-gen min max]
-   (let [interval-id (source/push-interval *source* (format-interval-name "set" min max))]
+   (let [uniqueness-id (swap! set-uniqueness-id inc)]
      (loop [result #{}]
        (let [i (count result)]
-         (if-let [next (with-interval (format-interval-name "chunk for set" i)
+         (if-let [next (with-interval
                          (when-let [gen-next? (should-generate-elem? min max i)]
-                           (with-interval-and-hints "set uniqueness"
-                                                    [[::proto/immediate-children-of ::proto/unique interval-id]]
-                             (elem-gen))))]
+                           (with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
+                                                    (elem-gen))))]
            (recur (conj result next))
-           (do (source/pop-interval *source* interval-id result)
-               result)))))))
+           result))))))
 
 (defn string
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
   ([min max]
-   (with-interval (format-interval-name "string" min max)
+   (with-interval 
      (-> (vec-of char min max)
          (char-array)
          (String.)))))
@@ -457,7 +457,7 @@
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
   ([min max]
-   (with-interval (format-interval-name "string" min max)
+   (with-interval 
      (-> (vec-of char-ascii min max)
          (char-array)
          (String.)))))
@@ -476,7 +476,7 @@
   ([] (string-alphanumeric 0 default-string-max-size))
   ([min] (string-alphanumeric min (+ default-string-max-size min)))
   ([min max]
-   (with-interval (format-interval-name "string" min max)
+   (with-interval 
      (-> (vec-of char-alphanumeric min max)
          (char-array)
          (String.)))))
@@ -495,7 +495,7 @@
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
   ([min max]
-   (with-interval (format-interval-name "string" min max)
+   (with-interval 
      (-> (vec-of char-alpha min max)
          (char-array)
          (String.)))))
@@ -513,7 +513,7 @@
 (defn from
   "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
-   (with-interval (format-interval-name "from" coll)
+   (with-interval 
      (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
 
@@ -538,10 +538,10 @@
 
 (defn map-of
   ([kv-gen]
-   (with-interval (format-interval-name "map")
+   (with-interval 
      (loop [result []]
        (let [i (count result)]
-         (if-let [next (with-interval (format-interval-name "chunk for vector" i)
+         (if-let [next (with-interval 
                          (when-let [gen-next? (should-generate-elem? 0 64 i)]
                            (kv-gen)))]
            (recur (conj result next))
@@ -558,7 +558,7 @@
 (defn any
   ([] (any #{}))
   ([exclusions]
-   (with-interval (format-interval-name "any")
+   (with-interval 
      (let [chosen-generator (from (remove exclusions any-gens))]
        (chosen-generator)))))
 
@@ -577,6 +577,6 @@
          (dorun (map t/report (::reported result#)))
          (when-let [message# (format-results ~name-string result#)]
            (println message#))
-         (when undertaker.debug/debug-mode
+         (when debug/debug-mode
            (println "\n\nDebug output follows:\n")
            (println result#))))))
