@@ -19,9 +19,9 @@
 
 (s/def ::interval (s/keys :req [::interval-start
                                 ::interval-end
-                                ::generated-value
-                                ::mapped-bytes
-                                ::hints]))
+                                ::hints]
+                          :opt [::generated-value
+                                ::mapped-bytes]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
 (s/def ::completed-intervals (s/coll-of ::interval))

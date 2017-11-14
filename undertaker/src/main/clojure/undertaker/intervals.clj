@@ -5,37 +5,24 @@
             [clojure.set :as set]
             [undertaker.debug :as debug]))
 
-(defn push-interval [state hints]
-  (update state ::proto/interval-stack conj {::proto/interval-start (count (::bytes/bytes state))
-                                             ::proto/interval-depth (count (::proto/interval-stack state))
-                                             ::proto/hints          hints}))
-
-(s/fdef push-interval
-  :args (s/cat :state ::proto/source-state :hints ::proto/hints)
-  :ret ::proto/source-state)
-
-(defn pop-interval [state generated-value]
-  (let [interval-to-update (last (::proto/interval-stack state))]
-    (let [started-at (::proto/interval-start interval-to-update)
-          ending-at (count (get state ::bytes/bytes))
-          length (- ending-at started-at)]
-      (-> state
-          (update ::proto/interval-stack pop)
-          (update ::proto/completed-intervals conj (-> interval-to-update
-                                                       (assoc ::proto/interval-end ending-at)
-                                                       (assoc ::proto/generated-value generated-value)
-                                                       (assoc ::proto/mapped-bytes (->> state
-                                                                                        ::bytes/bytes
-                                                                                        (drop started-at)
-                                                                                        (take length)
-                                                                                        (vec)))))))))
-
-(s/fdef pop-interval
-  :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
-  :ret ::proto/source-state)
-
 (defmulti apply-hint*
   (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
+
+(defn has-same-hint-xf [[applies-to hint-key hint-args]]
+  (fn [xf]
+    (let [depth (volatile! ::none)]
+      (fn
+        ([] (xf))
+        ([result]
+         (xf result))
+        ([result {:keys [::proto/interval-depth ::proto/hints] :as input}]
+         (let [current-depth @depth]
+           (cond (= ::bytes/none depth)
+                 (do (dorun (map (fn [[input-applies-to input-key input-args]]
+                             (when (and (= hint-key input-key)
+                                        (= hint-args input-args))
+                               (vreset! depth interval-depth))) hints))
+                     ))))))))
 
 (defn has-same-hint [hint intervals]
   (let [hint-key (nth hint 1)
@@ -48,13 +35,12 @@
             intervals)))
 
 (s/fdef has-same-hint
-        :args (s/cat :hint ::proto/hint :intervals (s/or :wip ::proto/interval-stack
-                                                         :complete ::proto/completed-intervals))
-        :ret (s/or :wip ::proto/interval-stack
-                   :complete ::proto/completed-intervals))
+        :args (s/cat :hint ::proto/hint :intervals ::proto/completed-intervals)
+        :ret ::proto/completed-intervals)
 
 (defn get-already-generated-when-unique [hint wip-intervals completed-intervals]
   (->> (seq (has-same-hint hint completed-intervals))
+       (#(do (prn %1) %1) )
        (map ::proto/mapped-bytes)
        (into #{})))
 
@@ -95,3 +81,45 @@
                :ranges ::bytes/ranges
                :skip ::bytes/bytes-to-skip)
   :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))
+
+
+(defn push-interval [state hints]
+  (update state ::proto/interval-stack conj {::proto/interval-start (count (::bytes/bytes state))
+                                             ::proto/interval-depth (count (::proto/interval-stack state))
+                                             ::proto/hints          hints}))
+
+(s/fdef push-interval
+  :args (s/cat :state ::proto/source-state :hints ::proto/hints)
+  :ret ::proto/source-state)
+
+(defn pop-interval [state generated-value]
+  (let [interval-to-update (last (::proto/interval-stack state))]
+    (let [started-at (::proto/interval-start interval-to-update)
+          ending-at (count (get state ::bytes/bytes))
+          length (- ending-at started-at)]
+      (when (some #(= ::proto/unique (nth %1 1)) (hints-that-apply (::proto/interval-stack state)))
+        (prn (->> state
+              ::bytes/bytes
+              (drop started-at)
+              (take length)
+              (vec))))
+      (let [s (-> state
+                      (update ::proto/interval-stack pop)
+                      (update ::proto/completed-intervals conj
+                              (cond-> interval-to-update
+                                true
+                                (assoc ::proto/interval-end ending-at)
+                                (zero? (::proto/interval-depth interval-to-update))
+                                (assoc ::proto/generated-value generated-value)
+                                (some #(= ::proto/unique (nth %1 1)) (hints-that-apply (::proto/interval-stack state)))
+                                (assoc ::proto/mapped-bytes (->> state
+                                                                 ::bytes/bytes
+                                                                 (drop started-at)
+                                                                 (take length)
+                                                                 (vec))))))]
+        (prn s)
+        s))))
+
+(s/fdef pop-interval
+  :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
+  :ret ::proto/source-state)

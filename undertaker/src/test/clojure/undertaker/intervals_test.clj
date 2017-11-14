@@ -3,7 +3,8 @@
             [clojure.spec.test.alpha :as s.test]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
-            [orchestra.spec.test :as orchestra.test]))
+            [orchestra.spec.test :as orchestra.test]
+            [undertaker.intervals :as intervals]))
 
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
