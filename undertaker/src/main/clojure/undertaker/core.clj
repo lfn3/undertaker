@@ -403,7 +403,7 @@
 (defn should-generate-elem? [floor ceiling len]
   (with-interval 
     (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
-           (cond (< len floor) 1
+           (cond (> floor len) 1
                  (< ceiling (inc len)) 0
                  :default value)))))
 
