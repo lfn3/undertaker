@@ -16,12 +16,14 @@
 (s/def ::interval-end (s/or :pos pos-int? :zero zero?))
 (s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
 (s/def ::mapped-bytes ::bytes/bytes)
+(s/def ::uniqueness-hint-id int?)
 
 (s/def ::interval (s/keys :req [::interval-start
                                 ::interval-end
-                                ::generated-value
+                                ::hints]
+                          :opt [::generated-value
                                 ::mapped-bytes
-                                ::hints]))
+                                ::uniqueness-hint-id]))
 
 (s/def ::interval-stack (s/coll-of ::wip-interval))
 (s/def ::completed-intervals (s/coll-of ::interval))
