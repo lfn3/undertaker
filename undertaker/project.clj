@@ -19,6 +19,6 @@
                    :dependencies [[orchestra "0.3.0"]
                                   [org.clojure/test.check "0.9.0"]
                                   [criterium "0.4.4"]]}
-             :test {:jvm-opts ["-Dundertaker.debug=true"]}
+             :test {:jvm-opts ["-Dundertaker.debug=true" "-Xmx8g"]}
              :jmh {:jvm-opts ["-Dundertaker.debug=false"]}}
   :aliases {"bench" ["with-profile" "benchmarks" "test"]})
