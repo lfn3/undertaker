@@ -91,7 +91,7 @@
                                                 (+ 128 (rand-int 32))
                                                 (+ 128 (rand-int 32))]]))
 
-              :multi-source          {:fn   undertaker.source.multi-source/make-source
+              :multi-source          {:fn   undertaker.source.multi/make-source
                                       :args [:state/rand-int]}
 
               :wrapped-random-source {:fn   undertaker.source.wrapped-random/make-source
