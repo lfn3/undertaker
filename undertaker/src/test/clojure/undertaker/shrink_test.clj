@@ -100,7 +100,8 @@
 (deftest snip-intervals-handles-single-byte-failure
   (is (= [-19] (-> (byte-array [1 -19])
                    (shrink/snip-intervals [{::proto/interval-start 0
-                                            ::proto/interval-end   1}]
+                                            ::proto/interval-end   1
+                                            ::proto/hints [[::proto/this ::proto/snippable nil]]}]
                                           (undertaker/wrap-fn #(is (boolean? (undertaker/byte)))))
                    (vec)))))
 

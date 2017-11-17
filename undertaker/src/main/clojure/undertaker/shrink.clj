@@ -4,7 +4,8 @@
             [undertaker.source :as source]
             [clojure.test.check.generators :as gen]
             [undertaker.proto :as proto]
-            [undertaker.bytes :as bytes])
+            [undertaker.bytes :as bytes]
+            [undertaker.intervals :as intervals])
   (:import (com.lmax.undertaker OverrunException)))
 
 (defn move-towards-0 [byte]
@@ -58,9 +59,21 @@
   :args (s/cat :result-map (s/keys :req [:undertaker.core/cause]))
   :ret boolean?)
 
+;This relies on the fact that snippable intervals are direct at the moment.
+(defn is-snippable? [interval]
+  (->> interval
+       ::proto/hints
+       (some (comp (partial = ::proto/snippable) #(nth %1 1)))
+       (nil?)
+       (not)))
+
+(s/fdef is-snippable?
+  :args (s/cat :interval (s/keys :opt [::proto/hints]))
+  :ret boolean?)
+
 (defn snip-intervals [bytes intervals fn]
   (loop [index 0
-         intervals intervals
+         intervals (filter is-snippable? intervals)
          bytes bytes]
     (if (not-empty intervals)
       (let [interval (nth intervals index)
@@ -76,7 +89,7 @@
                                                            bytes)
               ;TODO: figure out if I can optimize this a bit.
               (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
-                                                                  (source/get-intervals source)
+                                                                  (filter is-snippable? (source/get-intervals source))
                                                                   shrunk-bytes)
               (and (not continue?) (or overrun? passed?)) bytes
               (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes))
