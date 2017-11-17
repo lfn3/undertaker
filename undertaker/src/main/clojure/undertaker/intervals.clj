@@ -8,10 +8,17 @@
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
   [wip-intervals]
-  (let [immediate-children-hints (if (<= 2 (count wip-intervals))
-                                   (::proto/hints (nth wip-intervals (- (count wip-intervals) 2)))
+  (let [this-hints (->> wip-intervals
+                        last
+                        ::proto/hints
+                        (filter (comp (partial = ::proto/this) first)))
+        immediate-children-hints (if (<= 2 (count wip-intervals))
+                                   (->> (- (count wip-intervals) 2)
+                                        (nth wip-intervals)
+                                        ::proto/hints
+                                        (filter (comp (partial = ::proto/immediate-children-of) first)))
                                    [])]
-    immediate-children-hints))
+    (concat this-hints immediate-children-hints)))
 
 (defn push-interval [state hints]
   (update state ::proto/interval-stack conj {::proto/interval-start (count (::bytes/bytes state))
@@ -27,34 +34,37 @@
     (let [started-at (::proto/interval-start interval-to-update)
           ending-at (count (get state ::bytes/bytes))
           length (- ending-at started-at)
-          uniqueness-hint-id (->> (hints-that-apply (::proto/interval-stack state))
+          applicable-hints (hints-that-apply (::proto/interval-stack state))
+          uniqueness-hint-id (->> applicable-hints
                                   (filter #(= ::proto/unique (nth %1 1))) ;Assumes there's only one.
                                   (last)
                                   (last))
-          top-level-interval? (zero? (::proto/interval-depth interval-to-update))]
-      (-> state
-          (update ::proto/interval-stack pop)
-          (update ::proto/completed-intervals conj
-                  (cond-> interval-to-update
-                    true
-                    (assoc ::proto/interval-end ending-at)
-                    top-level-interval?
-                    (assoc ::proto/generated-value generated-value)
-                    uniqueness-hint-id
-                    (assoc ::proto/mapped-bytes (->> state
-                                                     ::bytes/bytes
-                                                     (drop started-at)
-                                                     (take length)
-                                                     (vec)))
-                    uniqueness-hint-id
-                    (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))))))
+          top-level-interval? (zero? (::proto/interval-depth interval-to-update))
+          snippable? (some (comp (partial = ::proto/snippable) #(nth %1 1)) applicable-hints)
+          keep? (or snippable? top-level-interval? uniqueness-hint-id)]
+      (cond-> state
+              true (update ::proto/interval-stack pop)
+              keep? (update ::proto/completed-intervals conj
+                            (cond-> interval-to-update
+                                    true
+                                    (assoc ::proto/interval-end ending-at)
+                                    top-level-interval?
+                                    (assoc ::proto/generated-value generated-value)
+                                    uniqueness-hint-id
+                                    (assoc ::proto/mapped-bytes (->> state
+                                                                     ::bytes/bytes
+                                                                     (drop started-at)
+                                                                     (take length)
+                                                                     (vec)))
+                                    uniqueness-hint-id
+                                    (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))))))
 
 (s/fdef pop-interval
   :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
   :ret ::proto/source-state)
 
 (defmulti apply-hint*
-  (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
+          (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
 
 (defn get-already-generated-when-unique [[_ _ uniqueness-id] wip-intervals completed-intervals]
   (->> completed-intervals
@@ -64,8 +74,8 @@
        (into #{})))
 
 (s/fdef get-already-generated-when-unique
-        :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)
-        :ret ::bytes/bytes-to-skip)
+  :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)
+  :ret ::bytes/bytes-to-skip)
 
 (defmethod apply-hint* ::proto/unique
   [wip-intervals completed-intervals ranges skip hint]

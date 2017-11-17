@@ -383,18 +383,6 @@
 
 (def default-string-max-size 2048)
 
-(defn repeat-range [ranges size]
-  (->> ranges
-       (map (comp vec (partial map (comp vec (partial mapcat (partial repeat size))))))
-       (vec)))
-
-(s/fdef repeat-range
-  :args (s/cat :ranges ::bytes/ranges :size int?)
-  :ret ::bytes/ranges
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [size]} args]
-          (= size (count (first (first ret)))))))
-
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [floor ceiling len]
   (with-interval 
@@ -412,7 +400,7 @@
    (with-interval 
      (loop [result []]
        (let [i (count result)]
-         (if-let [next (with-interval
+         (if-let [next (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
                          (when-let [gen-next? (should-generate-elem? min max i)]
                           (elem-gen)))]
            (recur (conj result next))
@@ -423,7 +411,7 @@
    (let [uniqueness-id (swap! set-uniqueness-id inc)]
      (loop [result #{}]
        (let [i (count result)]
-         (if-let [next (with-interval
+         (if-let [next (with-interval [[::proto/this ::proto/snippable nil]]
                          (when-let [gen-next? (should-generate-elem? min max i)]
                            (with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
                                                     (elem-gen))))]
@@ -537,7 +525,7 @@
    (with-interval 
      (loop [result []]
        (let [i (count result)]
-         (if-let [next (with-interval 
+         (if-let [next (with-interval [[::proto/this ::proto/snippable nil]]
                          (when-let [gen-next? (should-generate-elem? 0 64 i)]
                            (kv-gen)))]
            (recur (conj result next))

@@ -5,8 +5,8 @@
 
 (s/def ::interval-start (s/or :pos pos-int? :zero zero?))
 (s/def ::interval-depth (s/or :pos pos-int? :zero zero?))
-(s/def ::hint-applies-to #{::immediate-children-of})
-(s/def ::hint-names #{::unique})
+(s/def ::hint-applies-to #{::immediate-children-of ::this})
+(s/def ::hint-names #{::unique ::snippable})
 (s/def ::hint-args any?)
 (s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::hint-args))
 (s/def ::hints (s/coll-of ::hint))
