@@ -37,19 +37,15 @@
 
 (def set-uniqueness-id (atom 0))
 
-(defmacro with-interval [& body]
-  `(do
-     (source/push-interval *source*)
-     (let [result# (do ~@body)]
-       (source/pop-interval *source* result#)
-       result#)))
-
 (defmacro with-interval-and-hints [hints & body]
   `(do
      (source/push-interval *source* ~hints)
      (let [result# (do ~@body)]
        (source/pop-interval *source* result#)
        result#)))
+
+(defmacro with-interval [& body]
+  `(with-interval-and-hints #{} ~@body))
 
 (defn failure? [test-report]
   (-> test-report
