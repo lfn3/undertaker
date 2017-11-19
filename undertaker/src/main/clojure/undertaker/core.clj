@@ -393,30 +393,33 @@
 
 (def default-collection-max-size 64)
 
+(defmacro collection
+  ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
+   `(collection ~collection-init-fn ~generation-fn ~add-to-coll-fn identity ~min-size ~max-size))
+  ([collection-init-fn generation-fn add-to-coll-fn conversion-fn min-size max-size]
+   `(with-interval
+      (loop [result# (~collection-init-fn)
+             i# 0]
+        (if-let [next# (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
+                                                (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
+                                                  (~generation-fn)))]
+          (recur (~add-to-coll-fn result# next#) (inc i#))
+          (~conversion-fn result#))))))
+
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
   ([elem-gen min] (vec-of elem-gen min (+ min default-collection-max-size)))
-  ([elem-gen min max]
-   (with-interval 
-     (loop [result []]
-       (let [i (count result)]
-         (if-let [next (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
-                         (when-let [gen-next? (should-generate-elem? min max i)]
-                          (elem-gen)))]
-           (recur (conj result next))
-           result))))))
+  ([elem-gen min max] (collection vector elem-gen conj min max)))
 
 (defn set-of
   ([elem-gen min max]
    (let [uniqueness-id (swap! set-uniqueness-id inc)]
-     (loop [result #{}]
-       (let [i (count result)]
-         (if-let [next (with-interval [[::proto/this ::proto/snippable nil]]
-                         (when-let [gen-next? (should-generate-elem? min max i)]
-                           (with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
-                                                    (elem-gen))))]
-           (recur (conj result next))
-           result))))))
+     (collection (fn [] #{})
+                 #(with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
+                                           (elem-gen))
+                 conj
+                 min
+                 max))))
 
 (defn string
   ([] (string 0 default-string-max-size))
@@ -521,15 +524,9 @@
   :ret keyword?)
 
 (defn map-of
-  ([kv-gen]
-   (with-interval 
-     (loop [result []]
-       (let [i (count result)]
-         (if-let [next (with-interval [[::proto/this ::proto/snippable nil]]
-                         (when-let [gen-next? (should-generate-elem? 0 64 i)]
-                           (kv-gen)))]
-           (recur (conj result next))
-           (into {} result)))))))
+  ([kv-gen] (map-of kv-gen 0 default-collection-max-size))
+  ([kv-gen min-size] (map-of kv-gen min-size (+ min-size default-collection-max-size)))
+  ([kv-gen min-size max-size] (collection vector kv-gen conj #(into {} %1) min-size max-size)))
 
 (s/fdef map-of
   :args (s/cat :kv-gen (s/fspec :args (s/cat)
