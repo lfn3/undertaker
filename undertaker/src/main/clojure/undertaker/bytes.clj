@@ -248,32 +248,31 @@
   :args (s/cat :skip (s/coll-of ::bytes) :ranges ::ranges)
   :ret ::ranges)
 
-(defn map-into-ranges
-  ([input ranges] (map-into-ranges input ranges #{}))
-  ([input ranges skip-values]
+(defn map-into-ranges!
+  ([input ranges] (map-into-ranges! input ranges #{}))
+  ([^bytes input ranges skip-values]
    (let [size (count input)
-         output-arr (byte-array size)
          ranges (punch-skip-values-out-of-ranges skip-values ranges)]
      (loop [idx 0
             all-mins true
             all-maxes true]
        (when (< idx size)
          (let [input-val (aget input idx)
-               ranges (->> (filter (partial values-in-range? (take idx output-arr)) ranges)
+               ranges (->> (filter (partial values-in-range? (take idx input)) ranges)
                            (slice-ranges idx))
                range (or (last (is-in-ranges input-val ranges))
                          (pick-range input-val ranges))
                floor (if all-mins (first range) 0)
                ceiling (if all-maxes (last range) -1)       ;TODO: some kind of short circuit based on all-mins and all-maxes?
                next-val (move-into-range input-val floor ceiling)]
-           (aset-byte output-arr idx next-val)
+           (aset-byte input idx next-val)
            (recur (inc idx)
                   (and all-mins (some true? (map #(= next-val (first %1)) ranges)))
                   (and all-maxes (some true? (map #(= next-val (last %1)) ranges)))))))
-     output-arr)))
+     input)))
 
-(s/fdef map-into-ranges
-  :args (s/cat :input ::bytes :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
+(s/fdef map-into-ranges!
+  :args (s/cat :input bytes? :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
   :ret ::bytes
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [input ranges skip-values]} args]

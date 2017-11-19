@@ -50,7 +50,7 @@
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
       (swap! state-atom update ::cursor + size)
-      (bytes/map-into-ranges bytes ranges skip)))
+      (bytes/map-into-ranges! bytes ranges skip)))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom push-interval* hints)

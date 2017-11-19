@@ -88,7 +88,7 @@
          skip-bytes (set (map short->bytes skip))]
      (-> input
          (byte-array)
-         (map-into-ranges ranges skip-bytes)
+         (map-into-ranges! ranges skip-bytes)
          (bytes->short)))))
 
 (deftest test-split-number-line-min-max-into-bytewise-min-max

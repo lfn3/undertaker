@@ -12,21 +12,21 @@
     (.nextBytes rnd arr)
     arr))
 
-(def initial-state {::proto/interval-stack []
-                    ::proto/completed-intervals  []
-                    ::bytes/bytes                []})
+(def initial-state {::proto/interval-stack      []
+                    ::proto/completed-intervals []
+                    ::bytes/bytes               []})
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
   (get-bytes [this ranges skip]
     (let [bytes-to-generate (-> ranges (first) (first) (count))
-          unmapped (get-bytes-from-java-random rnd bytes-to-generate)
+          generated (get-bytes-from-java-random rnd bytes-to-generate)
           {:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
-          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
-          mapped (bytes/map-into-ranges unmapped ranges skip)]
-      (swap! state-atom update ::bytes/bytes (fn [existing-bytes] (concat existing-bytes (vec mapped))))
-      mapped))
+          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)]
+      (bytes/map-into-ranges! generated ranges skip)
+      (swap! state-atom update ::bytes/bytes (fn [existing-bytes] (concat existing-bytes (vec generated))))
+      generated))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)

@@ -33,11 +33,11 @@
                :options {:ops-per-invocation 100}}
 
               {:name :map-into-range
-               :fn   undertaker.bytes/map-into-ranges
+               :fn   undertaker.bytes/map-into-ranges!
                :args [:state/input-arr :state/range]}
 
               {:name :map-into-ranges
-               :fn   undertaker.bytes/map-into-ranges
+               :fn   undertaker.bytes/map-into-ranges!
                :args [:state/input-arr :state/ranges]}]
 
  :states     {:rand-int              (partial rand-int 1184841129)

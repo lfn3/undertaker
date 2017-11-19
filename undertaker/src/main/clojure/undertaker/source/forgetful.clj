@@ -9,7 +9,7 @@
   (get-bytes [this ranges skip-bytes]
     (let [unmapped (byte-array (count (first (first ranges))))]
       (.nextBytes this unmapped)
-      (bytes/map-into-ranges unmapped ranges skip-bytes))))
+      (bytes/map-into-ranges! unmapped ranges skip-bytes))))
 
 (defrecord ForgetfulSource
   [rnd]
