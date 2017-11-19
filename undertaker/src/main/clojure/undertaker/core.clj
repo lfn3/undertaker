@@ -530,7 +530,9 @@
 
 (s/fdef map-of
   :args (s/cat :kv-gen (s/fspec :args (s/cat)
-                                :ret (s/tuple any? any?)))
+                                :ret (s/tuple any? any?))
+               :min-size (s/? int?)
+               :max-size (s/? int?))
   :ret map?)
 
 (def any-gens #{bool
