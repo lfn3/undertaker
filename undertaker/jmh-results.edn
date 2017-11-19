@@ -379,4 +379,22 @@
              :name        :map-into-ranges,
              :mode        :throughput,
              :threads     1,
-             :score       [10825.863336 "ops/s"]}]}
+             :score       [10825.863336 "ops/s"]}]
+ "887746c" [{:args        nil,
+             :samples     200,
+             :fn          #object[undertaker.bytes$map_into_ranges_BANG_ 0x6cd164a6 "undertaker.bytes$map_into_ranges_BANG_@6cd164a6"],
+             :score-error 1608.375551,
+             :index       0,
+             :name        :map-into-range,
+             :mode        :throughput,
+             :threads     1,
+             :score       [47588.547115 "ops/s"]}
+            {:index       0,
+             :mode        :throughput,
+             :threads     1,
+             :samples     200,
+             :score       [23482.688741 "ops/s"],
+             :score-error 359.610055,
+             :args        (:state/input-arr :state/ranges),
+             :fn          undertaker.bytes/map-into-ranges!,
+             :name        :map-into-ranges}]}
