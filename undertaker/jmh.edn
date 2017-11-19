@@ -1,4 +1,9 @@
-{:benchmarks [{:name :java-api-style-string-gen
+{:benchmarks [{:name    :java-api-style-string-gen-in-prop
+               :fn      undertaker.benchmarks/run-in-prop
+               :args    [:param/times :state/java-style-string-gen]
+               :options {:ops-per-invocation 100}}
+
+              {:name :java-api-style-string-gen
                :fn   undertaker.benchmarks/java-api-get-string
                :args [:param/size]}
 
@@ -107,7 +112,9 @@
 
               :char-gen              undertaker.core/char
               :vector-generator      {:fn   undertaker.core/vec-of
-                                      :args [:state/char-gen]}}
+                                      :args [:state/char-gen]}
+              :java-style-string-gen {:fn   undertaker.benchmarks/java-api-get-string
+                                      :args [:param/size]}}
 
  :params     {:times 100
               :size  2048}
