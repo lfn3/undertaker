@@ -61,8 +61,7 @@
   (not-any? failure? test-reports))
 
 (defn make-report-fn [an-atom]
-  (fn [msg]
-    (swap! an-atom conj msg)))
+  (fn [msg] (swap! an-atom conj msg)))
 
 (defn wrap-fn [f]
   (fn [source]
@@ -531,8 +530,8 @@
 (s/fdef map-of
   :args (s/cat :kv-gen (s/fspec :args (s/cat)
                                 :ret (s/tuple any? any?))
-               :min-size (s/? int?)
-               :max-size (s/? int?))
+               :min-size (s/? pos-int?)
+               :max-size (s/? pos-int?))
   :ret map?)
 
 (def any-gens #{bool
