@@ -1,7 +1,13 @@
 (ns undertaker.usage-test
   (:require [clojure.test :refer [deftest is] :as t]
             [undertaker.core :as undertaker]
+            [clojure.test.check.clojure-test]
+            [clojure.test.check.properties]
             [orchestra.spec.test :as orchestra.test]))
+
+(clojure.test.check.clojure-test/defspec force-load-of-tc-clojure-test-before-report-rebinding
+  (clojure.test.check.properties/for-all []
+    true))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
