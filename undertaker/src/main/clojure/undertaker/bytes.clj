@@ -183,7 +183,7 @@
     (concat coll (repeat add value))))
 
 (defn collapse-identical-ranges [ranges]
-  (filter (comp (partial reduce #(and %1 %2)) #(apply map unsigned<= %1)) ranges))
+  (filter (comp (partial reduce #(and %1 %2) true) #(apply map unsigned<= %)) ranges))
 
 (s/fdef collapse-identical-ranges
   :args (s/cat :ranges ::ranges)
