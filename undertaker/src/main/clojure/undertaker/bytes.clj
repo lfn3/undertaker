@@ -152,12 +152,19 @@
   :args (s/cat :value ::byte :ranges ::sliced-ranges)
   :ret (s/nilable ::sliced-range))
 
-(defn value-in-range? [value floor ceiling]
-  (let [[floor ceiling] (if (unsigned<= ceiling floor)
-                          [ceiling floor]
-                          [floor ceiling])]
-    (and (unsigned<= floor value)
-         (unsigned<= value ceiling))))
+(defn value-in-range?
+  ([value [floor ceiling]] (value-in-range? value floor ceiling))
+  ([value floor ceiling]
+   (let [[floor ceiling] (if (unsigned<= ceiling floor)
+                           [ceiling floor]
+                           [floor ceiling])]
+     (and (unsigned<= floor value)
+          (unsigned<= value ceiling)))))
+
+(s/fdef value-in-range?
+  :args (s/or :sliced-range (s/cat :value ::byte :sliced-range ::sliced-range)
+              :separate-vals (s/cat :value ::byte :floor ::byte :ceiling ::byte))
+  :ret boolean?)
 
 (defn values-in-range? [values range]
   (->> (map-indexed #(value-in-range? %2
@@ -168,6 +175,13 @@
 
 (defn byte-array->bits [bytes]
   (map #(.substring (Integer/toBinaryString (+ (bit-and 0xFF %1) 0x100)) 1) bytes))
+
+(defn slice-range [idx range]
+  [(nth (first range) idx) (nth (last range) idx)])
+
+(s/fdef slice-range
+  :args (s/cat :idx int? :range ::range)
+  :ret ::sliced-range)
 
 (defn slice-ranges [idx ranges]
   (->> ranges
@@ -254,21 +268,22 @@
    (let [size (count input)
          ranges (punch-skip-values-out-of-ranges skip-values ranges)]
      (loop [idx 0
+            ranges ranges
             all-mins true
             all-maxes true]
        (when (< idx size)
          (let [input-val (aget input idx)
-               ranges (->> (filter (partial values-in-range? (take idx input)) ranges)
-                           (slice-ranges idx))
-               range (or (last (is-in-ranges input-val ranges))
-                         (pick-range input-val ranges))
+               sliced-ranges (slice-ranges idx ranges)
+               range (or (last (is-in-ranges input-val sliced-ranges))
+                         (pick-range input-val sliced-ranges))
                floor (if all-mins (first range) 0)
                ceiling (if all-maxes (last range) -1)       ;TODO: some kind of short circuit based on all-mins and all-maxes?
                next-val (move-into-range input-val floor ceiling)]
            (aset-byte input idx next-val)
            (recur (inc idx)
-                  (and all-mins (some true? (map #(= next-val (first %1)) ranges)))
-                  (and all-maxes (some true? (map #(= next-val (last %1)) ranges)))))))
+                  (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
+                  (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
+                  (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
      input)))
 
 (s/fdef map-into-ranges!
@@ -276,7 +291,9 @@
   :ret ::bytes
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [input ranges skip-values]} args]
-          (not (skip-values ret)))))
+          (if-not (nil? skip-values)
+            (not (skip-values ret))
+            true))))
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
   (if (or (= floor ceiling)
