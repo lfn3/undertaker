@@ -6,6 +6,7 @@
             [orchestra.spec.test :as orchestra.test]))
 
 (clojure.test.check.clojure-test/defspec force-load-of-tc-clojure-test-before-report-rebinding
+  {:num-tests 1}
   (clojure.test.check.properties/for-all []
     true))
 
