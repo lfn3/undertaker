@@ -530,9 +530,14 @@
 (s/fdef map-of
   :args (s/cat :kv-gen (s/fspec :args (s/cat)
                                 :ret (s/tuple any? any?))
-               :min-size (s/? pos-int?)
-               :max-size (s/? pos-int?))
-  :ret map?)
+               :min-size (s/? nat-int?)
+               :max-size (s/? nat-int?))
+  :ret map?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [min-size max-size]} args]
+          (if (and min-size max-size)
+            (<= min-size max-size)
+            true))))
 
 (def any-gens #{bool
                 int})
