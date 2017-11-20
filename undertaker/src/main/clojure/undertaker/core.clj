@@ -564,6 +564,6 @@
          (dorun (map t/report (::reported result#)))
          (when-let [message# (format-results ~name-string result#)]
            (println message#))
-         (when debug/debug-mode
+         (when (:debug ~opts)
            (println "\n\nDebug output follows:\n")
            (println result#))))))
