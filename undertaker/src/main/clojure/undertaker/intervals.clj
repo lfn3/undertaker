@@ -3,7 +3,8 @@
             [undertaker.bytes :as bytes]
             [clojure.spec.alpha :as s]
             [clojure.set :as set]
-            [undertaker.debug :as debug]))
+            [undertaker.debug :as debug])
+  (:import (com.lmax.undertaker ChainedByteBuffer)))
 
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
@@ -21,9 +22,10 @@
     (concat this-hints immediate-children-hints)))
 
 (defn push-interval [state hints]
-  (update state ::proto/interval-stack conj {::proto/interval-start (count (::bytes/bytes state))
-                                             ::proto/interval-depth (count (::proto/interval-stack state))
-                                             ::proto/hints          hints}))
+  (let [^ChainedByteBuffer chained-byte-buffer (::bytes/chained-byte-buffer state)]
+    (update state ::proto/interval-stack conj {::proto/interval-start (.limit chained-byte-buffer)
+                                               ::proto/interval-depth (count (::proto/interval-stack state))
+                                               ::proto/hints          hints})))
 
 (s/fdef push-interval
   :args (s/cat :state ::proto/source-state :hints ::proto/hints)
@@ -32,7 +34,8 @@
 (defn pop-interval [state generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
     (let [started-at (::proto/interval-start interval-to-update)
-          ending-at (count (get state ::bytes/bytes))
+          ^ChainedByteBuffer chained-buffer (::bytes/chained-byte-buffer state)
+          ending-at (.limit chained-buffer)
           length (- ending-at started-at)
           applicable-hints (hints-that-apply (::proto/interval-stack state))
           uniqueness-hint-id (->> applicable-hints
@@ -51,11 +54,9 @@
                                     top-level-interval?
                                     (assoc ::proto/generated-value generated-value)
                                     uniqueness-hint-id
-                                    (assoc ::proto/mapped-bytes (->> state
-                                                                     ::bytes/bytes
-                                                                     (drop started-at)
-                                                                     (take length)
-                                                                     (vec)))
+                                    (assoc ::proto/mapped-bytes (-> chained-buffer
+                                                                    (.last)
+                                                                    (.array)))
                                     uniqueness-hint-id
                                     (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))))))
 

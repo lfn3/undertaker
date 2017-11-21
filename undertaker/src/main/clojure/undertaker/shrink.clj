@@ -33,7 +33,7 @@
     output))
 
 (s/fdef snip-interval
-  :args (s/cat :bytes ::bytes/bytes :interval (s/keys :req {::proto/interval-start ::proto/interval-end}))
+  :args (s/cat :bytes ::bytes/bytes :interval (s/keys :req [::proto/interval-start ::proto/interval-end]))
   :ret ::bytes/bytes)
 
 (defn is-overrun? [result-map]

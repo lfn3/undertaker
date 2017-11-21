@@ -34,7 +34,6 @@
     (dorun (map println targets))
     (is (empty? failures))))
 
-
 (deftest can-fail-prop
   (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))
 
@@ -148,7 +147,7 @@
   ;I think that's fine?
   (let [result (->> (fn [] (let [value (undertaker/double)]
                              (is (< value 0.9))))
-                    (undertaker/run-prop {}))
+                    (undertaker/run-prop {:debug true}))
         shrunk-val (first (::undertaker/shrunk-values result))]
-    (is (<= 0.9 shrunk-val))
-    (is (<= shrunk-val 2.0))))
+    (is (<= 0.9 shrunk-val) result)
+    (is (<= shrunk-val 2.0) result)))

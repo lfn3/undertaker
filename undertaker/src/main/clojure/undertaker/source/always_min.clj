@@ -1,11 +1,15 @@
 (ns undertaker.source.always-min
   (:require [undertaker.proto :as proto]
             [undertaker.bytes :as bytes]
-            [undertaker.intervals :as intervals]))
+            [undertaker.intervals :as intervals]
+            [undertaker.source.common :as source.common])
+  (:import (java.nio ByteBuffer)
+           (com.lmax.undertaker ChainedByteBuffer)))
 
-(def initial-state {::bytes/bytes               []
-                    ::proto/interval-stack      []
-                    ::proto/completed-intervals []})
+(defn initial-state []
+  {::proto/interval-stack      []
+   ::proto/completed-intervals []
+   ::bytes/chained-byte-buffer (ChainedByteBuffer.)})
 
 (defrecord AlwaysMinSource [state-atom]
   proto/ByteArraySource
@@ -26,9 +30,10 @@
                               (= 0 (count min-ranges)) (first ranges)
                               (= 1 (count min-ranges)) (first min-ranges)
                               (< (inc idx) (count (last ranges))) (first min-ranges)
-                              :default (recur (inc idx) min-ranges))))]
-          (swap! state-atom update ::bytes/bytes #(concat %1 (vec min-range)))
-          (byte-array min-range)))))
+                              :default (recur (inc idx) min-ranges))))
+              bytes (byte-array min-range)]
+          (.add (source.common/get-buffer state-atom) (ByteBuffer/wrap bytes))
+          bytes))))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)
@@ -41,12 +46,11 @@
   proto/Recall
   (get-sourced-bytes [_]
     (-> state-atom
-        deref
-        ::bytes/bytes
-        (byte-array)))
+        (source.common/get-buffer)
+        (.array)))
   (reset [_]
-    (reset! state-atom initial-state)))
+    (reset! state-atom (initial-state))))
 
 (defn make-always-min-source []
-  (let [state (atom initial-state)]
+  (let [state (atom (initial-state))]
     (->AlwaysMinSource state)))

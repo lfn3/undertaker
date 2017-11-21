@@ -30,7 +30,7 @@
 
 (s/def ::source-state (s/keys :req [::interval-stack
                                     ::completed-intervals
-                                    ::bytes/bytes]))
+                                    ::bytes/chained-byte-buffer]))
 
 (defn source-state-validator [state]
   (let [byte-counter (count (::bytes/bytes state))]

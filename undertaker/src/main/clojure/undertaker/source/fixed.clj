@@ -70,7 +70,5 @@
     (swap! state-atom reset-state)))
 
 (defn make-fixed-source [bytes]
-  (let [state (if debug/debug-mode
-                (atom (initial-state bytes) :validator proto/source-state-validator)
-                (atom (initial-state bytes)))]
+  (let [state (atom (initial-state bytes))]
     (->FixedSource state)))

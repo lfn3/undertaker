@@ -4,19 +4,23 @@
   (:import (com.lmax.undertaker ChainedByteBuffer)
            (java.nio ByteBuffer)))
 
+(defn get-ops []
+  (undertaker/vec-of (partial undertaker/from #{(let [b (undertaker/byte)]
+                                                  [:put b #(.put %1 b)]) ;TODO: generate a bunch of these, loop through them.
+                                                [:mark #(.mark %1)]
+                                                [:reset #(.reset %1)]
+                                                [:get #(.get %1)]
+                                                [:array #(vec (.array %1))]
+                                                [:limit #(.limit %1)]})))
+
 (undertaker/defprop chained-buffer-wrapping-single-byte-buffer-should-behave-the-same {}
   (let [some-bytes (undertaker/vec-of undertaker/byte)
         underlying (byte-array some-bytes)
         duplicated (byte-array some-bytes)
         byte-buffer (ByteBuffer/wrap underlying)
-        chained-buffer (ChainedByteBuffer. (into-array ByteBuffer [(ByteBuffer/wrap duplicated)]))
+        chained-buffer (ChainedByteBuffer. (into-array ByteBuffer [(ByteBuffer/wrap duplicated)]))]
 
-        ops (undertaker/vec-of (partial undertaker/from #{(let [b (undertaker/byte)] [:put b #(.put %1 b)])
-                                                          [:mark #(.mark %1)]
-                                                          [:reset #(.reset %1)]
-                                                          [:get #(.get %1)]}))]
-
-    (loop [remaining-ops ops]
+    (loop [remaining-ops (get-ops)]
       (when-let [op (first remaining-ops)]
         (let [ex1 (atom nil)
               ex2 (atom nil)
@@ -48,14 +52,9 @@
         second-duplicated (byte-array (drop split-at some-bytes))
         byte-buffer (ByteBuffer/wrap underlying)
         chained-buffer (ChainedByteBuffer. (into-array ByteBuffer [(ByteBuffer/wrap first-duplicated)
-                                                                   (ByteBuffer/wrap second-duplicated)]))
+                                                                   (ByteBuffer/wrap second-duplicated)]))]
 
-        ops (undertaker/vec-of (partial undertaker/from #{(let [b (undertaker/byte)] [:put b #(.put %1 b)])
-                                                          [:mark #(.mark %1)]
-                                                          [:reset #(.reset %1)]
-                                                          [:get #(.get %1)]}))]
-
-    (loop [remaining-ops ops]
+    (loop [remaining-ops (get-ops)]
       (when-let [op (first remaining-ops)]
         (let [ex1 (atom nil)
               ex2 (atom nil)

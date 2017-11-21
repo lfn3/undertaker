@@ -89,30 +89,33 @@
 
 (defn run-prop-1 [source f]
   (let [f (wrap-fn f)
-        result-map (-> (f source)
-                       (assoc ::intervals (source/get-intervals source))
-                       (assoc ::generated-bytes (vec (source/get-sourced-bytes source)))
-                       (assoc ::generated-values (map ::proto/generated-value
-                                                      (->> source
-                                                           (source/get-intervals)
-                                                           (filter (comp zero? ::proto/interval-depth))))))]
-    (if (::result result-map)
+        result-map (f source)
+        success? (::result result-map)
+        result-map (cond-> result-map
+                     debug/debug-mode (assoc ::intervals (source/get-intervals source))
+                     debug/debug-mode (assoc ::generated-bytes (vec (source/get-sourced-bytes source)))
+                     (not success?) (assoc ::generated-values
+                                           (map ::proto/generated-value
+                                                (->> source
+                                                     (source/get-intervals)
+                                                     (filter (comp zero? ::proto/interval-depth))))))]
+    (if success?
       result-map
       (let [shrunk-source (shrink/shrink (source/get-sourced-bytes source) (source/get-intervals source) f)
             shrunk-intervals (source/get-intervals shrunk-source)]
-        (-> result-map
-            (assoc ::shrunk-intervals shrunk-intervals)
-            (assoc ::shrunk-bytes (vec (source/get-sourced-bytes shrunk-source)))
-            (assoc ::shrunk-values (->> shrunk-intervals
-                                        (filter (comp zero? ::proto/interval-depth))
-                                        (map ::proto/generated-value))))))))
+        (cond-> result-map
+            debug/debug-mode (assoc ::shrunk-intervals shrunk-intervals)
+            debug/debug-mode (assoc ::shrunk-bytes (vec (source/get-sourced-bytes shrunk-source)))
+            true (assoc ::shrunk-values (->> shrunk-intervals
+                                             (filter (comp zero? ::proto/interval-depth))
+                                             (map ::proto/generated-value))))))))
 
 (s/def ::result boolean?)
 (s/def ::generated-values any?)
 (s/def ::shrunk-values any?)
 (s/def ::seed integer?)
-(s/def ::results-map (s/keys :req [::result ::generated-values]
-                             :opt [::shrunk-values ::seed]))
+(s/def ::results-map (s/keys :req [::result]
+                             :opt [::shrunk-values ::seed ::generated-values]))
 
 (s/def ::prop-fn (s/fspec :args (s/cat :source ::source/source)
                           :ret boolean?))
@@ -140,10 +143,10 @@
                         (source/reset source)
                         (recur (dec iterations-left)))
                       (-> run-data
+                          (assoc ::source source)
                           (assoc ::source-used (source/used? source))
                           (assoc ::iterations-run (- iterations (dec iterations-left)))
-                          (cond->
-                            seed (assoc ::seed seed))))))]
+                          (assoc ::seed seed)))))]
      (source/done-with-test!)
      result)))
 
@@ -192,7 +195,7 @@
 
 (defn bool
   ([]
-   (with-interval 
+   (with-interval
      (if (= 1 (byte 0 1))
        true
        false))))
@@ -205,7 +208,7 @@
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
   ([floor ceiling]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->short)))))
@@ -225,7 +228,7 @@
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling & more-ranges]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->int)))))
@@ -259,7 +262,7 @@
 (defn char-ascii
   "Generates printable ascii characters"
   ([]
-   (with-interval 
+   (with-interval
      (->> ascii-range
           (source/get-bytes *source*)
           (first)
@@ -276,7 +279,7 @@
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
   ([]
-   (with-interval 
+   (with-interval
      (->> alphanumeric-range
           (source/get-bytes *source*)
           (first)
@@ -292,7 +295,7 @@
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
   ([]
-   (with-interval 
+   (with-interval
      (->> alpha-range
           (source/get-bytes *source*)
           (first)
@@ -302,7 +305,7 @@
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->long)))))
@@ -322,7 +325,7 @@
   ([] (float (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (float min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->float)))))
@@ -346,7 +349,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source* start-of-unreal-doubles)
           (bytes/bytes->double)))))
@@ -364,7 +367,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval 
+   (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
           (bytes/bytes->double)))))
@@ -384,7 +387,7 @@
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [floor ceiling len]
-  (with-interval 
+  (with-interval
     (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
            (cond (< len floor) 1
                  (< ceiling (inc len)) 0
@@ -424,7 +427,7 @@
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
   ([min max]
-   (with-interval 
+   (with-interval
      (-> (vec-of char min max)
          (char-array)
          (String.)))))
@@ -443,7 +446,7 @@
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
   ([min max]
-   (with-interval 
+   (with-interval
      (-> (vec-of char-ascii min max)
          (char-array)
          (String.)))))
@@ -462,7 +465,7 @@
   ([] (string-alphanumeric 0 default-string-max-size))
   ([min] (string-alphanumeric min (+ default-string-max-size min)))
   ([min max]
-   (with-interval 
+   (with-interval
      (-> (vec-of char-alphanumeric min max)
          (char-array)
          (String.)))))
@@ -481,7 +484,7 @@
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
   ([min max]
-   (with-interval 
+   (with-interval
      (-> (vec-of char-alpha min max)
          (char-array)
          (String.)))))
@@ -499,7 +502,7 @@
 (defn from
   "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
-   (with-interval 
+   (with-interval
      (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
 
@@ -545,7 +548,7 @@
 (defn any
   ([] (any #{}))
   ([exclusions]
-   (with-interval 
+   (with-interval
      (let [chosen-generator (from (remove exclusions any-gens))]
        (chosen-generator)))))
 
