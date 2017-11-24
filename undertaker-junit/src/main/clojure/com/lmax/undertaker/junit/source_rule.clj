@@ -94,11 +94,11 @@
                        (getMessage [] message))))))
         (.evaluate base)))))
 
-(defn ^long -pushInterval [_ ^String interval-name]
-  (source/push-interval undertaker/*source* interval-name))
+(defn -pushInterval [_ ^String]
+  (source/push-interval undertaker/*source*))
 
-(defn -popInterval [_ ^long interval-id generated-value]
-  (source/pop-interval undertaker/*source* interval-id generated-value))
+(defn -popInterval [_ ^long generated-value]
+  (source/pop-interval undertaker/*source* generated-value))
 
 (defn ^byte -getByte
   ([this] (-getByte this Byte/MIN_VALUE Byte/MAX_VALUE))

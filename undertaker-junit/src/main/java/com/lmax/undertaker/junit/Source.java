@@ -28,7 +28,7 @@ public interface Source extends BoolSource,
                                 FromCollectionSource,
                                 ReflectiveSource,
                                 TestRule {
-    long pushInterval(String intervalName);
+    long pushInterval();
 
-    void popInterval(long intervalId, Object generatedValue);
+    void popInterval(Object generatedValue);
 }
