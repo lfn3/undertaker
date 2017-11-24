@@ -12,9 +12,12 @@ public class ChainedByteBuffer
     private int limit = 0;
     private final List<ByteBuffer> buffers;
 
+    private int stashedIndex;
+    private ByteBuffer stashedBuffer;
+
     public ChainedByteBuffer()
     {
-        buffers = new ArrayList<>();
+        buffers = new LinkedList<>();
     }
 
     public ChainedByteBuffer(ByteBuffer... buffers)
@@ -102,20 +105,50 @@ public class ChainedByteBuffer
         return buffers.get(buffers.size() - 1);
     }
 
+    public void stash(ByteBuffer b)
+    {
+        if (stashedBuffer != null)
+        {
+            throw new IllegalStateException("Stash already contains " + printableByteBuffer(b));
+        }
+        this.stashedIndex = buffers.indexOf(b);
+        if (stashedIndex == -1)
+        {
+            throw new IllegalArgumentException("Could not find buffer " + printableByteBuffer(b) + " by reference");
+        }
+
+        buffers.remove(stashedIndex);
+        stashedBuffer = b;
+    }
+
+    public void unstash()
+    {
+        buffers.add(stashedIndex, stashedBuffer);
+        discardStash();
+    }
+
+    public void discardStash()
+    {
+        stashedIndex = -1;
+        stashedBuffer = null;
+    }
+
+    private static String printableByteBuffer(ByteBuffer buf)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (byte b : buf.array()) {
+            sb.append(b);
+            sb.append(", ");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         final String bufferString = buffers.stream()
-                .map(ByteBuffer::array)
-                .map(arr -> {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("[");
-                    for (byte b : arr) {
-                        sb.append(b);
-                        sb.append(", ");
-                    }
-                    sb.append("]");
-                    return sb;
-                })
+                .map(ChainedByteBuffer::printableByteBuffer)
                 .collect(Collectors.joining(", "));
         return "ChainedByteBuffer{" +
                 "position=" + position +

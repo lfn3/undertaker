@@ -2,7 +2,9 @@
   (:require [undertaker.proto :as proto]
             [clojure.spec.alpha :as s]
             [undertaker.bytes :as bytes])
-  (:import (java.util Random)))
+  (:import (java.util Random)
+           (java.nio ByteBuffer)
+           (com.lmax.undertaker ChainedByteBuffer)))
 
 (extend-type Random
   proto/ByteArraySource
@@ -21,7 +23,9 @@
   (get-intervals [_] [])
   (get-wip-intervals [_] [])
   proto/Recall
-  (get-sourced-bytes [_] (byte-array 0))
+  (get-sourced-bytes [_] (-> (byte-array 0)
+                             (ByteBuffer/wrap)
+                             (ChainedByteBuffer.)))
   (reset [_]))
 
 (defn make-source [seed]

@@ -97,6 +97,10 @@
             (recur (inc index) intervals bytes))))
       bytes)))
 
+(s/fdef snip-intervals
+  :args (s/cat :bytes ::bytes/bytes :intervals ::proto/completed-intervals :fn fn?)
+  :ret ::bytes/bytes)
+
 (defn shrink-at!
   "MUTATES!"
   ([bytes idx]
@@ -160,24 +164,26 @@
         shrunk))))
 
 (defn shrink
-  ([bytes intervals f]
+  ([source f]
    (try
-     (source/shrinking!)
-     (let [shrunk-source (-> bytes
-                             (snip-intervals intervals f)
-                             (repeatedly-move-towards-zero f)
-                             (fixed-source/make-fixed-source))
-           _ (f shrunk-source)
-           intervals (proto/get-intervals shrunk-source)
-           shrunk-source (-> (proto/get-sourced-bytes shrunk-source)
-                             (snip-intervals intervals f)
-                             (fixed-source/make-fixed-source))]
-       (f shrunk-source)                                    ;So we get the right intervals in place. TODO: remove this.
-       shrunk-source)
+     (let [bytes (.array (source/get-sourced-bytes source))
+           intervals (source/get-intervals source)]
+       (source/shrinking!)
+       (let [shrunk-source (-> bytes
+                               (snip-intervals intervals f)
+                               (repeatedly-move-towards-zero f)
+                               (fixed-source/make-fixed-source))
+             _ (f shrunk-source)
+             intervals (proto/get-intervals shrunk-source)
+             shrunk-source (-> (source/get-sourced-bytes shrunk-source)
+                               (.array)
+                               (snip-intervals intervals f)
+                               (fixed-source/make-fixed-source))]
+         (f shrunk-source)                                  ;So we get the right intervals in place. TODO: remove this.
+         shrunk-source))
      (finally (source/done-shrinking!)))))
 
 (s/fdef shrink
-  :args (s/cat :bytes bytes?
-               :intervals (s/coll-of ::proto/interval)
+  :args (s/cat :bytes ::source/source
                :fn fn?)
   :ret ::source/source)

@@ -1,8 +1,10 @@
 (ns undertaker.source.fixed
   (:require [undertaker.proto :as proto]
             [undertaker.bytes :as bytes]
-            [undertaker.debug :as debug])
-  (:import (com.lmax.undertaker OverrunException)))
+            [undertaker.debug :as debug]
+            [clojure.spec.alpha :as s])
+  (:import (com.lmax.undertaker OverrunException ChainedByteBuffer)
+           (java.nio ByteBuffer)))
 
 (defn- push-interval* [state hints]
   (update state ::proto/interval-stack conj {::proto/interval-start (get state ::cursor)
@@ -62,13 +64,21 @@
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]
-    (-> state-atom
-        deref
-        ::bytes/bytes
-        (byte-array)))
+    (->> state-atom
+         deref
+         ::bytes/bytes
+         (byte-array)
+         (ByteBuffer/wrap)
+         (vector)
+         (into-array ByteBuffer)
+         (ChainedByteBuffer.)))
   (reset [_]
     (swap! state-atom reset-state)))
 
 (defn make-fixed-source [bytes]
   (let [state (atom (initial-state bytes))]
     (->FixedSource state)))
+
+(s/fdef make-fixed-source
+  :args (s/cat :bytes ::bytes/bytes)
+  :ret (partial instance? FixedSource))

@@ -7,7 +7,8 @@
             [undertaker.messages :as messages]
             [undertaker.bytes :as bytes]
             [undertaker.debug :as debug])
-  (:import (java.util Random)))
+  (:import (java.util Random)
+           (com.lmax.undertaker ChainedByteBuffer)))
 
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
@@ -69,9 +70,14 @@
                                       :wip-intervals wip-intervals})))
   (proto/get-intervals source))
 
-(defn get-sourced-bytes [source]
+(defn ^ChainedByteBuffer get-sourced-bytes [source]
   (check-invariants source)
   (proto/get-sourced-bytes source))
+
+(s/fdef get-sourced-bytes
+  :args (s/cat :source ::source)
+  :ret (partial instance? ChainedByteBuffer))
+
 (defn reset [source]
   (check-invariants source)
   (proto/reset source))

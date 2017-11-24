@@ -47,7 +47,7 @@
                   (first)))
         result)))
 
-(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-prop
+(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
   (let [result (undertaker/run-prop {} #(is (= 0 (undertaker/byte))))]
     (is (->> result
              ::undertaker/shrunk-values
@@ -56,34 +56,20 @@
              (not))
         result)))
 
-(deftest should-shrink-two-steps
-  (is (= [0] (vec (proto/get-sourced-bytes (shrink/shrink (byte-array [2])
-                                                          []
-                                                          (constantly {::undertaker/result false})))))))
-
-(deftest should-not-shrink-to-zero-if-does-not-fail-on-zero-shrinker
-  (is (not (zero? (-> (shrink/shrink (byte-array [2])
-                                     []
-                                     (undertaker/wrap-fn (fn [] {::undertaker/result (is (= 0 (undertaker/byte)))})))
-                      (proto/get-sourced-bytes)
-                      (first))))))
-
 (deftest should-shrink-past-1
-  (is (= [0] (-> (shrink/shrink (byte-array [5])
-                                []
-                                (undertaker/wrap-fn (fn [] {::undertaker/result (is (= 1 (undertaker/byte)))})))
-                 (proto/get-sourced-bytes)
-                 (vec)))))
+  (is (= 0 (->> #(is (= 1 (undertaker/byte)))
+                (undertaker/run-prop {})
+                ::undertaker/shrunk-values
+                (first)))))
 
 (deftest should-shrink-to-2
-  (is (= [2] (-> (shrink/shrink (byte-array [80])
-                                []
-                                (undertaker/wrap-fn (fn [] {::undertaker/result (let [value (undertaker/byte)]
-                                                                                  (is (if (= 0 value)
-                                                                                        true
-                                                                                        (odd? value))))})))
-                 (proto/get-sourced-bytes)
-                 (vec)))))
+  (is (= 2 (->> #(let [value (undertaker/byte)]
+                   (is (if (= 0 value)
+                         true
+                         (odd? value))))
+                (undertaker/run-prop {})
+                ::undertaker/shrunk-values
+                (first)))))
 
 (deftest snip-interval-test
   (is (= [0 0] (vec (shrink/snip-interval (byte-array [0 1 1 0]) {::proto/interval-start 1
@@ -92,7 +78,8 @@
 (deftest snip-intervals-should-handle-overrun-exceptions
   (is (= [0] (-> (byte-array [0])
                  (shrink/snip-intervals [{::proto/interval-start 0
-                                          ::proto/interval-end   0}]
+                                          ::proto/interval-end   0
+                                          ::proto/hints []}]
                                         (undertaker/wrap-fn #(undertaker/int)))
                  (vec)))))
 
@@ -109,9 +96,7 @@
         test-fn (-> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
                     (undertaker/wrap-fn))
         source (source.fixed/make-fixed-source bytes-to-shrink)
-        result (test-fn source)
-        intervals (source/get-intervals source)
-        shrunk-source (shrink/shrink bytes-to-shrink intervals test-fn)]
+        shrunk-source (shrink/shrink source test-fn)]
     (is (= [1] (->> (source/get-intervals shrunk-source)
                     (filter (comp zero? ::proto/interval-depth))
                     (map ::proto/generated-value)

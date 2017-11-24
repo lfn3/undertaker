@@ -93,7 +93,10 @@
         success? (::result result-map)
         result-map (cond-> result-map
                      debug/debug-mode (assoc ::intervals (source/get-intervals source))
-                     debug/debug-mode (assoc ::generated-bytes (vec (source/get-sourced-bytes source)))
+                     debug/debug-mode (assoc ::generated-bytes (-> source
+                                                                   (source/get-sourced-bytes)
+                                                                   (.array)
+                                                                   (vec)))
                      (not success?) (assoc ::generated-values
                                            (map ::proto/generated-value
                                                 (->> source
@@ -101,11 +104,15 @@
                                                      (filter (comp zero? ::proto/interval-depth))))))]
     (if success?
       result-map
-      (let [shrunk-source (shrink/shrink (source/get-sourced-bytes source) (source/get-intervals source) f)
-            shrunk-intervals (source/get-intervals shrunk-source)]
+      (let [shrunk-source (shrink/shrink source f)
+            shrunk-intervals (try (source/get-intervals shrunk-source)
+                                  (catch UndertakerDebugException e))]
         (cond-> result-map
             debug/debug-mode (assoc ::shrunk-intervals shrunk-intervals)
-            debug/debug-mode (assoc ::shrunk-bytes (vec (source/get-sourced-bytes shrunk-source)))
+            debug/debug-mode (assoc ::shrunk-bytes (-> shrunk-source
+                                                       (source/get-sourced-bytes)
+                                                       (.array)
+                                                       (vec)))
             true (assoc ::shrunk-values (->> shrunk-intervals
                                              (filter (comp zero? ::proto/interval-depth))
                                              (map ::proto/generated-value))))))))

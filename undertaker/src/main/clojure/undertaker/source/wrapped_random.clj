@@ -43,9 +43,7 @@
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
   (get-sourced-bytes [_]
-    (-> state-atom
-        (source.common/get-buffer)
-        (.array)))
+    (source.common/get-buffer state-atom))
   (reset [_]
     (reset! state-atom (initial-state))))
 
