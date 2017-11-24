@@ -30,7 +30,7 @@
           generated (ByteBuffer/wrap byte-array)
           {:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
           [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)]
-      (bytes/map-into-ranges! byte-array ranges skip)
+      (bytes/map-into-ranges! generated ranges skip)
       (.add (source.common/get-buffer state-atom) generated)
       byte-array))
   proto/Interval

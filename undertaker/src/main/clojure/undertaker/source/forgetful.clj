@@ -6,17 +6,14 @@
            (java.nio ByteBuffer)
            (com.lmax.undertaker ChainedByteBuffer)))
 
-(extend-type Random
-  proto/ByteArraySource
-  (get-bytes [this ranges skip-bytes]
-    (let [unmapped (byte-array (count (first (first ranges))))]
-      (.nextBytes this unmapped)
-      (bytes/map-into-ranges! unmapped ranges skip-bytes))))
-
 (defrecord ForgetfulSource
   [rnd]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip] (proto/get-bytes rnd ranges skip))
+  (get-bytes [_ ranges skip]
+    (let [generated (byte-array (count (first (first ranges))))]
+      (.nextBytes rnd generated)
+      (bytes/map-into-ranges! (ByteBuffer/wrap generated) ranges skip)
+      generated))
   proto/Interval
   (push-interval [_ hints])
   (pop-interval [_ generated-value])

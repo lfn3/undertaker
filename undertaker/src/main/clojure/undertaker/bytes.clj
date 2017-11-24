@@ -1,7 +1,8 @@
 (ns undertaker.bytes
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen])
-  (:import (java.nio ByteBuffer)))
+  (:import (java.nio ByteBuffer)
+           (com.lmax.undertaker ChainedByteBuffer)))
 
 (defn unsign [b] (bit-and 0xff b))
 
@@ -264,22 +265,22 @@
 
 (defn map-into-ranges!
   ([input ranges] (map-into-ranges! input ranges #{}))
-  ([^bytes input ranges skip-values]
-   (let [size (count input)
+  ([^ByteBuffer input ranges skip-values]
+   (let [size (.limit input)
          ranges (punch-skip-values-out-of-ranges skip-values ranges)]
      (loop [idx 0
             ranges ranges
             all-mins true
             all-maxes true]
        (when (< idx size)
-         (let [input-val (aget input idx)
+         (let [input-val (.get input idx)
                sliced-ranges (slice-ranges idx ranges)
                range (or (last (is-in-ranges input-val sliced-ranges))
                          (pick-range input-val sliced-ranges))
                floor (if all-mins (first range) 0)
                ceiling (if all-maxes (last range) -1)       ;TODO: some kind of short circuit based on all-mins and all-maxes?
                next-val (move-into-range input-val floor ceiling)]
-           (aset-byte input idx next-val)
+           (.put input idx next-val)
            (recur (inc idx)
                   (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
                   (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
@@ -287,12 +288,12 @@
      input)))
 
 (s/fdef map-into-ranges!
-  :args (s/cat :input bytes? :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
-  :ret ::bytes
+  :args (s/cat :input (partial instance? ByteBuffer) :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
+  :ret (partial instance? ByteBuffer)
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [input ranges skip-values]} args]
           (if-not (nil? skip-values)
-            (not (skip-values ret))
+            (not (skip-values (.array ret)))
             true))))
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
