@@ -3,19 +3,31 @@ undertaker.source.multi
   (:require [undertaker.proto :as proto]
             [undertaker.source.always-max :as source.max]
             [undertaker.source.wrapped-random :as source.random]
-            [undertaker.source.always-min :as source.zero]))
+            [undertaker.source.always-min :as source.zero]
+            [undertaker.source :as source]))
 
 (defn next-source [state]
-  (let [next-source (first (::sources state))]
+  (let [next-source (first (::sources state))
+        current-source (::current-source state)
+        current-max-size (::max-size-of-source state)
+        max-size-of-source (-> (source/get-sourced-bytes current-source)
+                               (.limit)
+                               (max current-max-size))]
     (if next-source
-      {::current-source next-source
-       ::sources        (rest (::sources state))}
+      (if (fn? next-source)
+        {::current-source (next-source max-size-of-source)
+         ::sources        (rest (::sources state))
+         ::max-size-of-source max-size-of-source}
+        {::current-source next-source
+         ::sources        (rest (::sources state))
+         ::max-size-of-source max-size-of-source})
       state)))
 
 (defn initial-state [seed]
-  {::current-source (source.max/make-always-max-source)
-   ::sources        [(source.zero/make-always-min-source)
-                     (source.random/make-source seed)]})
+  {::current-source     (source.max/make-always-max-source)
+   ::sources            [(source.zero/make-always-min-source)
+                         (partial source.random/make-source seed)]
+   ::max-size-of-source 0})
 
 (defrecord MultiSource [state-atom]
   proto/ByteArraySource
