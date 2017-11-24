@@ -167,3 +167,12 @@
   (with-bindings {#'undertaker/*source* (source.max/make-always-max-source)}
     (let [s (undertaker/set-of undertaker/int 5 5)]
       (is (= (count s) 5)))))
+
+(deftest should-be-deterministic
+  (let [r1 (atom [])
+        r2 (atom [])]
+    (undertaker/run-prop {:seed 1}
+      (fn [] (swap! r1 conj (undertaker/int))))
+    (undertaker/run-prop {:seed 1}
+      (fn [] (swap! r2 conj (undertaker/int))))
+    (is (= @r1 @r2))))
