@@ -188,7 +188,7 @@
    (with-interval      ;This is slightly ridiculous, but consistency is key!
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->byte)))))
+          (.get)))))
 
 (s/fdef byte
   :args (s/cat :min (s/? ::bytes/byte) :max (s/? ::bytes/byte))
@@ -218,7 +218,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->short)))))
+          (.getShort)))))
 
 (s/fdef short
   :args (s/cat :min (s/? int?)
@@ -238,7 +238,7 @@
    (with-interval
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->int)))))
+          (.getInt)))))
 
 (s/fdef int
   :args (s/cat :floor (s/? int?)
@@ -272,7 +272,7 @@
    (with-interval
      (->> ascii-range
           (source/get-bytes *source*)
-          (first)
+          (.get)
           (core/char)))))
 
 (s/fdef char-ascii
@@ -289,7 +289,7 @@
    (with-interval
      (->> alphanumeric-range
           (source/get-bytes *source*)
-          (first)
+          (.get)
           (core/char)))))
 
 (s/fdef char-ascii
@@ -305,7 +305,7 @@
    (with-interval
      (->> alpha-range
           (source/get-bytes *source*)
-          (first)
+          (.get)
           (core/char)))))
 
 (defn long
@@ -315,7 +315,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->long)))))
+          (.getLong)))))
 
 (s/fdef long
   :args (s/cat :min (s/? int?)
@@ -335,7 +335,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->float)))))
+          (.getFloat)))))
 
 (s/fdef float
   :args (s/cat :floor (s/? float?) :ceiling (s/? float?))
@@ -359,7 +359,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source* start-of-unreal-doubles)
-          (bytes/bytes->double)))))
+          (.getDouble)))))
 
 (s/fdef real-double
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
@@ -377,7 +377,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
-          (bytes/bytes->double)))))
+          (.getDouble)))))
 
 (s/fdef double
   :args (s/cat :floor (s/? double?) :ceiling (s/? double?))

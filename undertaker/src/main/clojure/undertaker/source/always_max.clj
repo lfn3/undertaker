@@ -31,9 +31,9 @@
                               (= 1 (count max-ranges)) (first max-ranges)
                               (< (inc idx) (count (last ranges))) (first max-ranges)
                               :default (recur (inc idx) max-ranges))))
-              generated (byte-array max-range)]
-          (.add (source.common/get-buffer state-atom) (ByteBuffer/wrap generated))
-          generated))))
+              buf (ByteBuffer/wrap (byte-array max-range))]
+          (.add (source.common/get-buffer state-atom) buf)
+          buf))))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)

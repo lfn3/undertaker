@@ -47,13 +47,14 @@
           bytes (byte-array (->> state
                                  (::bytes/bytes)
                                  (drop (::cursor state))
-                                 (take size)))]
+                                 (take size)))
+          buf (ByteBuffer/wrap bytes)]
       (when-not (= (count bytes) size)
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
       (swap! state-atom update ::cursor + size)
-      (bytes/map-into-ranges! (ByteBuffer/wrap bytes) ranges skip)
-      bytes))
+      (bytes/map-into-ranges! buf ranges skip)
+      buf))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom push-interval* hints)

@@ -8,7 +8,8 @@
             [undertaker.bytes :as bytes]
             [undertaker.debug :as debug])
   (:import (java.util Random)
-           (com.lmax.undertaker ChainedByteBuffer)))
+           (com.lmax.undertaker ChainedByteBuffer)
+           (java.nio ByteBuffer)))
 
 (s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap undertaker.source.wrapped-random/make-source (s.gen/int))))
@@ -39,7 +40,7 @@
     (every-call-in-scope-of-test-should-use-same-source source)
     (should-only-use-fixed-source-while-shrinking source)))
 
-(defn ^"[B" get-bytes
+(defn ^ByteBuffer get-bytes
   ([source ranges] (get-bytes source #{} ranges))
   ([source skip ranges]
    (check-invariants source)
@@ -47,7 +48,7 @@
 
 (s/fdef get-bytes
   :args (s/cat :source ::source :skip (s/? ::bytes/bytes-to-skip) :ranges ::bytes/ranges)
-  :ret bytes?)
+  :ret (partial instance? ByteBuffer))
 
 (defn push-interval
   ([source] (push-interval source []))

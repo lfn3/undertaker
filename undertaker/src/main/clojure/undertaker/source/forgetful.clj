@@ -10,10 +10,11 @@
   [rnd]
   proto/ByteArraySource
   (get-bytes [_ ranges skip]
-    (let [generated (byte-array (count (first (first ranges))))]
+    (let [generated (byte-array (count (first (first ranges))))
+          buf (ByteBuffer/wrap generated)]
       (.nextBytes rnd generated)
-      (bytes/map-into-ranges! (ByteBuffer/wrap generated) ranges skip)
-      generated))
+      (bytes/map-into-ranges! buf ranges skip)
+      buf))
   proto/Interval
   (push-interval [_ hints])
   (pop-interval [_ generated-value])

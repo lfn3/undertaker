@@ -31,9 +31,9 @@
                               (= 1 (count min-ranges)) (first min-ranges)
                               (< (inc idx) (count (last ranges))) (first min-ranges)
                               :default (recur (inc idx) min-ranges))))
-              bytes (byte-array min-range)]
-          (.add (source.common/get-buffer state-atom) (ByteBuffer/wrap bytes))
-          bytes))))
+              buf (ByteBuffer/wrap (byte-array min-range))]
+          (.add (source.common/get-buffer state-atom) buf)
+          buf))))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)

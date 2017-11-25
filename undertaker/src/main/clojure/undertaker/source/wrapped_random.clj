@@ -32,7 +32,7 @@
           [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)]
       (bytes/map-into-ranges! generated ranges skip)
       (.add (source.common/get-buffer state-atom) generated)
-      byte-array))
+      generated))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)

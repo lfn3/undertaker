@@ -90,8 +90,7 @@
          (byte-array)
          (ByteBuffer/wrap)
          (map-into-ranges! ranges skip-bytes)
-         (.array)
-         (bytes->short)))))
+         (.getShort)))))
 
 (deftest test-split-number-line-min-max-into-bytewise-min-max
   (let [vectorized #(->> (split-number-line-min-max-into-bytewise-min-max %1 %2 short->bytes)

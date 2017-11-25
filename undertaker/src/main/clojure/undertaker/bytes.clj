@@ -319,19 +319,10 @@
                :->bytes-fn fn?)
   :ret ::ranges)
 
-(defn bytes->byte [arr]
-  (nth arr 0))
-
 (defn byte->bytes [b]
   (let [out (byte-array 1)]
     (aset-byte out 0 b)
     out))
-
-(defn bytes->short [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getShort)))
 
 (defn short->bytes [s]
   (let [out (byte-array 2)
@@ -343,26 +334,9 @@
                       #(<= Short/MIN_VALUE %1)
                       #(<= %1 Short/MAX_VALUE)))
 
-(s/fdef bytes->short
-  :args (s/cat :arr ::bytes)
-  :ret ::short
-  :fn (fn [{:keys [args ret]}]
-        (->> (short->bytes ret)
-             (map = (-> args
-                        :arr
-                        val))
-             (every? true?))))
-
 (s/fdef short->bytes
   :args (s/cat :s ::short)
-  :ret ::bytes
-  :fn (fn [{:keys [args ret]}] (= (:s args) (bytes->short ret))))
-
-(defn bytes->int [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getInt)))
+  :ret ::bytes)
 
 (defn int->bytes [^Integer i]
   (let [out (byte-array 4)
@@ -374,35 +348,17 @@
   :args (s/cat :i integer?)
   :ret bytes?)
 
-(defn bytes->long [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getLong)))
-
 (defn long->bytes [^Long i]
   (let [out (byte-array 8)
         wrapped (ByteBuffer/wrap out)]
     (.putLong wrapped i)
     out))
 
-(defn bytes->float [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getFloat)))
-
 (defn float->bytes [^Float f]
   (let [out (byte-array 4)
         wrapped (ByteBuffer/wrap out)]
     (.putFloat wrapped f)
     out))
-
-(defn bytes->double [arr]
-  (-> arr
-      (cond-> (not (bytes? arr)) (byte-array))
-      (ByteBuffer/wrap)
-      (.getDouble)))
 
 (defn double->bytes [^Double d]
   (let [out (byte-array 8)
