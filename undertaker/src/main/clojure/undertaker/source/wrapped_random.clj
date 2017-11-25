@@ -10,6 +10,10 @@
            (java.nio ByteBuffer)
            (com.lmax.undertaker ChainedByteBuffer)))
 
+(defn ^bytes fill-from-java-random [^Random rnd ^bytes arr]
+  (.nextBytes rnd arr)
+  arr)
+
 (defn ^bytes get-bytes-from-java-random [^Random rnd ^long count]
   (let [arr (byte-array count)]
     (.nextBytes rnd arr)
@@ -19,20 +23,24 @@
   {::proto/interval-stack      []
    ::proto/completed-intervals []
    ::bytes/chained-byte-buffer (ChainedByteBuffer.)
-   ::bytes/bytes pre-genned})
+   ::bytes/bytes pre-genned
+   ::remaining-pre-genned (count pre-genned)})
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
   (get-bytes [this ranges skip]
     (let [number-of-bytes-requested (-> ranges (first) (first) (count))
-          byte-array (get-bytes-from-java-random rnd number-of-bytes-requested)
-          generated (ByteBuffer/wrap byte-array)
-          {:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
-          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)]
-      (bytes/map-into-ranges! generated ranges skip)
-      (.add (source.common/get-buffer state-atom) generated)
-      generated))
+          {:keys [::proto/interval-stack ::proto/completed-intervals ::remaining-pre-genned ::bytes/bytes]} @state-atom
+          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
+          buf (if (< number-of-bytes-requested remaining-pre-genned)
+                (let [offset (- (count bytes) remaining-pre-genned)]
+                  (swap! state-atom update ::remaining-pre-genned - number-of-bytes-requested)
+                  (ByteBuffer/wrap bytes offset number-of-bytes-requested))
+                (ByteBuffer/wrap (get-bytes-from-java-random rnd number-of-bytes-requested)))]
+      (bytes/map-into-ranges! buf ranges skip)
+      (.add (source.common/get-buffer state-atom) buf)
+      buf))
   proto/Interval
   (push-interval [_ hints]
     (swap! state-atom intervals/push-interval hints)
@@ -48,8 +56,7 @@
   (reset [_]
     (swap! state-atom #(->> %1
                             ::bytes/bytes
-                            (count)
-                            (get-bytes-from-java-random rnd)
+                            (fill-from-java-random rnd)
                             (initial-state)))))
 
 (defn make-source
