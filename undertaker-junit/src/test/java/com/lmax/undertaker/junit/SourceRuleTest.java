@@ -304,9 +304,9 @@ public class SourceRuleTest {
 
     public static Date generateDate(Source s)
     {
-        final long intervalId = s.pushInterval("Date");
+        s.pushInterval();
         final Date generatedValue = Date.from(Instant.ofEpochSecond(s.getInt()));
-        s.popInterval(intervalId, generatedValue);
+        s.popInterval(generatedValue);
 
         return generatedValue;
     }

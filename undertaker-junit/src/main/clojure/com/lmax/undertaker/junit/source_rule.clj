@@ -94,10 +94,10 @@
                        (getMessage [] message))))))
         (.evaluate base)))))
 
-(defn -pushInterval [_ ^String]
+(defn -pushInterval [_]
   (source/push-interval undertaker/*source*))
 
-(defn -popInterval [_ ^long generated-value]
+(defn -popInterval [_ generated-value]
   (source/pop-interval undertaker/*source* generated-value))
 
 (defn ^byte -getByte
