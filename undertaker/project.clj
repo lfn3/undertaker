@@ -17,6 +17,7 @@
   :profiles {:provided {:dependencies [[org.clojure/clojure "1.9.0-RC1"]]}
              :dev {:jvm-opts ["-Dundertaker.debug=true"]
                    :dependencies [[orchestra "2017.11.12-1"]
+                                  [net.lfn3/undertaker-specs ~version]
                                   [org.clojure/test.check "0.9.0"]]}
              :test {:jvm-opts ["-Dundertaker.debug=true" "-Xmx8g"]}
              :jmh {:jvm-opts ["-Dundertaker.debug=false"]}})

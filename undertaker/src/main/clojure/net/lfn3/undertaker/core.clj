@@ -1,8 +1,6 @@
 (ns net.lfn3.undertaker.core
   (:refer-clojure :exclude [int byte long double short char float keyword])
   (:require [clojure.core :as core]
-            [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as s.gen]
             [clojure.string :as str]
             [clojure.test :as t]
             [net.lfn3.undertaker.proto :as proto]
@@ -28,10 +26,6 @@
 
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
-
-(s/fdef next-seed
-  :args (s/cat :seed integer?)
-  :ret integer?)
 
 (def ^:dynamic *source* (source.sample/make-source (System/nanoTime)))
 
@@ -117,21 +111,6 @@
                                              (filter (comp zero? ::proto/interval-depth))
                                              (map ::proto/generated-value))))))))
 
-(s/def ::result boolean?)
-(s/def ::generated-values any?)
-(s/def ::shrunk-values any?)
-(s/def ::seed integer?)
-(s/def ::results-map (s/keys :req [::result]
-                             :opt [::shrunk-values ::seed ::generated-values]))
-
-(s/def ::prop-fn (s/fspec :args (s/cat :source ::source/source)
-                          :ret boolean?))
-
-(s/fdef run-prop-1
-  :args (s/cat :source ::source/source
-               :fn fn?)
-  :ret ::results-map)
-
 (defn run-prop
   ([{:keys [:seed :iterations]
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
@@ -157,25 +136,12 @@
      (source/done-with-test!)
      result)))
 
-(s/def ::iterations integer?)
-(s/def ::prop-opts-map (s/keys :opt-un [::seed ::iterations]))
-(s/def ::disallowed-values (s/coll-of ::bytes/bytes))
-
-(s/fdef run-prop
-  :args (s/cat :opts-map ::prop-opts-map
-               :fn fn?)
-  :ret ::results-map)
-
 (defn format-results [name results]
   (cond
     (and (not (::source-used results)) (::result results)) (messages/format-not-property-passed name results)
     (not (::source-used results)) (messages/format-not-property-test-failed name results)
     (not (::result results)) (messages/format-failed name results)
     :default nil))
-
-(s/fdef format-results
-  :args (s/cat :name string? :results ::results-map)
-  :ret (s/nilable string?))
 
 ;; === === === === === === === ===
 ;; Public api
@@ -190,26 +156,12 @@
           (source/get-bytes *source*)
           (.get)))))
 
-(s/fdef byte
-  :args (s/cat :min (s/? ::bytes/byte) :max (s/? ::bytes/byte))
-  :ret ::bytes/byte
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min Byte/MIN_VALUE
-                      max Byte/MAX_VALUE}} args]
-          (and (<= min ret)
-               (<= ret max)))))
-
 (defn bool
   ([]
    (with-interval
      (if (= 1 (byte 0 1))
        true
        false))))
-
-(s/fdef bool
-  :args (s/cat)
-  :ret boolean?)
 
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
@@ -220,17 +172,6 @@
           (source/get-bytes *source*)
           (.getShort)))))
 
-(s/fdef short
-  :args (s/cat :min (s/? int?)
-               :max (s/? int?))
-  :ret int?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min Short/MIN_VALUE
-                      max Short/MAX_VALUE}} args]
-          (and (<= min ret)
-               (>= max ret)))))
-
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
@@ -240,29 +181,9 @@
           (source/get-bytes *source*)
           (.getInt)))))
 
-(s/fdef int
-  :args (s/cat :floor (s/? int?)
-               :ceiling (s/? int?)
-               :more-ranges (s/* int?))
-  :ret int?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [floor ceiling more-ranges]
-               :or   {floor       Integer/MIN_VALUE
-                      ceiling     Integer/MAX_VALUE
-                      more-ranges []}} args
-              total-floor (apply min floor more-ranges)
-              total-ceiling (apply max ceiling more-ranges)]
-          (and (<= total-floor ret)
-               (>= total-ceiling ret)
-               (even? (count more-ranges))))))
-
 (defn char
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
   ([] (core/char (int 0x0000 0xD800))))
-
-(s/fdef char
-  :args (s/cat)
-  :ret char?)
 
 (def ascii-range [[[32] [126]]])
 
@@ -274,10 +195,6 @@
           (source/get-bytes *source*)
           (.get)
           (core/char)))))
-
-(s/fdef char-ascii
-  :args (s/cat)
-  :ret char?)                                               ;TODO: check against set in net.lfn3.undertaker.undertaker.usage. Need to move it to a different ns first though.
 
 (def alphanumeric-range [[[48] [57]]
                          [[65] [90]]
@@ -291,10 +208,6 @@
           (source/get-bytes *source*)
           (.get)
           (core/char)))))
-
-(s/fdef char-ascii
-  :args (s/cat)
-  :ret char?)                                               ;TODO: check against set in net.lfn3.undertaker.undertaker.usage. Need to move it to a different ns first though.
 
 (def alpha-range [[[65] [90]]
                   [[97] [122]]])
@@ -317,17 +230,6 @@
           (source/get-bytes *source*)
           (.getLong)))))
 
-(s/fdef long
-  :args (s/cat :min (s/? int?)
-               :max (s/? int?))
-  :ret int?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min Long/MIN_VALUE
-                      max Long/MAX_VALUE}} args]
-          (and (<= min ret)
-               (>= max ret)))))
-
 (defn float
   ([] (float (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (float min Double/MAX_VALUE))
@@ -336,17 +238,6 @@
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
           (source/get-bytes *source*)
           (.getFloat)))))
-
-(s/fdef float
-  :args (s/cat :floor (s/? float?) :ceiling (s/? float?))
-  :ret float?
-  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or   {floor   (- Float/MAX_VALUE)
-                                             ceiling Float/MAX_VALUE}} args]
-                                 (or (= Float/NaN ret)
-                                     (not (Float/isFinite ret))
-                                     (and (>= ret floor)
-                                          (<= ret ceiling))))))
 
 (def start-of-unreal-doubles (->> (range -1 -17 -1)
                                   (mapcat (fn [i] [[127 i] [-1 i]]))
@@ -361,15 +252,6 @@
           (source/get-bytes *source* start-of-unreal-doubles)
           (.getDouble)))))
 
-(s/fdef real-double
-  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
-  :ret double?
-  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or   {floor   (- Double/MAX_VALUE)
-                                             ceiling Double/MAX_VALUE}} args]
-                                 (and (>= ret floor)
-                                      (<= ret ceiling)))))
-
 (defn double
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
@@ -378,17 +260,6 @@
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
           (.getDouble)))))
-
-(s/fdef double
-  :args (s/cat :floor (s/? double?) :ceiling (s/? double?))
-  :ret double?
-  :fn (fn [{:keys [args ret]}] (let [{:keys [floor ceiling]
-                                      :or   {floor   (- Double/MAX_VALUE)
-                                             ceiling Double/MAX_VALUE}} args]
-                                 (or (Double/isNaN ret)
-                                     (Double/isInfinite ret)
-                                     (and (<= floor ret)
-                                          (<= ret ceiling))))))
 
 (def default-string-max-size 2048)
 
@@ -437,16 +308,6 @@
          (char-array)
          (String.)))))
 
-(s/fdef string
-  :args (s/cat :min (s/? int?) :max (s/? int?))
-  :ret string?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min 0
-                      max (+ min default-string-max-size)}} args]
-          (and (<= min (count ret))
-               (<= (count ret) max)))))
-
 (defn string-ascii
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
@@ -455,16 +316,6 @@
      (-> (vec-of char-ascii min max)
          (char-array)
          (String.)))))
-
-(s/fdef string-ascii
-  :args (s/cat :min (s/? int?) :max (s/? int?))
-  :ret string?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min 0
-                      max (+ min default-string-max-size)}} args]
-          (and (<= min (count ret))
-               (<= (count ret) max)))))
 
 (defn string-alphanumeric
   ([] (string-alphanumeric 0 default-string-max-size))
@@ -475,16 +326,6 @@
          (char-array)
          (String.)))))
 
-(s/fdef string-alphanumeric
-  :args (s/cat :min (s/? int?) :max (s/? int?))
-  :ret string?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min 0
-                      max (+ min default-string-max-size)}} args]
-          (and (<= min (count ret))
-               (<= (count ret) max)))))
-
 (defn string-alpha
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
@@ -494,27 +335,12 @@
          (char-array)
          (String.)))))
 
-(s/fdef string-alpha
-  :args (s/cat :min (s/? int?) :max (s/? int?))
-  :ret string?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min max]
-               :or   {min 0
-                      max (+ min default-string-max-size)}} args]
-          (and (<= min (count ret))
-               (<= (count ret) max)))))
-
 (defn from
   "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
    (with-interval
      (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
-
-(s/fdef from
-  :args (s/cat :coll (s/coll-of any?))
-  :ret any?
-  :fn (fn [{:keys [args ret]}] (contains? (set (:coll args)) ret)))
 
 (def char-symbol-special
   "Non-alphanumeric characters that can be in a symbol."
@@ -525,10 +351,6 @@
     (->> (concat [(from char-symbol-special)] (vec-of char-alphanumeric))
          (apply str)
          (core/keyword))))
-
-(s/fdef keyword
-  :args (s/cat)
-  :ret keyword?)
 
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
@@ -545,22 +367,6 @@
                      [k v])]
        (into {} (collection vector kv-gen conj min-size max-size))))))
 
-(s/def ::value-gen-takes-key-as-arg boolean?)
-
-(s/fdef map-of
-  :args (s/cat :key-gen (s/fspec :args (s/cat)
-                                 :ret any?)
-               :value-gen any?                              ;Can be a function or a etc, it's arity depends on opts.
-               :min-size (s/? nat-int?)
-               :max-size (s/? nat-int?)
-               :opts (s/? (s/keys :opt-un [::value-gen-takes-key-as-arg])))
-  :ret map?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [min-size max-size]} args]
-          (if (and min-size max-size)
-            (<= min-size max-size)
-            true))))
-
 (def any-gens #{bool
                 int})
 
@@ -570,12 +376,6 @@
    (with-interval
      (let [chosen-generator (from (remove exclusions any-gens))]
        (chosen-generator)))))
-
-(s/fdef any
-  :args (s/cat :exclusions (s/or :fn (s/fspec :args (s/cat :item any?)
-                                              :ret boolean?)
-                                 :set set?))
-  :ret any?)
 
 (defmacro defprop [name opts & body]
   (let [name-string (str name)]

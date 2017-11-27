@@ -15,7 +15,8 @@
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source.forgetful :as source.forgetful]
             [net.lfn3.undertaker.source.always-max :as source.max]
-            [net.lfn3.undertaker.bytes :as bytes]))
+            [net.lfn3.undertaker.bytes :as bytes]
+            [net.lfn3.undertaker.specs.core]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
