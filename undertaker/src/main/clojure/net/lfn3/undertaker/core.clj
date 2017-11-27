@@ -8,14 +8,11 @@
             [net.lfn3.undertaker.source.multi :as source.multi]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.source.sample :as source.sample]
-            [clojure.test.check.generators :as gen]
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.debug :as debug])
-  (:import (java.util Random Arrays)
-           (java.nio ByteBuffer)
-           (net.lfn3.undertaker OverrunException UndertakerDebugException)
+  (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
            (net.lfn3.undertaker.source.sample SampleSource)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
