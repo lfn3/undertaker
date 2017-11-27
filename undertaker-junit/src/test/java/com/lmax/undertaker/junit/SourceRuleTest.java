@@ -249,8 +249,10 @@ public class SourceRuleTest {
     @Test
     public void canGetAMap() throws Exception
     {
-       final Map<String, String> m = source.getMap(s -> new Pair<>(s.getString(CodePoints.ALPHANUMERIC),
-                                                                   s.getString(CodePoints.ALPHA)));
+       final Map<String, String> m = source.getMap(
+               s -> s.getString(CodePoints.ALPHANUMERIC),
+               s -> s.getString(CodePoints.ALPHA));
+
        m.keySet().forEach(s -> {
            for (char c : s.toCharArray()) {
                Assert.assertTrue(Character.isAlphabetic(c) || Character.isDigit(c));
@@ -259,6 +261,25 @@ public class SourceRuleTest {
 
         m.values().forEach(s -> {
             for (char c : s.toCharArray()) {
+                Assert.assertTrue(Character.isAlphabetic(c));
+            }
+        });
+    }
+
+    @Test
+    public void canGetAMapWhereTheValueGenTakesKeyAsAnArg() throws Exception
+    {
+        final Map<String, String> m = source.getMap(
+                s -> s.getString(CodePoints.ALPHANUMERIC),
+                (s, k) -> k + s.getString(CodePoints.ALPHA));
+
+        m.keySet().forEach(key -> {
+            for (char c : key.toCharArray()) {
+                Assert.assertTrue(Character.isAlphabetic(c) || Character.isDigit(c));
+            }
+            final String value = m.get(key);
+            Assert.assertTrue(value.startsWith(key));
+            for (char c : value.substring(key.length()).toCharArray()) {
                 Assert.assertTrue(Character.isAlphabetic(c));
             }
         });

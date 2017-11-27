@@ -136,12 +136,15 @@
     (is (keyword? k))
     (is (nil? (namespace k)))))
 
-(def kv-pairs #{[:a :b] [\c \d] ["e" "f"] [1 2]})
+(def kv-pairs {:a :b
+               \c \d
+               "e" "f"
+               1 2})
 
 (undertaker/defprop can-get-map {}
-  (let [m (undertaker/map-of (partial undertaker/from kv-pairs))]
+  (let [m (undertaker/map-of (partial undertaker/from (keys kv-pairs)) kv-pairs 0 3 {:value-gen-takes-key-as-arg true})]
     (is (map? m))
-    (is (every? kv-pairs m))))
+    (is (every? (set kv-pairs) m))))
 
 (undertaker/defprop can-get-from-singleton-collection {}
   (let [coll [1]

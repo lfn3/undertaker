@@ -9,7 +9,7 @@
   (:import (org.junit.runners.model Statement)
            (org.junit.runner Description JUnitCore Computer Request)
            (java.util List ArrayList Arrays Map HashMap Map$Entry Collection)
-           (java.util.function Function Supplier)
+           (java.util.function Function Supplier BiFunction)
            (java.lang.reflect Modifier Constructor)
            (com.lmax.undertaker.junit Seed Trials)
            (com.lmax.undertaker.junit Generator)
@@ -182,8 +182,10 @@
   ([this ^Function generator min max] (ArrayList. (undertaker/vec-of #(.apply generator this) min max))))
 
 (defn ^Map -getMap
-  ([this ^Function generator] (undertaker/map-of #(let [^Pair entry (.apply generator this)]
-                                                    [(.getKey entry) (.getValue entry)]))))
+  ([this ^Function keyGen valGen]
+   (if (instance? BiFunction valGen)
+     (undertaker/map-of #(.apply keyGen this) #(.apply valGen this %1) 0 64 {:value-gen-takes-key-as-arg true})
+     (undertaker/map-of #(.apply keyGen this) #(.apply valGen this)))))
 
 (defn -getArray
   ([this ^Class c ^Function generator] (-getArray this c generator 0 64))

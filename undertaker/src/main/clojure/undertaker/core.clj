@@ -404,16 +404,14 @@
 
 (defmacro collection
   ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
-   `(collection ~collection-init-fn ~generation-fn ~add-to-coll-fn identity ~min-size ~max-size))
-  ([collection-init-fn generation-fn add-to-coll-fn conversion-fn min-size max-size]
    `(with-interval
-      (loop [result# (~collection-init-fn)
-             i# 0]
-        (if-let [next# (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
-                                                (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
-                                                  (~generation-fn)))]
-          (recur (~add-to-coll-fn result# next#) (inc i#))
-          (~conversion-fn result#))))))
+       (loop [result# (~collection-init-fn)
+              i# 0]
+         (if-let [next# (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
+                          (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
+                            (~generation-fn)))]
+           (recur (~add-to-coll-fn result# next#) (inc i#))
+           result#)))))
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
@@ -533,15 +531,29 @@
   :ret keyword?)
 
 (defn map-of
-  ([kv-gen] (map-of kv-gen 0 default-collection-max-size))
-  ([kv-gen min-size] (map-of kv-gen min-size (+ min-size default-collection-max-size)))
-  ([kv-gen min-size max-size] (collection vector kv-gen conj #(into {} %1) min-size max-size)))
+  ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
+  ([key-gen value-gen min-size] (map-of key-gen value-gen min-size (+ min-size default-collection-max-size)))
+  ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
+  ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
+   (with-interval
+     (let [uniqueness-id (swap! set-uniqueness-id inc)
+           kv-gen #(let [k (with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
+                             (key-gen))
+                         v (if value-gen-takes-key-as-arg
+                             (value-gen k)
+                             (value-gen))]
+                     [k v])]
+       (into {} (collection vector kv-gen conj min-size max-size))))))
+
+(s/def ::value-gen-takes-key-as-arg boolean?)
 
 (s/fdef map-of
-  :args (s/cat :kv-gen (s/fspec :args (s/cat)
-                                :ret (s/tuple any? any?))
+  :args (s/cat :key-gen (s/fspec :args (s/cat)
+                                 :ret any?)
+               :value-gen any?                              ;Can be a function or a etc, it's arity depends on opts.
                :min-size (s/? nat-int?)
-               :max-size (s/? nat-int?))
+               :max-size (s/? nat-int?)
+               :opts (s/? (s/keys :opt-un [::value-gen-takes-key-as-arg])))
   :ret map?
   :fn (fn [{:keys [args ret]}]
         (let [{:keys [min-size max-size]} args]
