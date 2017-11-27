@@ -14,11 +14,9 @@
   :test-paths ["src/test/clojure" "src/test/benchmarks"]
   :target-path "target/%s"
 
-  :profiles {:dev {:jvm-opts ["-Dundertaker.debug=true"]
-                   :dependencies [[org.clojure/clojure "1.9.0-RC1"]
-
-                                  [orchestra "2017.11.12-1"]
-                                  [org.clojure/test.check "0.9.0"]
-                                  [criterium "0.4.4"]]}
+  :profiles {:provided {:dependencies [[org.clojure/clojure "1.9.0-RC1"]]}
+             :dev {:jvm-opts ["-Dundertaker.debug=true"]
+                   :dependencies [[orchestra "2017.11.12-1"]
+                                  [org.clojure/test.check "0.9.0"]]}
              :test {:jvm-opts ["-Dundertaker.debug=true" "-Xmx8g"]}
              :jmh {:jvm-opts ["-Dundertaker.debug=false"]}})
