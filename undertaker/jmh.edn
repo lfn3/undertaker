@@ -1,43 +1,43 @@
 {:benchmarks [{:name    :java-api-style-string-gen-in-prop
-               :fn      undertaker.benchmarks/run-in-prop
+               :fn      net.lfn3.undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/java-style-string-gen]
                :options {:ops-per-invocation 100}}
 
               {:name :java-api-style-string-gen
-               :fn   undertaker.benchmarks/java-api-get-string
+               :fn   net.lfn3.undertaker.benchmarks/java-api-get-string
                :args [:param/size]}
 
               {:name    :generate-vecs
-               :fn      undertaker.benchmarks/run-in-prop
+               :fn      net.lfn3.undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/vector-generator]
                :options {:ops-per-invocation 100}}
 
               {:name    :multi-source
-               :fn      undertaker.benchmarks/repeatedly-get-bytes-from-source
+               :fn      net.lfn3.undertaker.benchmarks/repeatedly-get-bytes-from-source
                :args    [:param/times :state/multi-source :state/range]
                :options {:ops-per-invocation 100}}
 
               {:name    :wrapped-random
-               :fn      undertaker.benchmarks/repeatedly-get-bytes-from-source
+               :fn      net.lfn3.undertaker.benchmarks/repeatedly-get-bytes-from-source
                :args    [:param/times :state/wrapped-random-source :state/range]
                :options {:ops-per-invocation 100}}
 
               {:name    :generate-maps
-               :fn      undertaker.benchmarks/run-in-prop
+               :fn      net.lfn3.undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/map-generator]
                :options {:ops-per-invocation 100}}
 
               {:name    :generate-string-maps
-               :fn      undertaker.benchmarks/run-in-prop
+               :fn      net.lfn3.undertaker.benchmarks/run-in-prop
                :args    [:param/times :state/string-map-generator]
                :options {:ops-per-invocation 100}}
 
               {:name :map-into-range
-               :fn   undertaker.bytes/map-into-ranges!
+               :fn   net.lfn3.undertaker.bytes/map-into-ranges!
                :args [:state/input-arr :state/range]}
 
               {:name :map-into-ranges
-               :fn   undertaker.bytes/map-into-ranges!
+               :fn   net.lfn3.undertaker.bytes/map-into-ranges!
                :args [:state/input-arr :state/ranges]}]
 
  :states     {:rand-int              (partial rand-int 1184841129)
@@ -96,24 +96,24 @@
                                                 (+ 128 (rand-int 32))
                                                 (+ 128 (rand-int 32))]]))
 
-              :multi-source          {:fn   undertaker.source.multi/make-source
+              :multi-source          {:fn   net.lfn3.undertaker.source.multi/make-source
                                       :args [:state/rand-int]}
 
-              :wrapped-random-source {:fn   undertaker.source.wrapped-random/make-source
+              :wrapped-random-source {:fn   net.lfn3.undertaker.source.wrapped-random/make-source
                                       :args [:state/rand-int]}
 
-              :map-generator         {:fn   undertaker.core/map-of
+              :map-generator         {:fn   net.lfn3.undertaker.core/map-of
                                       :args [:state/kv-gen]}
-              :kv-gen                undertaker.benchmarks/kv-gen
+              :kv-gen                net.lfn3.undertaker.benchmarks/kv-gen
 
-              :string-map-generator  {:fn   undertaker.core/map-of
+              :string-map-generator  {:fn   net.lfn3.undertaker.core/map-of
                                       :args [:state/string-kv-gen]}
-              :string-kv-gen         undertaker.benchmarks/string-kv-gen
+              :string-kv-gen         net.lfn3.undertaker.benchmarks/string-kv-gen
 
-              :char-gen              undertaker.core/char
-              :vector-generator      {:fn   undertaker.core/vec-of
+              :char-gen              net.lfn3.undertaker.core/char
+              :vector-generator      {:fn   net.lfn3.undertaker.core/vec-of
                                       :args [:state/char-gen]}
-              :java-style-string-gen {:fn   undertaker.benchmarks/java-api-get-string
+              :java-style-string-gen {:fn   net.lfn3.undertaker.benchmarks/java-api-get-string
                                       :args [:param/size]}}
 
  :params     {:times 100

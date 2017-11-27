@@ -1,6 +1,6 @@
 {"831f8de" [{:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x7a8406c2 "undertaker.benchmarks$repeatedly_get_bytes_from_source@7a8406c2"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x7a8406c2 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@7a8406c2"],
              :score-error 14890.695741,
              :index       0,
              :name        :multi-source,
@@ -10,7 +10,7 @@
              :score       [178893.004967 "ops/s"]}
             {:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x7a8406c2 "undertaker.benchmarks$repeatedly_get_bytes_from_source@7a8406c2"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x7a8406c2 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@7a8406c2"],
              :score-error 7.552895,
              :index       1,
              :name        :wrapped-random,
@@ -20,7 +20,7 @@
              :score       [241.394887 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x2ba5aa7a "undertaker.benchmarks$run_in_prop@2ba5aa7a"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x2ba5aa7a "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@2ba5aa7a"],
              :score-error 45609.806068,
              :index       2,
              :name        :generate-maps,
@@ -30,7 +30,7 @@
              :score       [2707335.757349 "ops/s"]}]
  "8760054" [{:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
              :score-error 13824.569405,
              :index       0,
              :name        :multi-source,
@@ -40,7 +40,7 @@
              :score       [181079.657844 "ops/s"]}
             {:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x622fdb81 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@622fdb81"],
              :score-error 401.936875,
              :index       1,
              :name        :wrapped-random,
@@ -50,7 +50,7 @@
              :score       [13627.904809 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x77ec6a3d "undertaker.benchmarks$run_in_prop@77ec6a3d"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x77ec6a3d "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@77ec6a3d"],
              :score-error 46837.347318,
              :index       2,
              :name        :generate-maps,
@@ -60,7 +60,7 @@
              :score       [3019307.878031 "ops/s"]}]
  "c37e8bf" [{:args        nil,
              :samples     20,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "undertaker.benchmarks$run_in_prop@a7ad6e5"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@a7ad6e5"],
              :score-error 102120.675758,
              :index       0,
              :name        :generate-vecs,
@@ -70,7 +70,7 @@
              :score       [3703410.542253 "ops/s"]}
             {:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2b10ace9 "undertaker.benchmarks$repeatedly_get_bytes_from_source@2b10ace9"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2b10ace9 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@2b10ace9"],
              :score-error 12867.982797,
              :index       1,
              :name        :multi-source,
@@ -80,7 +80,7 @@
              :score       [195521.638621 "ops/s"]}
             {:args        :state/ranges,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2b10ace9 "undertaker.benchmarks$repeatedly_get_bytes_from_source@2b10ace9"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2b10ace9 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@2b10ace9"],
              :score-error 343.230173,
              :index       2,
              :name        :wrapped-random,
@@ -90,7 +90,7 @@
              :score       [15264.925954 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "undertaker.benchmarks$run_in_prop@a7ad6e5"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@a7ad6e5"],
              :score-error 26122.410771,
              :index       3,
              :name        :generate-maps,
@@ -100,7 +100,7 @@
              :score       [3416069.492137 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "undertaker.benchmarks$run_in_prop@a7ad6e5"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0xa7ad6e5 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@a7ad6e5"],
              :score-error 31592.730742,
              :index       4,
              :name        :generate-string-maps,
@@ -110,7 +110,7 @@
              :score       [3370731.041328 "ops/s"]}
             {:args        :state/size5507,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$java_api_get_string 0x30db5536 "undertaker.benchmarks$java_api_get_string@30db5536"],
+             :fn          #object[undertaker.benchmarks$java_api_get_string 0x30db5536 "net.lfn3.undertaker.undertaker.benchmarks$java_api_get_string@30db5536"],
              :score-error 0.055433,
              :index       0,
              :name        :java-api-style-string-gen,
@@ -120,7 +120,7 @@
              :score       [3.701087 "ops/s"]}
             {:args        nil,
              :samples     10,
-             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "undertaker.bytes$map_into_ranges@d88f893"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@d88f893"],
              :score-error 0.001823,
              :index       0,
              :name        :map-into-range,
@@ -129,7 +129,7 @@
              :score       [0.003998 "s/op"]}
             {:args        nil,
              :samples     10,
-             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "undertaker.bytes$map_into_ranges@d88f893"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0xd88f893 "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@d88f893"],
              :score-error 0.002992,
              :index       0,
              :name        :map-into-ranges,
@@ -138,7 +138,7 @@
              :score       [0.004731 "s/op"]}]
  "5c90929" [{:args        :state/size5474,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$java_api_get_string 0x7235f92b "undertaker.benchmarks$java_api_get_string@7235f92b"],
+             :fn          #object[undertaker.benchmarks$java_api_get_string 0x7235f92b "net.lfn3.undertaker.undertaker.benchmarks$java_api_get_string@7235f92b"],
              :score-error 0.020278,
              :index       0,
              :name        :java-api-style-string-gen,
@@ -148,7 +148,7 @@
              :score       [4.218407 "ops/s"]}
             {:args        nil,
              :samples     100,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "undertaker.benchmarks$run_in_prop@6d6d480c"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@6d6d480c"],
              :score-error 24031.391073,
              :index       1,
              :name        :generate-vecs,
@@ -158,7 +158,7 @@
              :score       [3475601.425408 "ops/s"]}
             {:args        :state/range,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2539cd1c "undertaker.benchmarks$repeatedly_get_bytes_from_source@2539cd1c"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2539cd1c "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@2539cd1c"],
              :score-error 12587.860632,
              :index       2,
              :name        :multi-source,
@@ -168,7 +168,7 @@
              :score       [198282.164713 "ops/s"]}
             {:args        :state/range,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2539cd1c "undertaker.benchmarks$repeatedly_get_bytes_from_source@2539cd1c"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x2539cd1c "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@2539cd1c"],
              :score-error 383.665499,
              :index       3,
              :name        :wrapped-random,
@@ -178,7 +178,7 @@
              :score       [15109.353795 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "undertaker.benchmarks$run_in_prop@6d6d480c"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@6d6d480c"],
              :score-error 18821.282497,
              :index       4,
              :name        :generate-maps,
@@ -188,7 +188,7 @@
              :score       [3432436.22691 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "undertaker.benchmarks$run_in_prop@6d6d480c"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x6d6d480c "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@6d6d480c"],
              :score-error 23931.961816,
              :index       5,
              :name        :generate-string-maps,
@@ -216,7 +216,7 @@
              :score       [12123.785163 "ops/s"]}]
  "2da0da4" [{:args        :state/size5480,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$java_api_get_string 0x615e3f51 "undertaker.benchmarks$java_api_get_string@615e3f51"],
+             :fn          #object[undertaker.benchmarks$java_api_get_string 0x615e3f51 "net.lfn3.undertaker.undertaker.benchmarks$java_api_get_string@615e3f51"],
              :score-error 0.027565,
              :index       0,
              :name        :java-api-style-string-gen,
@@ -226,7 +226,7 @@
              :score       [4.12379 "ops/s"]}
             {:args        nil,
              :samples     20,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "undertaker.benchmarks$run_in_prop@19ee1ae6"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@19ee1ae6"],
              :score-error 25252.297885,
              :index       1,
              :name        :generate-vecs,
@@ -236,7 +236,7 @@
              :score       [3317060.193884 "ops/s"]}
             {:args        :state/range,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x1a2909ae "undertaker.benchmarks$repeatedly_get_bytes_from_source@1a2909ae"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x1a2909ae "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@1a2909ae"],
              :score-error 12161.529838,
              :index       2,
              :name        :multi-source,
@@ -246,7 +246,7 @@
              :score       [179291.435555 "ops/s"]}
             {:args        :state/range,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x1a2909ae "undertaker.benchmarks$repeatedly_get_bytes_from_source@1a2909ae"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x1a2909ae "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@1a2909ae"],
              :score-error 378.040264,
              :index       3,
              :name        :wrapped-random,
@@ -256,7 +256,7 @@
              :score       [14387.504493 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "undertaker.benchmarks$run_in_prop@19ee1ae6"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@19ee1ae6"],
              :score-error 34189.044508,
              :index       4,
              :name        :generate-maps,
@@ -266,7 +266,7 @@
              :score       [3144317.432231 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "undertaker.benchmarks$run_in_prop@19ee1ae6"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x19ee1ae6 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@19ee1ae6"],
              :score-error 36624.668122,
              :index       5,
              :name        :generate-string-maps,
@@ -276,7 +276,7 @@
              :score       [3158447.574875 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.bytes$map_into_ranges 0x6cd5122d "undertaker.bytes$map_into_ranges@6cd5122d"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0x6cd5122d "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@6cd5122d"],
              :score-error 198.181584,
              :index       6,
              :name        :map-into-range,
@@ -285,7 +285,7 @@
              :score       [15261.055632 "ops/s"]}
             {:args        nil,
              :samples     200,
-             :fn          #object[undertaker.bytes$map_into_ranges 0x6cd5122d "undertaker.bytes$map_into_ranges@6cd5122d"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0x6cd5122d "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@6cd5122d"],
              :score-error 99.976441,
              :index       7,
              :name        :map-into-ranges,
@@ -294,7 +294,7 @@
              :score       [11657.297208 "ops/s"]}],
  "c568dc1" [{:args        [:state/times5510 :state/java-style-string-gen],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "undertaker.benchmarks$run_in_prop@3968bc60"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@3968bc60"],
              :score-error 118579.093563,
              :index       0,
              :name        :java-api-style-string-gen-in-prop,
@@ -304,7 +304,7 @@
              :score       [1.7610951622407E7 "ops/s"]}
             {:args        [:state/size5511],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$java_api_get_string 0x7e74a380 "undertaker.benchmarks$java_api_get_string@7e74a380"],
+             :fn          #object[undertaker.benchmarks$java_api_get_string 0x7e74a380 "net.lfn3.undertaker.undertaker.benchmarks$java_api_get_string@7e74a380"],
              :score-error 0.026044,
              :index       1,
              :name        :java-api-style-string-gen,
@@ -314,7 +314,7 @@
              :score       [4.343473 "ops/s"]}
             {:args        [:state/times5510 :state/vector-generator],
              :samples     20,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "undertaker.benchmarks$run_in_prop@3968bc60"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@3968bc60"],
              :score-error 89058.972908,
              :index       2,
              :name        :generate-vecs,
@@ -324,7 +324,7 @@
              :score       [3115299.669353 "ops/s"]}
             {:args        [:state/times5510 :state/multi-source :state/range],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x5a6d30e2 "undertaker.benchmarks$repeatedly_get_bytes_from_source@5a6d30e2"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x5a6d30e2 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@5a6d30e2"],
              :score-error 13432.702583,
              :index       3,
              :name        :multi-source,
@@ -334,7 +334,7 @@
              :score       [176518.834448 "ops/s"]}
             {:args        [:state/times5510 :state/wrapped-random-source :state/range],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x5a6d30e2 "undertaker.benchmarks$repeatedly_get_bytes_from_source@5a6d30e2"],
+             :fn          #object[undertaker.benchmarks$repeatedly_get_bytes_from_source 0x5a6d30e2 "net.lfn3.undertaker.undertaker.benchmarks$repeatedly_get_bytes_from_source@5a6d30e2"],
              :score-error 440.704201,
              :index       4,
              :name        :wrapped-random,
@@ -344,7 +344,7 @@
              :score       [14047.352145 "ops/s"]}
             {:args        [:state/times5510 :state/map-generator],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "undertaker.benchmarks$run_in_prop@3968bc60"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@3968bc60"],
              :score-error 31680.2698,
              :index       5,
              :name        :generate-maps,
@@ -354,7 +354,7 @@
              :score       [3163117.082987 "ops/s"]}
             {:args        [:state/times5510 :state/string-map-generator],
              :samples     200,
-             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "undertaker.benchmarks$run_in_prop@3968bc60"],
+             :fn          #object[undertaker.benchmarks$run_in_prop 0x3968bc60 "net.lfn3.undertaker.undertaker.benchmarks$run_in_prop@3968bc60"],
              :score-error 35831.930154,
              :index       6,
              :name        :generate-string-maps,
@@ -364,7 +364,7 @@
              :score       [3149613.31954 "ops/s"]}
             {:args        [:state/input-arr :state/range],
              :samples     200,
-             :fn          #object[undertaker.bytes$map_into_ranges 0x6f911326 "undertaker.bytes$map_into_ranges@6f911326"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0x6f911326 "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@6f911326"],
              :score-error 221.643317,
              :index       7,
              :name        :map-into-range,
@@ -373,7 +373,7 @@
              :score       [14844.630737 "ops/s"]}
             {:args        [:state/input-arr :state/ranges],
              :samples     200,
-             :fn          #object[undertaker.bytes$map_into_ranges 0x6f911326 "undertaker.bytes$map_into_ranges@6f911326"],
+             :fn          #object[undertaker.bytes$map_into_ranges 0x6f911326 "net.lfn3.undertaker.undertaker.bytes$map_into_ranges@6f911326"],
              :score-error 66.346687,
              :index       8,
              :name        :map-into-ranges,
@@ -382,7 +382,7 @@
              :score       [10825.863336 "ops/s"]}]
  "887746c" [{:args        nil,
              :samples     200,
-             :fn          #object[undertaker.bytes$map_into_ranges_BANG_ 0x6cd164a6 "undertaker.bytes$map_into_ranges_BANG_@6cd164a6"],
+             :fn          #object[undertaker.bytes$map_into_ranges_BANG_ 0x6cd164a6 "net.lfn3.undertaker.undertaker.bytes$map_into_ranges_BANG_@6cd164a6"],
              :score-error 1608.375551,
              :index       0,
              :name        :map-into-range,

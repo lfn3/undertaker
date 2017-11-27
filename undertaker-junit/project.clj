@@ -1,11 +1,11 @@
 (def version "0.1.0-SNAPSHOT")
 
-(defproject com.lmax/undertaker-junit version
+(defproject net.lfn3/undertaker-junit version
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[com.lmax/undertaker ~version]]
+  :dependencies [[net.lfn3/undertaker ~version]]
 
   :plugins [[lein-junit "1.1.8"]
             [lein-jmh "0.2.2"]]
@@ -23,4 +23,4 @@
                         :dependencies [[orchestra "2017.11.12-1"]]}
              :jmh      {:jvm-opts ["-Dundertaker.debug=false"]}}
 
-  :aot [com.lmax.undertaker.junit.source-rule])
+  :aot [net.lfn3.undertaker.junit.source-rule])
