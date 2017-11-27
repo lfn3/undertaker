@@ -4,7 +4,8 @@
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as s.test]
-            [orchestra.spec.test :as orchestra.test])
+            [orchestra.spec.test :as orchestra.test]
+            [net.lfn3.undertaker.specs.bytes])
   (:import (java.nio ByteBuffer)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)

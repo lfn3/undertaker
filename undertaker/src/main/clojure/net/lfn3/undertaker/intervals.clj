@@ -27,10 +27,6 @@
                                                ::proto/interval-depth (count (::proto/interval-stack state))
                                                ::proto/hints          hints})))
 
-(s/fdef push-interval
-  :args (s/cat :state ::proto/source-state :hints ::proto/hints)
-  :ret ::proto/source-state)
-
 (defn pop-interval [state generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
     (let [started-at (::proto/interval-start interval-to-update)
@@ -60,10 +56,6 @@
                                     uniqueness-hint-id
                                     (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))))))
 
-(s/fdef pop-interval
-  :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
-  :ret ::proto/source-state)
-
 (defmulti apply-hint*
           (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
 
@@ -73,10 +65,6 @@
        (seq)
        (map ::proto/mapped-bytes)
        (into #{})))
-
-(s/fdef get-already-generated-when-unique
-  :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)
-  :ret ::bytes/bytes-to-skip)
 
 (defmethod apply-hint* ::proto/unique
   [wip-intervals completed-intervals ranges skip hint]
@@ -96,10 +84,3 @@
         (let [[ranges skip] (apply-hint* wip-intervals completed-intervals ranges skip hint)]
           (recur ranges skip (rest hints)))
         [ranges skip]))))
-
-(s/fdef apply-hints
-  :args (s/cat :wip-intervals ::proto/interval-stack
-               :completed-intervals ::proto/completed-intervals
-               :ranges ::bytes/ranges
-               :skip ::bytes/bytes-to-skip)
-  :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))

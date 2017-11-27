@@ -1,39 +1,9 @@
 (ns net.lfn3.undertaker.proto
   (:require [clojure.spec.alpha :as s]
-            [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.debug :as debug]))
 
-(s/def ::interval-start (s/or :pos pos-int? :zero zero?))
-(s/def ::interval-depth (s/or :pos pos-int? :zero zero?))
-(s/def ::hint-applies-to #{::immediate-children-of ::this})
-(s/def ::hint-names #{::unique ::snippable})
-(s/def ::hint-args any?)
-(s/def ::hint (s/tuple ::hint-applies-to ::hint-names ::hint-args))
-(s/def ::hints (s/coll-of ::hint))
-
-(s/def ::wip-interval (s/keys :req [::interval-start ::hints ::interval-depth]))
-
-(s/def ::interval-end (s/or :pos pos-int? :zero zero?))
-(s/def ::generated-value (s/with-gen any? #(s/gen nil?)))
-(s/def ::mapped-bytes ::bytes/bytes)
-(s/def ::uniqueness-hint-id int?)
-
-(s/def ::interval (s/keys :req [::interval-start
-                                ::interval-end
-                                ::hints]
-                          :opt [::generated-value
-                                ::mapped-bytes
-                                ::uniqueness-hint-id]))
-
-(s/def ::interval-stack (s/coll-of ::wip-interval))
-(s/def ::completed-intervals (s/coll-of ::interval))
-
-(s/def ::source-state (s/keys :req [::interval-stack
-                                    ::completed-intervals
-                                    ::bytes/chained-byte-buffer]))
-
 (defn source-state-validator [state]
-  (let [byte-counter (count (::bytes/bytes state))]
+  (let [byte-counter (count (:net.lfn3.undertaker.bytes/bytes state))]
     (when-not (s/valid? ::source-state state)
       (throw (debug/internal-exception "Did not match spec" {:explained (s/explain ::source-state state)})))
 

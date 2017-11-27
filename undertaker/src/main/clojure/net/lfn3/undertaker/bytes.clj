@@ -1,6 +1,4 @@
 (ns net.lfn3.undertaker.bytes
-  (:require [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as s.gen])
   (:import (java.nio ByteBuffer)
            (net.lfn3.undertaker ChainedByteBuffer)))
 
@@ -10,10 +8,6 @@
   (and (integer? b)
        (>= Byte/MAX_VALUE b)
        (<= Byte/MIN_VALUE b)))
-
-(s/fdef byte?
-  :args (s/cat :b number?)
-  :ret boolean?)
 
 (defn range<xf []
   (fn [xf]
@@ -33,9 +27,6 @@
   (->> (map (fn [v1 v2] [v1 v2]) (last range1) (first range2))
        (transduce (range<xf) identity [])))
 
-(s/fdef range<
-  :args (s/cat :range1 ::range :range2 ::range)
-  :ret boolean?)
 ;This exists so I can test this and the ranges-are-sorted-fn without tearing my hair out.
 (defn conformed-range< [range1 range2]
   (range< (val range1) (val range2)))
@@ -58,36 +49,10 @@
 
 (defn ranges-are-sorted?                                    ;TODO: check if ranges are internally sorted
   ([ranges] (ranges-are-sorted-xf conformed-range<))
-  ([ranges range<fn]
-   (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
-
-(s/def ::byte (s/with-gen
-                (s/and integer?
-                       byte?)
-                #(s/gen (set (range Byte/MIN_VALUE Byte/MAX_VALUE)))))
-
-(s/def ::bytes (s/or :arr bytes?
-                     :coll (s/coll-of ::byte)))
-
-(s/def ::bytes-to-skip (s/with-gen (s/and (s/coll-of ::bytes) set?)
-                                   #(s.gen/fmap set (s/gen (s/coll-of ::bytes)))))
-(s/def ::range (s/tuple ::bytes ::bytes))
-(s/def ::ranges (s/and (s/coll-of ::range)
-                       ranges-are-sorted?))
-(s/def ::sliced-range (s/tuple ::byte ::byte))
-(s/def ::sliced-ranges (s/coll-of ::sliced-range))
+  ([ranges range<fn] (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
 
 (defn unsigned<= [x y]
   (not= 1 (Long/compareUnsigned x y)))
-
-(s/fdef unsigned<=
-  :args (s/cat :x int? :y int?)
-  :ret boolean?
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [x y]} args]
-          (if (= (Long/signum x) (Long/signum y))
-            (= ret (<= x y))
-            (= ret (or (zero? x) (neg? y)))))))
 
 (defn unsigned-range [floor ceiling]
   (- (unsign ceiling) (unsign floor)))
@@ -111,26 +76,14 @@
                     (+ unchecked-floor)
                     (checked-byte))))))
 
-(s/fdef move-into-range
-  :args (s/cat :b ::byte :floor ::byte :ceiling ::byte :skip-values (s/? ::bytes))
-  :ret ::byte)
-
 (defn is-in-range [value range]
   (and (unsigned<= (first range) value)
        (unsigned<= value (last range))))
-
-(s/fdef is-in-range
-  :args (s/cat :value ::byte :range ::sliced-range)
-  :ret boolean?)
 
 (defn is-in-ranges [value ranges]
   (->> ranges
        (filter (partial is-in-range value))
        (seq)))
-
-(s/fdef is-in-ranges
-  :args (s/cat :value ::byte :ranges ::sliced-ranges)
-  :ret (s/nilable ::sliced-ranges))
 
 (defn range-by-idx [range]
   (map (fn [lower upper] [lower upper]) (first range) (last range)))
@@ -141,17 +94,9 @@
        (map is-in-range value)
        (every? true?)))
 
-(s/fdef bytes-are-in-range
-  :args (s/cat :value ::bytes :range ::range)
-  :ret boolean?)
-
 (defn pick-range [value ranges]
   (when (seq ranges)
     (nth ranges (mod value (count ranges)))))
-
-(s/fdef pick-range
-  :args (s/cat :value ::byte :ranges ::sliced-ranges)
-  :ret (s/nilable ::sliced-range))
 
 (defn value-in-range?
   ([value [floor ceiling]] (value-in-range? value floor ceiling))
@@ -162,11 +107,6 @@
      (and (unsigned<= floor value)
           (unsigned<= value ceiling)))))
 
-(s/fdef value-in-range?
-  :args (s/or :sliced-range (s/cat :value ::byte :sliced-range ::sliced-range)
-              :separate-vals (s/cat :value ::byte :floor ::byte :ceiling ::byte))
-  :ret boolean?)
-
 (defn values-in-range? [values range]
   (->> (map-indexed #(value-in-range? %2
                                       (nth (first range) %1)
@@ -174,24 +114,13 @@
                     values)
        (every? true?)))
 
-(defn byte-array->bits [bytes]
-  (map #(.substring (Integer/toBinaryString (+ (bit-and 0xFF %1) 0x100)) 1) bytes))
-
 (defn slice-range [idx range]
   [(nth (first range) idx) (nth (last range) idx)])
-
-(s/fdef slice-range
-  :args (s/cat :idx int? :range ::range)
-  :ret ::sliced-range)
 
 (defn slice-ranges [idx ranges]
   (->> ranges
        (map (partial map #(nth %1 idx)))
        (map vec)))
-
-(s/fdef slice-ranges
-  :args (s/cat :idx int? :ranges ::ranges)
-  :ret ::sliced-ranges)
 
 (defn fill [coll target-size value]
   (let [add (- target-size (count coll))]
@@ -199,10 +128,6 @@
 
 (defn collapse-identical-ranges [ranges]
   (filter (comp (partial reduce #(and %1 %2) true) #(apply map unsigned<= %)) ranges))
-
-(s/fdef collapse-identical-ranges
-  :args (s/cat :ranges ::ranges)
-  :ret ::ranges)
 
 (defn handle-underflow [bytes update-fn]
   (loop [idx (dec (count bytes))
@@ -237,18 +162,10 @@
          (collapse-identical-ranges)
          (vec))))
 
-(s/fdef punch-skip-value-out-of-range
-  :args (s/cat :range ::range :skip-value ::bytes)
-  :ret ::ranges)
-
 (defn punch-skip-value-out-if-in-range [range skip-value]
   (if (bytes-are-in-range skip-value range)
     (punch-skip-value-out-of-range range skip-value)
     [range]))
-
-(s/fdef punch-skip-value-out-if-in-range
-  :args (s/cat :range ::range :skip ::bytes)
-  :ret ::ranges)
 
 (defn punch-skip-values-out-of-ranges
   [skip-bytes ranges]
@@ -258,10 +175,6 @@
       (recur (mapcat #(punch-skip-value-out-if-in-range %1 skip) ranges)
              (rest skip-bytes))
       (vec ranges))))
-
-(s/fdef punch-skip-values-out-of-ranges
-  :args (s/cat :skip (s/coll-of ::bytes) :ranges ::ranges)
-  :ret ::ranges)
 
 (defn map-into-ranges!
   ([input ranges] (map-into-ranges! input ranges #{}))
@@ -287,15 +200,6 @@
                   (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
      input)))
 
-(s/fdef map-into-ranges!
-  :args (s/cat :input (partial instance? ByteBuffer) :ranges ::ranges :skip-values (s/? ::bytes-to-skip))
-  :ret (partial instance? ByteBuffer)
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [input ranges skip-values]} args]
-          (if-not (nil? skip-values)
-            (not (skip-values (.array ret)))
-            true))))
-
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
   (if (or (= floor ceiling)
           (and (zero? floor) (pos? ceiling))
@@ -304,20 +208,11 @@
     [[(->bytes-fn floor) (->bytes-fn ceiling)]]
     [[(->bytes-fn floor) (->bytes-fn -1)] [(->bytes-fn 0) (->bytes-fn ceiling)]]))
 
-(s/fdef split-number-line-min-max-into-bytewise-min-max
-  :args (s/cat :floor number? :ceiling number? :->bytes-fn fn?)
-  :ret ::ranges)
-
 (defn split-number-line-ranges-into-bytewise-min-max
   ([ranges ->bytes-fn]
    (->> ranges
         (partition 2)
         (mapcat (fn [[floor ceiling]] (split-number-line-min-max-into-bytewise-min-max floor ceiling ->bytes-fn))))))
-
-(s/fdef split-number-line-ranges-into-bytewise-min-max
-  :args (s/cat :ranges (s/and (s/coll-of number?) (comp even? count))
-               :->bytes-fn fn?)
-  :ret ::ranges)
 
 (defn byte->bytes [b]
   (let [out (byte-array 1)]
@@ -330,23 +225,11 @@
     (.putShort wrapped s)
     out))
 
-(s/def ::short (s/and int?
-                      #(<= Short/MIN_VALUE %1)
-                      #(<= %1 Short/MAX_VALUE)))
-
-(s/fdef short->bytes
-  :args (s/cat :s ::short)
-  :ret ::bytes)
-
 (defn int->bytes [^Integer i]
   (let [out (byte-array 4)
         wrapped (ByteBuffer/wrap out)]
     (.putInt wrapped i)
     out))
-
-(s/fdef int->bytes
-  :args (s/cat :i integer?)
-  :ret bytes?)
 
 (defn long->bytes [^Long i]
   (let [out (byte-array 8)

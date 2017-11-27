@@ -8,7 +8,9 @@
             [clojure.string :as str]
             [clojure.spec.test.alpha :as s.test]
             [clojure.spec.alpha :as s]
-            [net.lfn3.undertaker.source.fixed :as source.fixed]))
+            [net.lfn3.undertaker.source.fixed :as source.fixed]
+            [net.lfn3.undertaker.specs.shrink]
+            [net.lfn3.undertaker.specs.proto]))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
