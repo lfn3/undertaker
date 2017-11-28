@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.source.wrapped-random
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.intervals :as intervals]
-            [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.set :as set]
             [net.lfn3.undertaker.debug :as debug]
@@ -64,11 +63,5 @@
   ([^long seed ^long size-to-pre-gen]
    (let [rnd (Random. seed)
          pre-genned (get-bytes-from-java-random rnd size-to-pre-gen)
-         state (if debug/debug-mode
-                 (atom (initial-state pre-genned) :validator proto/source-state-validator)
-                 (atom (initial-state pre-genned)))]
+         state (atom (initial-state pre-genned))]
      (->WrappedRandomSource rnd state))))
-
-(s/fdef make-source
-  :args (s/cat :seed integer? :size-to-pre-gen (s/? integer?))
-  :ret (comp (partial extends? proto/ByteArraySource) class))

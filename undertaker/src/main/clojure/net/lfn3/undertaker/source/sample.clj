@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.source.sample
   (:require [net.lfn3.undertaker.source.forgetful :as source.forgetful]
-            [net.lfn3.undertaker.proto :as proto]
-            [clojure.spec.alpha :as s])
+            [net.lfn3.undertaker.proto :as proto])
   (:import (java.util Random)))
 
 (defrecord SampleSource
@@ -19,7 +18,3 @@
 
 (defn make-source [seed]
   (->SampleSource (source.forgetful/make-source seed)))
-
-(s/fdef make-source
-        :args (s/cat :seed integer?)
-        :ret (comp (partial extends? proto/ByteArraySource) class))

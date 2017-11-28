@@ -1,8 +1,7 @@
 (ns net.lfn3.undertaker.source.fixed
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.debug :as debug]
-            [clojure.spec.alpha :as s])
+            [net.lfn3.undertaker.debug :as debug])
   (:import (net.lfn3.undertaker OverrunException ChainedByteBuffer)
            (java.nio ByteBuffer)))
 
@@ -80,7 +79,3 @@
 (defn make-fixed-source [bytes]
   (let [state (atom (initial-state bytes))]
     (->FixedSource state)))
-
-(s/fdef make-fixed-source
-  :args (s/cat :bytes ::bytes/bytes)
-  :ret (partial instance? FixedSource))

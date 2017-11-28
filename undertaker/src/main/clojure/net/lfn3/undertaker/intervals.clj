@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.intervals
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [clojure.spec.alpha :as s]
             [clojure.set :as set]
             [net.lfn3.undertaker.debug :as debug])
   (:import (net.lfn3.undertaker ChainedByteBuffer)))

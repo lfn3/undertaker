@@ -18,7 +18,6 @@
              :dev      {:source-paths ["src/specs/clojure"]
                         :jvm-opts     ["-Dundertaker.debug=true"]
                         :dependencies [[orchestra "2017.11.12-1"]
-                                       [net.lfn3/undertaker-specs ~version]
                                        [org.clojure/test.check "0.9.0"]]}
 
              :specs-jar {:source-paths ^:replace ["src/specs/clojure"]

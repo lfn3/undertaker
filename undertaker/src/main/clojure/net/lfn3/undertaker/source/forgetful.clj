@@ -1,6 +1,5 @@
 (ns net.lfn3.undertaker.source.forgetful
   (:require [net.lfn3.undertaker.proto :as proto]
-            [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.bytes :as bytes])
   (:import (java.util Random)
            (java.nio ByteBuffer)
@@ -29,7 +28,3 @@
 (defn make-source [seed]
   (let [rnd (Random. seed)]
     (->ForgetfulSource rnd)))
-
-(s/fdef make-source
-  :args (s/cat :seed integer?)
-  :ret (comp (partial extends? proto/ByteArraySource) class))

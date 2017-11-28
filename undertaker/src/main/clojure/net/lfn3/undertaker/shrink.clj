@@ -1,6 +1,5 @@
 (ns net.lfn3.undertaker.shrink
   (:require [net.lfn3.undertaker.source.fixed :as fixed-source]
-            [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.source :as source]
             [clojure.test.check.generators :as gen]
             [net.lfn3.undertaker.proto :as proto]
