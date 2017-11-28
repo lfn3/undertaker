@@ -16,8 +16,7 @@
              :dev       {:source-paths      ["src/specs/clojure"]
                          :jvm-opts          ["-Dundertaker.debug=true"]
                          :dependencies      [[orchestra "2017.11.12-1"]
-                                             [org.clojure/test.check "0.9.0"]]
-                         :aot               [net.lfn3.undertaker.junit.source-rule]}
+                                             [org.clojure/test.check "0.9.0"]]}
 
              :specs-jar {:source-paths      ^:replace ["src/specs/clojure"]
                          :java-source-paths ^:replace []
