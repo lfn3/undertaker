@@ -9,10 +9,6 @@
   (undertaker/run-prop {:iterations n}
                        generator-fn))
 
-(defn kv-gen [] (fn [] [(undertaker/keyword) (undertaker/keyword)]))
-
-(defn string-kv-gen [] (fn [] [(undertaker/string) (undertaker/string)]))
-
 (defn java-api-get-string [size-of-vector]
   (let [codepoint-gen (partial undertaker/int 48 57 65 90 97 122)]
     (->> (undertaker/vec-of codepoint-gen size-of-vector size-of-vector)

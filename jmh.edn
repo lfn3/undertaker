@@ -103,12 +103,13 @@
                                       :args [:state/rand-int]}
 
               :map-generator         {:fn   net.lfn3.undertaker.core/map-of
-                                      :args [:state/kv-gen]}
-              :kv-gen                net.lfn3.undertaker.benchmarks/kv-gen
+                                      :args [:state/keyword-gen :state/string-gen]}
+              :keyword-gen           net.lfn3.undertaker.core/keyword
 
               :string-map-generator  {:fn   net.lfn3.undertaker.core/map-of
-                                      :args [:state/string-kv-gen]}
-              :string-kv-gen         net.lfn3.undertaker.benchmarks/string-kv-gen
+                                      :args [:state/string-gen :state/string-gen-alpha]}
+              :string-gen            net.lfn3.undertaker.core/string
+              :string-gen-alpha      net.lfn3.undertaker.core/string
 
               :char-gen              net.lfn3.undertaker.core/char
               :vector-generator      {:fn   net.lfn3.undertaker.core/vec-of
