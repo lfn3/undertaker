@@ -132,7 +132,7 @@
              shrunk-source (-> (source/get-sourced-bytes shrunk-source)
                                (.array)
                                (snip-intervals intervals f)
-                               (fixed-source/make-fixed-source))]
-         (f shrunk-source)                                  ;So we get the right intervals in place. TODO: remove this.
-         shrunk-source))
+                               (fixed-source/make-fixed-source))
+             result-map (f shrunk-source)]
+         (source/add-source-data-to-results-map shrunk-source result-map)))
      (finally (source/done-shrinking!)))))

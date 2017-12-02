@@ -10,18 +10,24 @@
 
 (s/def ::undertaker/result boolean?)
 (s/def ::undertaker/generated-values any?)
-(s/def ::undertaker/shrunk-values any?)
 (s/def ::undertaker/seed integer?)
-(s/def ::undertaker/results-map (s/keys :req [::undertaker/result]
-                             :opt [::undertaker/shrunk-values ::undertaker/seed ::undertaker/generated-values]))
+(s/def ::undertaker/source-used? boolean?)
+(s/def ::undertaker/iterations-run integer?)
+(s/def ::undertaker/results-map (s/keys :req [::undertaker/result ::undertaker/source-used?]
+                                        :opt [::undertaker/generated-values]))
 
 (s/def ::undertaker/prop-fn (s/fspec :args (s/cat :source ::source/source)
                           :ret boolean?))
 
+(s/def ::undertaker/initial-results ::undertaker/results-map)
+(s/def ::undertaker/shrunk-results ::undertaker/results-map)
+(s/def ::undertaker/all-results (s/keys :req [::undertaker/initial-results]
+                                        :opt [::undertaker/shrunk-results ::undertaker/seed ::undertaker/iterations-run]))
+
 (s/fdef undertaker/run-prop-1
   :args (s/cat :source ::source/source
                :fn fn?)
-  :ret ::undertaker/results-map)
+  :ret ::undertaker/all-results)
 
 (s/def ::undertaker/iterations integer?)
 (s/def ::undertaker/prop-opts-map (s/keys :opt-un [::undertaker/seed ::undertaker/iterations]))
@@ -30,10 +36,10 @@
 (s/fdef undertaker/run-prop
   :args (s/cat :opts-map ::undertaker/prop-opts-map
                :fn fn?)
-  :ret ::undertaker/results-map)
+  :ret ::undertaker/all-results)
 
 (s/fdef undertaker/format-results
-  :args (s/cat :name string? :results ::undertaker/results-map)
+  :args (s/cat :name string? :results ::undertaker/all-results)
   :ret (s/nilable string?))
 
 (s/fdef undertaker/byte

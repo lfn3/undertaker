@@ -35,7 +35,10 @@ This probably means you've nested tests inside each other.
 If you can't find the cause of the error, please raise an issue at "
     bug-tracker-url))
 
-(defn format-failed [name results]
+(defn format-failed [name {:keys [:net.lfn3.undertaker.core/iterations-run
+                                  :net.lfn3.undertaker.core/initial-results
+                                  :net.lfn3.undertaker.core/shrunk-results
+                                  :net.lfn3.undertaker.core/seed]}]
   (format "%s failed after running %d times.
 
 The simplest values we could make the test fail with were:
@@ -55,21 +58,21 @@ If you're using Java and jUnit, you can add an annotation to the test:
 @net.lfn3.undertaker.undertaker.junit.Seed(%s)
 public void %s() { ... }"
           name
-          (:net.lfn3.undertaker.core/iterations-run results)
-          (vec (:net.lfn3.undertaker.core/shrunk-values results))
-          (vec (:net.lfn3.undertaker.core/generated-values results))
-          (:net.lfn3.undertaker.core/seed results)
+          iterations-run
+          (vec (:net.lfn3.undertaker.core/generated-values shrunk-results))
+          (vec (:net.lfn3.undertaker.core/generated-values initial-results))
+          seed
           name
-          (:net.lfn3.undertaker.core/seed results)
-          (:net.lfn3.undertaker.core/seed results)
+          seed
+          seed
           name))
 
 (defn format-not-property-test-failed [name results]
-  (format "This test (%s) did not contain any calls to net.lfn3.undertaker.undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
+  (format "This test (%s) did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
           name))
 
 (defn format-not-property-passed [name results]
-  (format "%s did not contain any calls to net.lfn3.undertaker.undertaker generators, and so was not treated as a property test and run repeatedly.
+  (format "%s did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.
 You probably want to replace (defprop %s { opts... } test-body...) with (deftest %s test-body...)"
           name
           name

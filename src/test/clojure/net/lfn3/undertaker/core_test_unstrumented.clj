@@ -6,11 +6,12 @@
 (deftest can-handle-throws
   (let [ex (ex-info "An exception!" {})
         result (undertaker/run-prop {} (fn [] (throw ex)))]
-    (is (false? (::undertaker/result result)))
-    (is (= ex (::undertaker/cause result)))))
+    (is (false? (get-in result [::undertaker/initial-results ::undertaker/result])))
+    (is (= ex (get-in result [::undertaker/initial-results ::undertaker/cause])))))
 
 (deftest should-throw-on-nested-props
   (is (->> #(undertaker/run-prop {} (constantly true))
            (undertaker/run-prop {})
+           ::undertaker/initial-results
            ::undertaker/cause
            (instance? IllegalStateException))))

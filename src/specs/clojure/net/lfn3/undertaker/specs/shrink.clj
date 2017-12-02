@@ -4,6 +4,7 @@
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.source :as source]
+            [net.lfn3.undertaker.core :as undertaker]
             [clojure.test.check.generators :as gen]))
 
 (s/fdef shrink/move-towards-0
@@ -46,4 +47,4 @@
 (s/fdef shrink/shrink
         :args (s/cat :bytes ::source/source
                      :fn fn?)
-        :ret ::source/source)
+        :ret ::undertaker/results-map)

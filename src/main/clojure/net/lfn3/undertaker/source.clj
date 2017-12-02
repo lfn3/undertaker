@@ -88,3 +88,19 @@
   (check-invariants source)
   (not (empty? (proto/get-intervals source))))
 
+(defn add-source-data-to-results-map [source result-map]
+  (let [success? (:net.lfn3.undertaker.core/result result-map)
+        intervals (get-intervals source)]
+    (cond-> result-map
+      debug/debug-mode (assoc :net.lfn3.undertaker.core/intervals intervals)
+      debug/debug-mode (assoc :net.lfn3.undertaker.core/generated-bytes (-> source
+                                                                            (get-sourced-bytes)
+                                                                            (.array)
+                                                                            (vec)))
+      debug/debug-mode (assoc :net.lfn3.undertaker.core/source source)
+      true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
+      (not success?) (assoc :net.lfn3.undertaker.core/generated-values
+                            (map ::proto/generated-value
+                                 (->> source
+                                      (get-intervals)
+                                      (filter (comp zero? ::proto/interval-depth))))))))

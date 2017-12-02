@@ -82,31 +82,12 @@
   (let [f (wrap-fn f)
         result-map (f source)
         success? (::result result-map)
-        result-map (cond-> result-map
-                     debug/debug-mode (assoc ::intervals (source/get-intervals source))
-                     debug/debug-mode (assoc ::generated-bytes (-> source
-                                                                   (source/get-sourced-bytes)
-                                                                   (.array)
-                                                                   (vec)))
-                     (not success?) (assoc ::generated-values
-                                           (map ::proto/generated-value
-                                                (->> source
-                                                     (source/get-intervals)
-                                                     (filter (comp zero? ::proto/interval-depth))))))]
+        result-map (source/add-source-data-to-results-map source result-map)]
     (if success?
-      result-map
-      (let [shrunk-source (shrink/shrink source f)
-            shrunk-intervals (try (source/get-intervals shrunk-source)
-                                  (catch UndertakerDebugException e))]
-        (cond-> result-map
-            debug/debug-mode (assoc ::shrunk-intervals shrunk-intervals)
-            debug/debug-mode (assoc ::shrunk-bytes (-> shrunk-source
-                                                       (source/get-sourced-bytes)
-                                                       (.array)
-                                                       (vec)))
-            true (assoc ::shrunk-values (->> shrunk-intervals
-                                             (filter (comp zero? ::proto/interval-depth))
-                                             (map ::proto/generated-value))))))))
+      {::initial-results result-map}
+      (let [shrunk-result (shrink/shrink source f)]
+        {::initial-results result-map
+         ::shrunk-results shrunk-result}))))
 
 (defn run-prop
   ([{:keys [:seed :iterations]
@@ -116,28 +97,31 @@
     f]
    (let [source (source.multi/make-source seed)
          result (loop [iterations-left iterations]
-                  (let [run-data (run-prop-1 source f)]
-                    (if (and (-> run-data
-                                 ::result
-                                 (true?))
+                  (let [run-data (run-prop-1 source f)
+                        passed? (-> run-data
+                                    ::initial-results
+                                    ::result
+                                    (true?))
+                        used? (-> run-data
+                                  ::initial-results
+                                  ::source-used?)]
+                    (if (and passed?
                              (> iterations-left 1)
-                             (source/used? source))         ;If a source is unused, there isn't much point in rerunning
+                             used?)         ;If a source is unused, there isn't much point in rerunning
                       (do                                   ;the test, since nothing will change
                         (source/reset source)
                         (recur (dec iterations-left)))
                       (-> run-data
-                          (assoc ::source source)
-                          (assoc ::source-used (source/used? source))
                           (assoc ::iterations-run (- iterations (dec iterations-left)))
                           (assoc ::seed seed)))))]
      (source/done-with-test!)
      result)))
 
-(defn format-results [name results]
+(defn format-results [name {:keys [::initial-results ::shrunk-results] :as results}]
   (cond
-    (and (not (::source-used results)) (::result results)) (messages/format-not-property-passed name results)
-    (not (::source-used results)) (messages/format-not-property-test-failed name results)
-    (not (::result results)) (messages/format-failed name results)
+    (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name initial-results)
+    (not (::source-used? initial-results)) (messages/format-not-property-test-failed name initial-results)
+    (not (::result initial-results)) (messages/format-failed name results)
     :default nil))
 
 ;; === === === === === === === ===

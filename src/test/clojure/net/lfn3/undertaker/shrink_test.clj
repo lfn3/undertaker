@@ -9,6 +9,8 @@
             [clojure.spec.test.alpha :as s.test]
             [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
+            [net.lfn3.undertaker.specs.bytes]
+            [net.lfn3.undertaker.specs.core]
             [net.lfn3.undertaker.specs.shrink]
             [net.lfn3.undertaker.specs.proto]))
 
@@ -37,22 +39,24 @@
     (is (empty? failures))))
 
 (deftest can-fail-prop
-  (is (false? (::undertaker/result (undertaker/run-prop {} #(is false))))))
+  (is (false? (get-in (undertaker/run-prop {} #(is false)) [::undertaker/initial-results ::undertaker/result]))))
 
 (deftest can-run-prop
-  (is (true? (::undertaker/result (undertaker/run-prop {} (constantly true))))))
+  (is (true? (get-in (undertaker/run-prop {} (constantly true)) [::undertaker/initial-results ::undertaker/result]))))
 
 (deftest should-shrink-to-zero
   (let [result (undertaker/run-prop {} #(is (boolean? (undertaker/byte))))]
     (is (= 0 (->> result
-                  ::undertaker/shrunk-values
+                  ::undertaker/shrunk-results
+                  ::undertaker/generated-values
                   (first)))
         result)))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
   (let [result (undertaker/run-prop {} #(is (= 0 (undertaker/byte))))]
     (is (->> result
-             ::undertaker/shrunk-values
+             ::undertaker/shrunk-results
+             ::undertaker/generated-values
              (first)
              (zero?)
              (not))
@@ -61,7 +65,9 @@
 (deftest should-shrink-past-1
   (is (= 0 (->> #(is (= 1 (undertaker/byte)))
                 (undertaker/run-prop {})
-                ::undertaker/shrunk-values
+                ::undertaker/shrunk-results
+                ::undertaker/generated-values
+
                 (first)))))
 
 (deftest should-shrink-to-2
@@ -70,7 +76,8 @@
                          true
                          (odd? value))))
                 (undertaker/run-prop {})
-                ::undertaker/shrunk-values
+                ::undertaker/shrunk-results
+                ::undertaker/generated-values
                 (first)))))
 
 (deftest snip-interval-test
@@ -81,7 +88,7 @@
   (is (= [0] (-> (byte-array [0])
                  (shrink/snip-intervals [{::proto/interval-start 0
                                           ::proto/interval-end   0
-                                          ::proto/hints []}]
+                                          ::proto/hints          []}]
                                         (undertaker/wrap-fn #(undertaker/int)))
                  (vec)))))
 
@@ -89,19 +96,17 @@
   (is (= [-19] (-> (byte-array [1 -19])
                    (shrink/snip-intervals [{::proto/interval-start 0
                                             ::proto/interval-end   1
-                                            ::proto/hints [[::proto/this ::proto/snippable nil]]}]
+                                            ::proto/hints          [[::proto/this ::proto/snippable nil]]}]
                                           (undertaker/wrap-fn #(is (boolean? (undertaker/byte)))))
                    (vec)))))
 
 (deftest shrinking-vec-with-overrun
   (let [bytes-to-shrink (byte-array [1 22 1 77 0])
-        test-fn (-> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
-                    (undertaker/wrap-fn))
-        source (source.fixed/make-fixed-source bytes-to-shrink)
-        shrunk-source (shrink/shrink source test-fn)]
-    (is (= [1] (->> (source/get-intervals shrunk-source)
-                    (filter (comp zero? ::proto/interval-depth))
-                    (map ::proto/generated-value)
+        result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
+                    (undertaker/run-prop {:debug true}))]
+    (is (= [1] (->> result
+                    ::undertaker/shrunk-results
+                    ::undertaker/generated-values
                     (first))))))
 
 (deftest should-shrink-middle-byte
@@ -111,7 +116,8 @@
                        (is (not bool-1)))
                     (undertaker/run-prop {}))]
     (is (= [true 0 false] (-> result
-                              ::undertaker/shrunk-values
+                              ::undertaker/shrunk-results
+                              ::undertaker/generated-values
                               (vec)))
         result)))
 
@@ -119,7 +125,8 @@
   (let [result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
                     (undertaker/run-prop {}))
         shrunk-vector (->> result
-                           ::undertaker/shrunk-values
+                           ::undertaker/shrunk-results
+                           ::undertaker/generated-values
                            (first))]
     (is (or (= [1] shrunk-vector)
             (= [-1] shrunk-vector)) result)))
@@ -135,6 +142,37 @@
   (let [result (->> (fn [] (let [value (undertaker/double)]
                              (is (< value 0.9))))
                     (undertaker/run-prop {:debug true}))
-        shrunk-val (first (::undertaker/shrunk-values result))]
+        shrunk-val (first (get-in result [::undertaker/shrunk-results ::undertaker/generated-values]))]
     (is (<= 0.9 shrunk-val) result)
     (is (<= shrunk-val 2.0) result)))
+
+(def get-first-key #(some-> %1
+                            (first)
+                            (first)))
+
+(deftest should-shrink-multi-part-map-keys
+  (let [result (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
+                                 empty-str? (some-> (get-first-key value)
+                                                    (empty?))]
+                             (is (or (nil? empty-str?) empty-str?))))
+                    (undertaker/run-prop {:debug true}))
+        shrunk-value (get-in result [::undertaker/shrunk-results ::undertaker/generated-values])
+        initial-value (get-in result [::undertaker/initial-results ::undertaker/generated-values])]
+    (is (= 1 (count (get-first-key (first shrunk-value)))) result)))
+
+(deftest shrinking-should-be-deterministic
+  (let [r1 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
+                             empty-str? (some-> (get-first-key value)
+                                                (empty?))]
+                         (is (or (nil? empty-str?) empty-str?))))
+                (undertaker/run-prop {:debug true :seed 1})
+                ::undertaker/shrunk-results
+                ::undertaker/generated-values)
+        r2 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
+                             empty-str? (some-> (get-first-key value)
+                                                (empty?))]
+                         (is (or (nil? empty-str?) empty-str?))))
+                (undertaker/run-prop {:debug true :seed 1})
+                ::undertaker/shrunk-results
+                ::undertaker/generated-values)]
+    (is (= r1 r2))))
