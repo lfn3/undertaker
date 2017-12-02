@@ -1,7 +1,7 @@
 (ns net.lfn3.undertaker.specs.source.fixed
   (:require [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.bytes :as bytes]
-            [clojure.spec.alpha :as spec])
+            [clojure.spec.alpha :as s])
   (:import (net.lfn3.undertaker.source.fixed FixedSource)))
 
 

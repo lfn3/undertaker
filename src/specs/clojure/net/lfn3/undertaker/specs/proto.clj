@@ -18,12 +18,15 @@
 (s/def ::proto/mapped-bytes ::bytes/bytes)
 (s/def ::proto/uniqueness-hint-id int?)
 
-(s/def ::proto/interval (s/keys :req [::proto/interval-start
-                                      ::proto/interval-end
-                                      ::proto/hints]
-                                :opt [::proto/generated-value
-                                      ::proto/mapped-bytes
-                                      ::proto/uniqueness-hint-id]))
+(s/def ::proto/interval (s/and (s/keys :req [::proto/interval-start
+                                             ::proto/interval-end
+                                             ::proto/hints]
+                                       :opt [::proto/generated-value
+                                             ::proto/mapped-bytes
+                                             ::proto/uniqueness-hint-id])
+                               (fn [{:keys [::proto/interval-start
+                                            ::proto/interval-end]}]
+                                 (<= interval-start interval-end))))
 
 (s/def ::proto/interval-stack (s/coll-of ::proto/wip-interval))
 (s/def ::proto/completed-intervals (s/coll-of ::proto/interval))
