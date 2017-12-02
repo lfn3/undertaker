@@ -2,7 +2,8 @@
   (:require [net.lfn3.undertaker.core :as undertaker]
             [net.lfn3.undertaker.source :as source]
             [net.lfn3.undertaker.bytes :as bytes]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [net.lfn3.undertaker.specs.source]))
 
 (s/fdef undertaker/next-seed
         :args (s/cat :seed integer?)

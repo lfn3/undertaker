@@ -1,19 +1,13 @@
 (ns net.lfn3.undertaker.source
   (:require [net.lfn3.undertaker.proto :as proto]
-            [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as s.gen]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.debug :as debug])
-  (:import (java.util Random)
-           (net.lfn3.undertaker ChainedByteBuffer)
+  (:import (net.lfn3.undertaker ChainedByteBuffer)
            (java.nio ByteBuffer)
            (net.lfn3.undertaker.source.fixed FixedSource)))
-
-(s/def ::source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
-                            #(s.gen/fmap source.random/make-source (s.gen/int))))
 
 (def source-in-use (atom #{}))
 (defn done-with-test! [] (reset! source-in-use #{}))
@@ -47,19 +41,11 @@
    (check-invariants source)
    (proto/get-bytes source ranges skip)))
 
-(s/fdef get-bytes
-  :args (s/cat :source ::source :skip (s/? ::bytes/bytes-to-skip) :ranges ::bytes/ranges)
-  :ret (partial instance? ByteBuffer))
-
 (defn push-interval
   ([source] (push-interval source []))
   ([source hints]
    (check-invariants source)
    (proto/push-interval source hints)))
-
-(s/fdef push-interval
-  :args (s/cat :source ::source :hints (s/? ::proto/hints))
-  :ret nil?)
 
 (defn pop-interval [source generated-value]
   (check-invariants source)
@@ -75,10 +61,6 @@
 (defn ^ChainedByteBuffer get-sourced-bytes [source]
   (check-invariants source)
   (proto/get-sourced-bytes source))
-
-(s/fdef get-sourced-bytes
-  :args (s/cat :source ::source)
-  :ret (partial instance? ChainedByteBuffer))
 
 (defn reset [source]
   (check-invariants source)
