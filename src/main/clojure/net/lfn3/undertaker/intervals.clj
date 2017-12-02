@@ -26,6 +26,15 @@
                                                ::proto/interval-depth (count (::proto/interval-stack state))
                                                ::proto/hints          hints})))
 
+(defn build-completed-interval [wip-interval ending-at generated-value chained-buffer uniqueness-hint-id]
+  (cond-> wip-interval
+    true (assoc ::proto/interval-end ending-at)
+    generated-value (assoc ::proto/generated-value generated-value)
+    uniqueness-hint-id (assoc ::proto/mapped-bytes (-> chained-buffer
+                                                       (.last)
+                                                       (.array)))
+    uniqueness-hint-id (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))
+
 (defn pop-interval [state generated-value]
   (let [interval-to-update (last (::proto/interval-stack state))]
     (let [started-at (::proto/interval-start interval-to-update)
@@ -37,23 +46,16 @@
                                   (filter #(= ::proto/unique (nth %1 1))) ;Assumes there's only one.
                                   (last)
                                   (last))
-          top-level-interval? (zero? (::proto/interval-depth interval-to-update))
+          generated-value (and (zero? (::proto/interval-depth interval-to-update)) generated-value)
           snippable? (some (comp (partial = ::proto/snippable) #(nth %1 1)) applicable-hints)
-          keep? (or snippable? top-level-interval? uniqueness-hint-id)]
+          keep? (or snippable? generated-value uniqueness-hint-id)]
       (cond-> state
               true (update ::proto/interval-stack pop)
-              keep? (update ::proto/completed-intervals conj
-                            (cond-> interval-to-update
-                                    true
-                                    (assoc ::proto/interval-end ending-at)
-                                    top-level-interval?
-                                    (assoc ::proto/generated-value generated-value)
-                                    uniqueness-hint-id
-                                    (assoc ::proto/mapped-bytes (-> chained-buffer
-                                                                    (.last)
-                                                                    (.array)))
-                                    uniqueness-hint-id
-                                    (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))))))
+              keep? (update ::proto/completed-intervals conj (build-completed-interval interval-to-update
+                                                                                       ending-at
+                                                                                       generated-value
+                                                                                       chained-buffer
+                                                                                       uniqueness-hint-id))))))
 
 (defmulti apply-hint*
           (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))

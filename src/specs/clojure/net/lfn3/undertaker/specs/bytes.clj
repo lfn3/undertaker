@@ -2,7 +2,8 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
             [net.lfn3.undertaker.bytes :as bytes])
-  (:import (java.nio ByteBuffer)))
+  (:import (java.nio ByteBuffer)
+           (net.lfn3.undertaker ChainedByteBuffer)))
 
 (s/fdef bytes/byte?
         :args (s/cat :b number?)
@@ -27,6 +28,7 @@
                        bytes/ranges-are-sorted?))
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
 (s/def ::bytes/sliced-ranges (s/coll-of ::bytes/sliced-range))
+(s/def ::bytes/chained-byte-buffer (partial instance? ChainedByteBuffer))
 
 (s/fdef bytes/unsigned<=
   :args (s/cat :x int? :y int?)
