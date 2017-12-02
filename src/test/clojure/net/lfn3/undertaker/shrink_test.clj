@@ -150,7 +150,7 @@
                             (first)
                             (first)))
 
-(deftest should-shrink-multi-part-map-keys
+#_(deftest should-shrink-multi-part-map-keys
   (let [result (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
                                  empty-str? (some-> (get-first-key value)
                                                     (empty?))]
@@ -160,7 +160,7 @@
         initial-value (get-in result [::undertaker/initial-results ::undertaker/generated-values])]
     (is (= 1 (count (get-first-key (first shrunk-value)))) result)))
 
-(deftest shrinking-should-be-deterministic
+#_(deftest shrinking-should-be-deterministic
   (let [r1 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
                              empty-str? (some-> (get-first-key value)
                                                 (empty?))]
