@@ -18,14 +18,19 @@
                     (< (bit-and 0xff ret)
                        (bit-and 0xff (:byte args)))))))
 
-(defn interval-inside-bytes? [{:keys [bytes interval]}]
-  (let [{:keys [::proto/interval-start ::proto/interval-end]} interval
-        arr-size (count bytes)]
-    (and (<= interval-start interval-end)
-         (< interval-start arr-size)
-         (< interval-end arr-size))))
+(defn interval-inside-bytes?
+  ([{:keys [bytes interval]}] (interval-inside-bytes? bytes interval))
+  ([bytes interval]
+   (let [{:keys [::proto/interval-start ::proto/interval-end]} interval
+         arr-size (count bytes)
+         passed? (and (<= interval-start interval-end)
+                      (< interval-start arr-size)
+                      (<= interval-end arr-size))]
+     (when-not passed?
+       (println "Interval not inside bytes:" (vec bytes)))
+     passed?)))
 
-(defn bytes-and-intervals-gen []
+(defn bytes-and-intervals-gen [& other-gens]
   (gen/bind (gen/such-that (complement empty?) gen/bytes)
              (fn [bytes]
                (let [lower (gen/choose 0 (dec (count bytes)))
@@ -33,7 +38,7 @@
                                       (fn [lower]
                                         (gen/hash-map ::proto/interval-start (gen/return lower)
                                                       ::proto/interval-end (gen/choose lower (dec (count bytes))))))]
-                 (gen/tuple (gen/return bytes) mapped)))))
+                 (apply gen/tuple (gen/return bytes) mapped other-gens)))))
 
 (s/fdef shrink/snip-interval
         :args (s/with-gen (s/and (s/cat :bytes bytes? :interval (s/keys :req [::proto/interval-start
@@ -41,6 +46,15 @@
                                  interval-inside-bytes?)
                           bytes-and-intervals-gen)
         :ret ::bytes/bytes)
+
+(s/fdef shrink/snip-intervals
+  :args (s/with-gen (s/and (s/cat :bytes bytes?
+                                  :intervals (s/coll-of (s/keys :req [::proto/interval-start
+                                                                      ::proto/interval-end]))
+                                  :fn ::undertaker/prop-fn)
+                           #(every? (partial interval-inside-bytes? (:bytes %1)) (:intervals %1)))
+                    (partial bytes-and-intervals-gen ))
+  :ret ::bytes/bytes)
 
 (s/fdef shrink/is-overrun?
         :args (s/cat :result-map (s/keys :req [:net.lfn3.undertaker.core/cause]))
