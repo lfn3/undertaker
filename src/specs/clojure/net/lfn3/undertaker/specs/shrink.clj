@@ -2,8 +2,10 @@
   (:require [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.proto :as proto]
+            [net.lfn3.undertaker.specs.bytes]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.source :as source]
+            [net.lfn3.undertaker.specs.core]
             [net.lfn3.undertaker.core :as undertaker]
             [clojure.test.check.generators :as gen]))
 
@@ -15,9 +17,31 @@
                 (or (= 0 ret)
                     (< (bit-and 0xff ret)
                        (bit-and 0xff (:byte args)))))))
+
+(defn interval-inside-bytes? [{:keys [bytes interval]}]
+  (let [{:keys [::proto/interval-start ::proto/interval-end]} interval
+        arr-size (count bytes)]
+    (and (<= interval-start interval-end)
+         (< interval-start arr-size)
+         (< interval-end arr-size))))
+
+(defn bytes-and-intervals-gen []
+  (gen/bind (gen/such-that (complement empty?) gen/bytes)
+             (fn [bytes]
+               (let [lower (gen/choose 0 (dec (count bytes)))
+                     mapped (gen/bind lower
+                                      (fn [lower]
+                                        (gen/hash-map ::proto/interval-start (gen/return lower)
+                                                      ::proto/interval-end (gen/choose lower (dec (count bytes))))))]
+                 (gen/tuple (gen/return bytes) mapped)))))
+
 (s/fdef shrink/snip-interval
-        :args (s/cat :bytes ::bytes/bytes :interval (s/keys :req [::proto/interval-start ::proto/interval-end]))
+        :args (s/with-gen (s/and (s/cat :bytes bytes? :interval (s/keys :req [::proto/interval-start
+                                                                              ::proto/interval-end]))
+                                 interval-inside-bytes?)
+                          bytes-and-intervals-gen)
         :ret ::bytes/bytes)
+
 (s/fdef shrink/is-overrun?
         :args (s/cat :result-map (s/keys :req [:net.lfn3.undertaker.core/cause]))
         :ret boolean?)
