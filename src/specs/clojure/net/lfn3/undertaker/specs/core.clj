@@ -17,17 +17,25 @@
 (s/def ::undertaker/results-map (s/keys :req [::undertaker/result ::undertaker/source-used?]
                                         :opt [::undertaker/generated-values]))
 
-(s/def ::undertaker/prop-fn (s/fspec :args (s/cat :source ::source/source)
-                          :ret boolean?))
+(s/def ::undertaker/prop-fn-results (s/keys :req [::undertaker/result ::undertaker/cause ::undertaker/reported]))
+
+(s/def ::undertaker/prop-fn fn? #_(s/fspec :args (s/cat)    ;I think these specs causes issues since we invoke them during test runs.
+                                           :ret any?))
+(s/def ::undertaker/wrapped-prop-fn fn? #_(s/fspec :args (s/cat :source ::source/source)
+                                                   :ret ::undertaker/prop-fn-results))
 
 (s/def ::undertaker/initial-results ::undertaker/results-map)
 (s/def ::undertaker/shrunk-results ::undertaker/results-map)
 (s/def ::undertaker/all-results (s/keys :req [::undertaker/initial-results]
                                         :opt [::undertaker/shrunk-results ::undertaker/seed ::undertaker/iterations-run]))
 
+(s/fdef undertaker/wrap-fn
+  :args (s/cat :fn ::undertaker/prop-fn)
+  :ret ::undertaker/wrapped-prop-fn)
+
 (s/fdef undertaker/run-prop-1
   :args (s/cat :source ::source/source
-               :fn fn?)
+               :fn ::undertaker/wrapped-prop-fn)
   :ret ::undertaker/all-results)
 
 (s/def ::undertaker/iterations integer?)
@@ -36,7 +44,7 @@
 
 (s/fdef undertaker/run-prop
   :args (s/cat :opts-map ::undertaker/prop-opts-map
-               :fn fn?)
+               :fn ::undertaker/prop-fn)
   :ret ::undertaker/all-results)
 
 (s/fdef undertaker/format-results

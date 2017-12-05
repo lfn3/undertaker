@@ -79,8 +79,7 @@
             (reset! result [])))))))
 
 (defn run-prop-1 [source f]
-  (let [f (wrap-fn f)
-        result-map (f source)
+  (let [result-map (f source)
         success? (::result result-map)
         result-map (source/add-source-data-to-results-map source result-map)]
     (if success?
@@ -96,8 +95,9 @@
      :as   opts-map}
     f]
    (let [source (source.multi/make-source seed)
+         wrapped-fn (wrap-fn f)
          result (loop [iterations-left iterations]
-                  (let [run-data (run-prop-1 source f)
+                  (let [run-data (run-prop-1 source wrapped-fn)
                         passed? (-> run-data
                                     ::initial-results
                                     ::result
