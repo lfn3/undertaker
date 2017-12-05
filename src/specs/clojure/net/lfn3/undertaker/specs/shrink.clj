@@ -18,6 +18,13 @@
                     (< (bit-and 0xff ret)
                        (bit-and 0xff (:byte args)))))))
 
+(s/fdef shrink/move-bytes-towards-zero
+  :args (s/cat :bytes bytes? :fn fn?)
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [bytes]} args]
+          (= (count bytes) (count ret)))))
+
 (defn interval-inside-bytes?
   ([{:keys [bytes interval]}] (interval-inside-bytes? bytes interval))
   ([bytes interval]
