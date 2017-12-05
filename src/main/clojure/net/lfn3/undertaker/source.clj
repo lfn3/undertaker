@@ -82,7 +82,6 @@
       debug/debug-mode (assoc :net.lfn3.undertaker.core/source source)
       true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values
-                            (map ::proto/generated-value
-                                 (->> source
-                                      (get-intervals)
-                                      (filter (comp zero? ::proto/interval-depth))))))))
+                            (->> intervals
+                                 (filter (comp zero? ::proto/interval-depth))
+                                 (map ::proto/generated-value))))))
