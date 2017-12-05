@@ -22,22 +22,20 @@
     output))
 
 (defn is-overrun? [result-map]
-  (or (instance? OverrunException (:net.lfn3.undertaker.core/cause result-map))
-      (->> result-map
-           :net.lfn3.undertaker.core/cause
-           :actual
-           (instance? OverrunException))
-      (if (->> result-map
-               :net.lfn3.undertaker.core/cause
-               (seq?))
-        (->> result-map
-             :net.lfn3.undertaker.core/cause
-             (map :actual)
-             (filter (partial instance? OverrunException))
-             (not-empty)
-             (nil?)
-             (not))
-        false)))
+  (let [cause (:net.lfn3.undertaker.core/cause result-map)]
+    (or (instance? OverrunException cause)
+        (->> cause
+             :actual
+             (instance? OverrunException))
+        (if (->> cause
+                 (seq?))
+          (->> cause
+               (map :actual)
+               (filter (partial instance? OverrunException))
+               (not-empty)
+               (nil?)
+               (not))
+          false))))
 
 ;This relies on the fact that snippable intervals are direct at the moment.
 (defn is-snippable? [interval]
@@ -59,6 +57,9 @@
               result (fn source)
               passed? (:net.lfn3.undertaker.core/result result)
               overrun? (is-overrun? result)]
+          (prn continue? overrun? passed?)
+          (when (and continue? (not overrun?) (not passed?))
+            (prn (->> source (source/get-sourced-bytes) (.array) (vec))))
           (cond
             (and continue? (or overrun? passed?)) (recur (inc index)
                                                          intervals
@@ -131,6 +132,7 @@
                                (.array)
                                (snip-intervals intervals f)
                                (fixed-source/make-fixed-source))
+             _ (prn (->> shrunk-source (source/get-sourced-bytes) (.array) (vec)))
              result-map (f shrunk-source)]
          (source/add-source-data-to-results-map shrunk-source result-map)))
      (finally (source/done-shrinking!)))))

@@ -149,15 +149,14 @@
                             (first)
                             (first)))
 
-#_(deftest should-shrink-multi-part-map-keys
-  (let [result (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
-                                 empty-str? (some-> (get-first-key value)
-                                                    (empty?))]
-                             (is (or (nil? empty-str?) empty-str?))))
+(deftest should-shrink-multi-part-map-keys
+  (let [result (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)]
+                             (when (and (not= 0 (count value)))
+                               (is (every? empty? (keys value)) value))))
                     (undertaker/run-prop {:debug true}))
-        shrunk-value (get-in result [::undertaker/shrunk-results ::undertaker/generated-values])
-        initial-value (get-in result [::undertaker/initial-results ::undertaker/generated-values])]
-    (is (= 1 (count (get-first-key (first shrunk-value)))) result)))
+        shrunk-value (get-in result [::undertaker/shrunk-results ::undertaker/generated-values])]
+    (is (= 1 (count (first shrunk-value))) result)
+    (is (= 1 (count (first (first shrunk-value)))) result)))
 
 #_(deftest shrinking-should-be-deterministic
   (let [r1 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
