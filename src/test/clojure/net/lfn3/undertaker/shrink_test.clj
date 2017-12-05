@@ -101,7 +101,8 @@
                    (vec)))))
 
 (deftest shrinking-vec-with-overrun
-  (let [result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
+  (let [bytes-to-shrink (byte-array [1 22 1 77 0])
+        result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
                     (undertaker/run-prop {:debug true}))]
     (is (= [1] (->> result
                     ::undertaker/shrunk-results

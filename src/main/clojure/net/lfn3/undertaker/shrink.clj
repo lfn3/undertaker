@@ -14,7 +14,7 @@
         (dec)
         (unchecked-byte))))
 
-(defn snip-interval [^bytes bytes {:keys [::proto/interval-start ::proto/interval-end]}]
+(defn snip-interval [bytes {:keys [::proto/interval-start ::proto/interval-end]}]
   (let [range (- interval-end interval-start)
         output (byte-array (- (count bytes) range))]
     (System/arraycopy bytes 0 output 0 interval-start)
