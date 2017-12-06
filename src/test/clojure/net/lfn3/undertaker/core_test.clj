@@ -24,7 +24,7 @@
 
 (def this-ns *ns*)
 
-(def ignored #{`undertaker/from
+(def ignored #{`undertaker/elements
                `undertaker/map-of})
 
 (deftest check-core
@@ -44,7 +44,7 @@
     (is (empty? failures))))
 
 (deftest test-boolean-gen
-  (is (boolean? (undertaker/bool))))
+  (is (boolean? (undertaker/boolean))))
 
 (deftest test-int-gen
   (is (integer? (undertaker/int)))
@@ -109,7 +109,7 @@
 
 (deftest from-gen-test
   (let [values (set (repeatedly 3 undertaker/int))]
-    (is (values (undertaker/from values)))))
+    (is (values (undertaker/elements values)))))
 
 (deftest long-gen-test
   (is (instance? Long (undertaker/long)))

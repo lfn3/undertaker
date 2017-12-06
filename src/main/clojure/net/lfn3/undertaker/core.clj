@@ -137,7 +137,7 @@
           (source/get-bytes *source*)
           (.get)))))
 
-(defn bool
+(defn boolean
   ([]
    (with-interval
      (if (= 1 (byte 0 1))
@@ -316,7 +316,7 @@
          (char-array)
          (String.)))))
 
-(defn from
+(defn elements
   "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
    (with-interval
@@ -329,7 +329,7 @@
 
 (defn keyword []
   (with-interval "keyword"
-    (->> (concat [(from char-symbol-special)] (vec-of char-alphanumeric))
+    (->> (concat [(elements char-symbol-special)] (vec-of char-alphanumeric))
          (apply str)
          (core/keyword))))
 
@@ -348,14 +348,14 @@
                      [k v])]
        (into {} (collection vector kv-gen conj min-size max-size))))))
 
-(def any-gens #{bool
+(def any-gens #{boolean
                 int})
 
 (defn any
   ([] (any #{}))
   ([exclusions]
    (with-interval
-     (let [chosen-generator (from (remove exclusions any-gens))]
+     (let [chosen-generator (elements (remove exclusions any-gens))]
        (chosen-generator)))))
 
 (defmacro defprop [name opts & body]

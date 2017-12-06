@@ -61,7 +61,7 @@
           (and (<= min ret)
                (<= ret max)))))
 
-(s/fdef undertaker/bool
+(s/fdef undertaker/boolean
   :args (s/cat)
   :ret boolean?)
 
@@ -190,7 +190,7 @@
           (and (<= min (count ret))
                (<= (count ret) max)))))
 
-(s/fdef undertaker/from
+(s/fdef undertaker/elements
   :args (s/cat :coll (s/coll-of any?))
   :ret any?
   :fn (fn [{:keys [args ret]}] (contains? (set (:coll args)) ret)))

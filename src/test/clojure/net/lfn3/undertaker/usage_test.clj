@@ -8,7 +8,7 @@
                            (orchestra.test/unstrument)))
 
 (undertaker/defprop vector-coll-identity {}
-  (let [actions (undertaker/vec-of (partial undertaker/from #{#(conj %1 (undertaker/any))
+  (let [actions (undertaker/vec-of (partial undertaker/elements #{#(conj %1 (undertaker/any))
                                                               'pop}))]
     (when (seq? actions)
       (loop [action (first actions)
@@ -31,7 +31,7 @@
     (is false))
 
 #_(undertaker/defprop shows-details-on-legit-fail {}
-    (is (undertaker/bool)))
+                      (is (undertaker/boolean)))
 
 (undertaker/defprop double-full-range-get-test {}
   (let [value (undertaker/double)]
@@ -135,13 +135,13 @@
                1 2})
 
 (undertaker/defprop can-get-map {}
-  (let [m (undertaker/map-of (partial undertaker/from (keys kv-pairs)) kv-pairs 0 3 {:value-gen-takes-key-as-arg true})]
+  (let [m (undertaker/map-of (partial undertaker/elements (keys kv-pairs)) kv-pairs 0 3 {:value-gen-takes-key-as-arg true})]
     (is (map? m))
     (is (every? (set kv-pairs) m))))
 
 (undertaker/defprop can-get-from-singleton-collection {}
   (let [coll [1]
-        f (undertaker/from coll)]
+        f (undertaker/elements coll)]
     (is (= 1 f))))
 
 (undertaker/defprop can-get-set {}

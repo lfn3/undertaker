@@ -5,7 +5,7 @@
            (java.nio ByteBuffer)))
 
 (defn get-ops []
-  (undertaker/vec-of (partial undertaker/from #{(let [b (undertaker/byte)]
+  (undertaker/vec-of (partial undertaker/elements #{(let [b (undertaker/byte)]
                                                   [:put b #(.put %1 b)]) ;TODO: generate a bunch of these, loop through them.
                                                 [:mark #(.mark %1)]
                                                 [:reset #(.reset %1)]
