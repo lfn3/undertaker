@@ -158,7 +158,7 @@
     (is (= 1 (count (first shrunk-value))) result)
     (is (= 1 (count (first (keys (first shrunk-value))))) result)))
 
-#_(deftest shrinking-should-be-deterministic
+(deftest shrinking-should-be-deterministic
   (let [r1 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
                              empty-str? (some-> (get-first-key value)
                                                 (empty?))]
