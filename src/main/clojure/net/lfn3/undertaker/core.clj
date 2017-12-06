@@ -1,5 +1,5 @@
 (ns net.lfn3.undertaker.core
-  (:refer-clojure :exclude [int byte long double short char float keyword boolean])
+  (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle])
   (:require [clojure.core :as core]
             [clojure.string :as str]
             [clojure.test :as t]
@@ -325,6 +325,20 @@
    (with-interval
      (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
+
+(defn shuffle
+  "Generates vectors with the elements of coll in random orders"
+  ([coll]
+    (with-interval
+      (if (empty? coll)
+        coll
+        (loop [remaining coll
+               result []]
+          (if-not (<= (count remaining) 1)
+            (let [next-idx (int 0 (dec (count remaining)))]
+              (recur (vec (concat (subvec remaining 0 next-idx) (subvec remaining (inc next-idx))))
+                     (conj result (nth remaining next-idx))))
+            (conj result (first remaining))))))))
 
 (def char-symbol-special
   "Non-alphanumeric characters that can be in a symbol."

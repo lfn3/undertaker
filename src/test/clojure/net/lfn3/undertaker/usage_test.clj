@@ -151,3 +151,8 @@
 (undertaker/defprop can-get-a-uuid {}
   (let [u (undertaker/uuid)]
     (is (uuid? u))))
+
+(undertaker/defprop can-shuffle {}
+  (let [v (undertaker/vec-of undertaker/any)
+        shuffled (undertaker/shuffle v)]
+    (is (= (set v) (set shuffled)))))
