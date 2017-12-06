@@ -41,6 +41,9 @@ If you can't find the cause of the error, please raise an issue at "
                                   :net.lfn3.undertaker.core/seed]}]
   (format "%s failed after running %d times.
 
+The cause of the failure was:
+%s
+
 The simplest values we could make the test fail with were:
 %s
 
@@ -59,6 +62,7 @@ If you're using Java and jUnit, you can add an annotation to the test:
 public void %s() { ... }"
           name
           iterations-run
+          (:net.lfn3.undertaker.core/cause shrunk-results)
           (vec (:net.lfn3.undertaker.core/generated-values shrunk-results))
           (vec (:net.lfn3.undertaker.core/generated-values initial-results))
           seed
