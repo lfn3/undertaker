@@ -355,7 +355,7 @@
   (frequency [[2 char-alpha]
               [1 (partial elements [\* \! \_ \?])]]))
 
-(defn ^:private symbol-name-or-namespace []
+(defn symbol-name-or-namespace []
   (->> #(frequency [[2 char-alphanumeric]
                     [1 (partial elements char-symbol-special)]])
        (vec-of)
@@ -364,8 +364,8 @@
 
 (defn keyword []
   (with-interval
-    (frequency [100 (core/keyword (symbol-name-or-namespace))
-                1 (constantly :/)])))
+    (frequency [[100 #(core/keyword (symbol-name-or-namespace))]
+                [1 (constantly :/)]])))
 
 (defn keyword-ns []
   (with-interval
