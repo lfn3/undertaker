@@ -345,18 +345,26 @@
   [\* \+ \! \- \_ \?])
 
 (defn frequency [& int-gens]
-  (let [starts-with-int (int (first int-gens))
+  (let [starts-with-int? (int? (first int-gens))
+        is-vector? (vector? (first int-gens))
         split (cond->> int-gens
-                starts-with-int (partition 2))
+                starts-with-int? (partition 2)
+                is-vector? (first))
         chosen (->> split
+                    (sort-by (fn [[int]] int))
                     (mapcat (fn [[int gen]] (repeat int gen)))
                     (elements))]
     (chosen)))
+
+(defn char-symbol-initial []
+  (frequency [[2 char-alpha]
+              [1 (partial elements [\* \! \_ \?])]]))
 
 (defn keyword []
   (with-interval
     (->> (vec-of #(frequency 2 char-alphanumeric
                              1 (partial elements char-symbol-special)))
+         (cons (char-symbol-initial))
          (apply str)
          (core/keyword))))
 
