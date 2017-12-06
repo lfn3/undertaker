@@ -164,3 +164,15 @@
     (is (not= (name k) (str (rest stringified))))
     (is (namespace k))
     (str/includes? stringified "/")))
+
+(undertaker/defprop can-get-symbol {}
+  (let [s (undertaker/symbol)]
+    (is (symbol? s))
+    (is (nil? (namespace s)))))
+
+(undertaker/defprop can-get-namespaced-symbol {}
+  (let [s (undertaker/symbol-ns)
+        stringified (str s)]
+    (is (not= (name s) (str (rest stringified))))
+    (is (namespace s))
+    (str/includes? stringified "/")))

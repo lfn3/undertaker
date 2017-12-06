@@ -1,5 +1,5 @@
 (ns net.lfn3.undertaker.core
-  (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle])
+  (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle symbol])
   (:require [clojure.core :as core]
             [clojure.string :as str]
             [clojure.test :as t]
@@ -362,14 +362,31 @@
        (cons (char-symbol-initial))
        (apply str)))
 
-(defn keyword []
+(defn keyword
+  "Generate keywords without namespaces."
+  []
   (with-interval
     (frequency [[100 #(core/keyword (symbol-name-or-namespace))]
                 [1 (constantly :/)]])))
 
-(defn keyword-ns []
+(defn keyword-ns
+  "Generate keywords with namespaces."
+  []
   (with-interval
     (core/keyword (symbol-name-or-namespace) (symbol-name-or-namespace))))
+
+(defn symbol
+  "Generate symbols without namespaces."
+  []
+  (with-interval
+    (frequency [[100 #(core/symbol (symbol-name-or-namespace))]
+                [1 (constantly '/)]])))
+
+(defn symbol-ns
+  "Generate symbols with namespaces."
+  []
+  (with-interval
+    (core/symbol (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
