@@ -176,3 +176,7 @@
     (is (not= (name s) (str (rest stringified))))
     (is (namespace s))
     (str/includes? stringified "/")))
+
+(undertaker/defprop can-get-ratio {}
+  (let [r (undertaker/ratio)]
+    (is r)))

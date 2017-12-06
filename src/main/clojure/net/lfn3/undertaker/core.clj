@@ -388,6 +388,13 @@
   (with-interval
     (core/symbol (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
+(defn ratio
+  "Generates a `clojure.lang.Ratio`. Shrinks toward 0. Not all values generated
+   will be ratios, as many values returned by `/` are not ratios."
+  []
+  (with-interval
+    (/ (int) (int Integer/MIN_VALUE -1 1 Integer/MAX_VALUE))))
+
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
   ([key-gen value-gen min-size] (map-of key-gen value-gen min-size (+ min-size default-collection-max-size)))
