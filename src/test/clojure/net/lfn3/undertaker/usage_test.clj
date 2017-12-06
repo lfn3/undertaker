@@ -147,3 +147,7 @@
 (undertaker/defprop can-get-set {}
   (let [s (undertaker/set-of (partial undertaker/int 0 5) 5 5)]
     (is (= (count s) 5))))
+
+(undertaker/defprop can-get-a-uuid {}
+  (let [u (undertaker/uuid)]
+    (is (uuid? u))))

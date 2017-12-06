@@ -1,5 +1,5 @@
 (ns net.lfn3.undertaker.core
-  (:refer-clojure :exclude [int byte long double short char float keyword])
+  (:refer-clojure :exclude [int byte long double short char float keyword boolean])
   (:require [clojure.core :as core]
             [clojure.string :as str]
             [clojure.test :as t]
@@ -13,7 +13,8 @@
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.debug :as debug])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
-           (net.lfn3.undertaker.source.sample SampleSource)))
+           (net.lfn3.undertaker.source.sample SampleSource)
+           (java.util UUID)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
@@ -210,6 +211,8 @@
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
           (.getLong)))))
+
+(defn uuid [] (UUID. (long) (long)))
 
 (defn float
   ([] (float (- Double/MAX_VALUE) Double/MAX_VALUE))
