@@ -344,14 +344,9 @@
   "Non-alphanumeric characters that can be in a symbol."
   [\* \+ \! \- \_ \?])
 
-(defn frequency [& int-gens]
-  (let [starts-with-int? (int? (first int-gens))
-        is-vector? (vector? (first int-gens))
-        split (cond->> int-gens
-                starts-with-int? (partition 2)
-                is-vector? (first))
-        chosen (->> split
-                    (sort-by (fn [[int]] int))
+(defn frequency [int-gens]
+  (let [chosen (->> int-gens
+                    (sort-by (fn [[int]] int))              ;So we shrink towards the highest freq
                     (mapcat (fn [[int gen]] (repeat int gen)))
                     (elements))]
     (chosen)))
@@ -362,8 +357,8 @@
 
 (defn keyword []
   (with-interval
-    (->> (vec-of #(frequency 2 char-alphanumeric
-                             1 (partial elements char-symbol-special)))
+    (->> (vec-of #(frequency [[2 char-alphanumeric]
+                              [1 (partial elements char-symbol-special)]]))
          (cons (char-symbol-initial))
          (apply str)
          (core/keyword))))
