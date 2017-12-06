@@ -177,3 +177,15 @@
     (undertaker/run-prop {:seed 1}
       (fn [] (swap! r2 conj (undertaker/int))))
     (is (= @r1 @r2))))
+
+(deftest frequency-works
+  (let [count-of-vals (->> #(undertaker/frequency 1 (constantly 1)
+                                                  2 (constantly 2))
+                           (repeatedly 1000)
+                           (frequencies))
+        number-of-twos (get count-of-vals 2)
+        number-of-ones (get count-of-vals 1)
+        ratio (/ number-of-twos (+ number-of-ones number-of-twos))]
+    ;Should ~2/3
+    (is (< 3/6 ratio))
+    (is (< ratio 5/6))))

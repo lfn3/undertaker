@@ -1,6 +1,7 @@
 (ns net.lfn3.undertaker.specs.proto
   (:require [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.bytes :as bytes]
+            [net.lfn3.undertaker.specs.bytes]
             [net.lfn3.undertaker.proto :as proto]))
 
 (s/def ::proto/interval-start nat-int?)

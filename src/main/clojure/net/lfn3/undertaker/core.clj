@@ -344,9 +344,19 @@
   "Non-alphanumeric characters that can be in a symbol."
   [\* \+ \! \- \_ \?])
 
+(defn frequency [& int-gens]
+  (let [starts-with-int (int (first int-gens))
+        split (cond->> int-gens
+                starts-with-int (partition 2))
+        chosen (->> split
+                    (mapcat (fn [[int gen]] (repeat int gen)))
+                    (elements))]
+    (chosen)))
+
 (defn keyword []
-  (with-interval "keyword"
-    (->> (concat [(elements char-symbol-special)] (vec-of char-alphanumeric))
+  (with-interval
+    (->> (vec-of #(frequency 2 char-alphanumeric
+                             1 (partial elements char-symbol-special)))
          (apply str)
          (core/keyword))))
 

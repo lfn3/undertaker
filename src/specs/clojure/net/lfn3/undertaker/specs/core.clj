@@ -1,6 +1,7 @@
 (ns net.lfn3.undertaker.specs.core
   (:require [net.lfn3.undertaker.core :as undertaker]
             [net.lfn3.undertaker.source :as source]
+            [net.lfn3.undertaker.specs.proto]
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.specs.source]))
