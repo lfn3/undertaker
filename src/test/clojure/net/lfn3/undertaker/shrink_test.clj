@@ -156,7 +156,7 @@
                     (undertaker/run-prop {:debug true}))
         shrunk-value (get-in result [::undertaker/shrunk-results ::undertaker/generated-values])]
     (is (= 1 (count (first shrunk-value))) result)
-    (is (= 1 (count (first (first shrunk-value)))) result)))
+    (is (= 1 (count (first (keys (first shrunk-value))))) result)))
 
 #_(deftest shrinking-should-be-deterministic
   (let [r1 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)

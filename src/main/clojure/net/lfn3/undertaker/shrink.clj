@@ -51,25 +51,22 @@
          bytes bytes]
     (if (not-empty intervals)
       (let [interval (nth intervals index)
-            continue? (< (inc index) (count intervals))]
-        (let [shrunk-bytes (snip-interval bytes interval)
-              source (fixed-source/make-fixed-source shrunk-bytes)
-              result (fn source)
-              passed? (:net.lfn3.undertaker.core/result result)
-              overrun? (is-overrun? result)]
-          (prn continue? overrun? passed?)
-          (when (and continue? (not overrun?) (not passed?))
-            (prn (->> source (source/get-sourced-bytes) (.array) (vec))))
-          (cond
-            (and continue? (or overrun? passed?)) (recur (inc index)
-                                                         intervals
-                                                         bytes)
-            ;TODO: figure out if I can optimize this a bit.
-            (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
-                                                                (filter is-snippable? (source/get-intervals source))
-                                                                shrunk-bytes)
-            (and (not continue?) (or overrun? passed?)) bytes
-            (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes)))
+            continue? (< (inc index) (count intervals))
+            shrunk-bytes (snip-interval bytes interval)
+            source (fixed-source/make-fixed-source shrunk-bytes)
+            result (fn source)
+            passed? (:net.lfn3.undertaker.core/result result)
+            overrun? (is-overrun? result)]
+        (cond
+          (and continue? (or overrun? passed?)) (recur (inc index)
+                                                       intervals
+                                                       bytes)
+          ;TODO: figure out if I can optimize this a bit.
+          (and continue? (not passed?) (not overrun?)) (recur 0 ;safest option is to restart, since we might have deleted a bunch of intervals.
+                                                              (filter is-snippable? (source/get-intervals source))
+                                                              shrunk-bytes)
+          (and (not continue?) (or overrun? passed?)) bytes
+          (and (not continue?) (not overrun?) (not passed?)) shrunk-bytes))
       bytes)))
 
 (defn shrink-at!
@@ -93,11 +90,12 @@
             keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
             result-map (fn shrunk-source)
             passed? (true? (:net.lfn3.undertaker.core/result result-map))
+            overrun? (is-overrun? result-map)
             work-on-next (if keep-trying-current-byte?
                            working-on
                            (inc working-on))
             continue? (< work-on-next (count shrunk-bytes))
-            last-failure-bytes (if passed?
+            last-failure-bytes (if (or passed? overrun?)
                                  last-failure-bytes
                                  (byte-array shrunk-bytes))] ;Defensive clone
         (when (and (not keep-trying-current-byte?) continue?) ;If we're about to move on, put the last failing byte back in.
@@ -132,7 +130,6 @@
                                (.array)
                                (snip-intervals intervals f)
                                (fixed-source/make-fixed-source))
-             _ (prn (->> shrunk-source (source/get-sourced-bytes) (.array) (vec)))
              result-map (f shrunk-source)]
          (source/add-source-data-to-results-map shrunk-source result-map)))
      (finally (source/done-shrinking!)))))

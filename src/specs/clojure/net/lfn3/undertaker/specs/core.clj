@@ -202,8 +202,7 @@
 (s/def ::undertaker/value-gen-takes-key-as-arg boolean?)
 
 (s/fdef undertaker/map-of
-  :args (s/cat :key-gen (s/fspec :args (s/cat)
-                                 :ret any?)
+  :args (s/cat :key-gen fn?
                :value-gen any?                              ;Can be a function or a etc, it's arity depends on opts.
                :min-size (s/? nat-int?)
                :max-size (s/? nat-int?)
