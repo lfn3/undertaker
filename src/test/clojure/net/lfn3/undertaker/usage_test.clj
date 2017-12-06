@@ -180,3 +180,15 @@
 (undertaker/defprop can-get-ratio {}
   (let [r (undertaker/ratio)]
     (is r)))
+
+(undertaker/defprop can-get-simple-type {}
+  (let [s (undertaker/simple-type)]
+    (is (not (coll? s)))))
+
+(undertaker/defprop can-get-printable-simple-type {}
+  (let [s (undertaker/simple-type-printable)]
+    (is (not (coll? s)))
+    (when (string? s)
+      (is (every? ascii-chars s)))
+    (when (char? s)
+      (is (ascii-chars s)))))

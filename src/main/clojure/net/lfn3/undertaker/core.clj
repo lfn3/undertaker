@@ -395,6 +395,16 @@
   (with-interval
     (/ (int) (int Integer/MIN_VALUE -1 1 Integer/MAX_VALUE))))
 
+(defn simple-type
+  "Generates any non collection clojure value"
+  []
+  ((elements [int long double char string ratio boolean keyword keyword-ns symbol symbol-ns uuid])))
+
+(defn simple-type-printable
+  "Generates any printable non collection clojure value"
+  []
+  ((elements [int long double char-ascii string-ascii ratio boolean keyword keyword-ns symbol symbol-ns uuid])))
+
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
   ([key-gen value-gen min-size] (map-of key-gen value-gen min-size (+ min-size default-collection-max-size)))
