@@ -1,5 +1,6 @@
 (ns net.lfn3.undertaker.usage-test
   (:require [clojure.test :refer [deftest is] :as t]
+            [clojure.string :as str]
             [net.lfn3.undertaker.core :as undertaker]
             [orchestra.spec.test :as orchestra.test]))
 
@@ -156,3 +157,10 @@
   (let [v (undertaker/vec-of undertaker/any)
         shuffled (undertaker/shuffle v)]
     (is (= (set v) (set shuffled)))))
+
+(undertaker/defprop can-get-namespaced-keyword {}
+  (let [k (undertaker/keyword-ns)
+        stringified (str k)]
+    (is (not= (name k) (str (rest stringified))))
+    (is (namespace k))
+    (str/includes? stringified "/")))

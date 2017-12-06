@@ -355,13 +355,21 @@
   (frequency [[2 char-alpha]
               [1 (partial elements [\* \! \_ \?])]]))
 
+(defn ^:private symbol-name-or-namespace []
+  (->> #(frequency [[2 char-alphanumeric]
+                    [1 (partial elements char-symbol-special)]])
+       (vec-of)
+       (cons (char-symbol-initial))
+       (apply str)))
+
 (defn keyword []
   (with-interval
-    (->> (vec-of #(frequency [[2 char-alphanumeric]
-                              [1 (partial elements char-symbol-special)]]))
-         (cons (char-symbol-initial))
-         (apply str)
-         (core/keyword))))
+    (frequency [100 (core/keyword (symbol-name-or-namespace))
+                1 (constantly :/)])))
+
+(defn keyword-ns []
+  (with-interval
+    (core/keyword (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
