@@ -192,3 +192,8 @@
       (is (every? ascii-chars s)))
     (when (char? s)
       (is (ascii-chars s)))))
+
+(undertaker/defprop can-get-list {}
+  (let [l (undertaker/list undertaker/keyword)]
+    (is (every? keyword? l))
+    (is (list? l) )))

@@ -1,5 +1,5 @@
 (ns net.lfn3.undertaker.core
-  (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle symbol])
+  (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle symbol list])
   (:require [clojure.core :as core]
             [clojure.string :as str]
             [clojure.test :as t]
@@ -419,6 +419,11 @@
                              (value-gen))]
                      [k v])]
        (into {} (collection vector kv-gen conj min-size max-size))))))
+
+(defn list
+  ([gen] (list gen 0 default-collection-max-size))
+  ([gen size] (list gen size size))
+  ([gen min-size max-size] (collection (constantly '()) gen conj min-size max-size)))
 
 (def any-gens #{boolean
                 int})
