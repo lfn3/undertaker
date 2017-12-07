@@ -71,9 +71,12 @@ public void %s() { ... }"
           seed
           name))
 
-(defn format-not-property-test-failed [name results]
-  (format "This test (%s) did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk."
-          name))
+(defn format-not-property-test-failed [name {:keys [:net.lfn3.undertaker.core/initial-results]}]
+  (format "This test (%s) did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk.
+It failed due to:
+%s"
+          name,
+          (:net.lfn3.undertaker.core/cause initial-results)))
 
 (defn format-not-property-passed [name results]
   (format "%s did not contain any calls to undertaker generators, and so was not treated as a property test and run repeatedly.

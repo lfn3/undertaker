@@ -120,8 +120,8 @@
 
 (defn format-results [name {:keys [::initial-results ::shrunk-results] :as results}]
   (cond
-    (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name initial-results)
-    (not (::source-used? initial-results)) (messages/format-not-property-test-failed name initial-results)
+    (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name results)
+    (not (::source-used? initial-results)) (messages/format-not-property-test-failed name results)
     (not (::result initial-results)) (messages/format-failed name results)
     :default nil))
 
