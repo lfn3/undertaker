@@ -425,16 +425,6 @@
   ([gen size] (list gen size size))
   ([gen min-size max-size] (collection (constantly '()) gen conj min-size max-size)))
 
-(def any-gens #{boolean
-                int})
-
-(defn any
-  ([] (any #{}))
-  ([exclusions]
-   (with-interval
-     (let [chosen-generator (elements (remove exclusions any-gens))]
-       (chosen-generator)))))
-
 (defmacro defprop [name opts & body]
   (let [name-string (str name)]
     (when-not (map? opts)

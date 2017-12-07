@@ -9,7 +9,7 @@
                            (orchestra.test/unstrument)))
 
 (undertaker/defprop vector-coll-identity {}
-  (let [actions (undertaker/vec-of (partial undertaker/elements #{#(conj %1 (undertaker/any))
+  (let [actions (undertaker/vec-of (partial undertaker/elements #{#(conj %1 (undertaker/simple-type))
                                                               'pop}))]
     (when (seq? actions)
       (loop [action (first actions)
@@ -154,7 +154,7 @@
     (is (uuid? u))))
 
 (undertaker/defprop can-shuffle {}
-  (let [v (undertaker/vec-of undertaker/any)
+  (let [v (undertaker/vec-of undertaker/int)
         shuffled (undertaker/shuffle v)]
     (is (= (set v) (set shuffled)))))
 

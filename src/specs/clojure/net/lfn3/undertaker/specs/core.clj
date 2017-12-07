@@ -214,9 +214,3 @@
           (if (and min-size max-size)
             (<= min-size max-size)
             true))))
-
-(s/fdef undertaker/any
-  :args (s/cat :exclusions (s/or :fn (s/fspec :args (s/cat :item any?)
-                                              :ret boolean?)
-                                 :set set?))
-  :ret any?)
