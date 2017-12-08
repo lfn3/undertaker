@@ -420,9 +420,9 @@
                      [k v])]
        (into {} (collection vector kv-gen conj min-size max-size))))))
 
-(defn list
-  ([gen] (list gen 0 default-collection-max-size))
-  ([gen size] (list gen size size))
+(defn list-of
+  ([gen] (list-of gen 0 default-collection-max-size))
+  ([gen size] (list-of gen size size))
   ([gen min-size max-size] (collection (constantly '()) gen conj min-size max-size)))
 
 (defmacro defprop [name opts & body]

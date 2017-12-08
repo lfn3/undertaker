@@ -195,7 +195,7 @@
       (is (ascii-chars s)))))
 
 (undertaker/defprop can-get-list {}
-  (let [l (undertaker/list undertaker/keyword)]
+  (let [l (undertaker/list-of undertaker/keyword)]
     (is (every? keyword? l))
     (is (list? l) )))
 
