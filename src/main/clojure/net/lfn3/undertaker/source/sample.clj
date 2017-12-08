@@ -6,7 +6,7 @@
 (defrecord SampleSource
   [wrapped-source]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip] (proto/get-bytes wrapped-source ranges skip))
+  (get-bytes [_ ranges] (proto/get-bytes wrapped-source ranges))
   proto/Interval
   (push-interval [_ hints] (proto/push-interval wrapped-source hints))
   (pop-interval [_ generated-value] (proto/pop-interval wrapped-source generated-value))

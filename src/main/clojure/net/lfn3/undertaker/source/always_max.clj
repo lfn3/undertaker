@@ -13,11 +13,8 @@
 
 (defrecord AlwaysMaxSource [state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip]
-    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
-          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
-          ranges (bytes/punch-skip-values-out-of-ranges skip ranges)
-          flattened-ranges (mapcat identity ranges)]
+  (get-bytes [_ ranges]
+    (let [flattened-ranges (mapcat identity ranges)]
       (if (every? nil? (map seq flattened-ranges))          ;i.e. range of size zero
         (byte-array 0)
         (let [max-range (loop [idx 0

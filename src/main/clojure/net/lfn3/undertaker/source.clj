@@ -4,7 +4,8 @@
             [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.debug :as debug])
+            [net.lfn3.undertaker.debug :as debug]
+            [net.lfn3.undertaker.intervals :as intervals])
   (:import (net.lfn3.undertaker ChainedByteBuffer)
            (java.nio ByteBuffer)
            (net.lfn3.undertaker.source.fixed FixedSource)))
@@ -39,7 +40,11 @@
   ([source ranges] (get-bytes source #{} ranges))
   ([source skip ranges]
    (check-invariants source)
-   (proto/get-bytes source ranges skip)))
+   (let [interval-stack (proto/get-wip-intervals source)
+         completed-intervals (proto/get-intervals source)
+         [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
+         ranges (bytes/punch-skip-values-out-of-ranges skip ranges)]
+     (proto/get-bytes source ranges))))
 
 (defn push-interval
   ([source] (push-interval source []))
@@ -65,10 +70,6 @@
 (defn reset [source]
   (check-invariants source)
   (proto/reset source))
-
-(defn used? [source]
-  (check-invariants source)
-  (not (empty? (proto/get-intervals source))))
 
 (defn add-source-data-to-results-map [source result-map]
   (let [success? (:net.lfn3.undertaker.core/result result-map)

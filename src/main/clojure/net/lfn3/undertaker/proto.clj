@@ -2,7 +2,7 @@
   (:require [net.lfn3.undertaker.debug :as debug]))
 
 (defprotocol ByteArraySource
-  (get-bytes [this ranges skip]))
+  (get-bytes [this ranges]))
 
 (defprotocol Interval
   (push-interval [this hints])

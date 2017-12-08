@@ -40,7 +40,7 @@
 
 (defrecord FixedSource [state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip]
+  (get-bytes [_ ranges]
     (let [size (count (first (first ranges)))
           state @state-atom
           bytes (byte-array (->> state
@@ -52,7 +52,7 @@
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
       (swap! state-atom update ::cursor + size)
-      (bytes/map-into-ranges! buf ranges skip)
+      (bytes/map-into-ranges! buf ranges)
       buf))
   proto/Interval
   (push-interval [_ hints]

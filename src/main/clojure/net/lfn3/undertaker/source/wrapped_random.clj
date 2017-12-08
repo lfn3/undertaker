@@ -28,16 +28,15 @@
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
-  (get-bytes [this ranges skip]
+  (get-bytes [this ranges]
     (let [number-of-bytes-requested (-> ranges (first) (first) (count))
-          {:keys [::proto/interval-stack ::proto/completed-intervals ::remaining-pre-genned ::bytes/bytes]} @state-atom
-          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
+          {:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
           buf (if (< number-of-bytes-requested remaining-pre-genned)
                 (let [offset (- (count bytes) remaining-pre-genned)]
                   (swap! state-atom update ::remaining-pre-genned - number-of-bytes-requested)
                   (ByteBuffer/wrap bytes offset number-of-bytes-requested))
                 (ByteBuffer/wrap (get-bytes-from-java-random rnd number-of-bytes-requested)))]
-      (bytes/map-into-ranges! buf ranges skip)
+      (bytes/map-into-ranges! buf ranges)
       (.add (source.common/get-buffer state-atom) buf)
       buf))
   proto/Interval

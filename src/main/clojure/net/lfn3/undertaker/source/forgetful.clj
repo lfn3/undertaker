@@ -8,11 +8,11 @@
 (defrecord ForgetfulSource
   [rnd]
   proto/ByteArraySource
-  (get-bytes [_ ranges skip]
+  (get-bytes [_ ranges]
     (let [generated (byte-array (count (first (first ranges))))
           buf (ByteBuffer/wrap generated)]
       (.nextBytes rnd generated)
-      (bytes/map-into-ranges! buf ranges skip)
+      (bytes/map-into-ranges! buf ranges)
       buf))
   proto/Interval
   (push-interval [_ hints])

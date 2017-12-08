@@ -86,11 +86,12 @@
   ([input min max] (vectorized-move-bytes-into-range input min max #{}))
   ([input min max skip]
    (let [ranges (split-number-line-min-max-into-bytewise-min-max min max short->bytes)
-         skip-bytes (set (map short->bytes skip))]
+         skip-bytes (set (map short->bytes skip))
+         ranges (punch-skip-values-out-of-ranges skip-bytes ranges)]
      (-> input
          (byte-array)
          (ByteBuffer/wrap)
-         (map-into-ranges! ranges skip-bytes)
+         (map-into-ranges! ranges)
          (.getShort)))))
 
 (deftest test-split-number-line-min-max-into-bytewise-min-max

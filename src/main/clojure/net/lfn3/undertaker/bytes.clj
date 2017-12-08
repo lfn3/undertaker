@@ -176,29 +176,26 @@
              (rest skip-bytes))
       (vec ranges))))
 
-(defn map-into-ranges!
-  ([input ranges] (map-into-ranges! input ranges #{}))
-  ([^ByteBuffer input ranges skip-values]
-   (let [size (.limit input)
-         ranges (punch-skip-values-out-of-ranges skip-values ranges)]
-     (loop [idx 0
-            ranges ranges
-            all-mins true
-            all-maxes true]
-       (when (< idx size)
-         (let [input-val (.get input idx)
-               sliced-ranges (slice-ranges idx ranges)
-               range (or (last (is-in-ranges input-val sliced-ranges))
-                         (pick-range input-val sliced-ranges))
-               floor (if all-mins (first range) 0)
-               ceiling (if all-maxes (last range) -1)       ;TODO: some kind of short circuit based on all-mins and all-maxes?
-               next-val (move-into-range input-val floor ceiling)]
-           (.put input idx next-val)
-           (recur (inc idx)
-                  (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
-                  (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
-                  (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
-     input)))
+(defn map-into-ranges! [input ranges]
+  (let [size (.limit input)]
+    (loop [idx 0
+           ranges ranges
+           all-mins true
+           all-maxes true]
+      (when (< idx size)
+        (let [input-val (.get input idx)
+              sliced-ranges (slice-ranges idx ranges)
+              range (or (last (is-in-ranges input-val sliced-ranges))
+                        (pick-range input-val sliced-ranges))
+              floor (if all-mins (first range) 0)
+              ceiling (if all-maxes (last range) -1)        ;TODO: some kind of short circuit based on all-mins and all-maxes?
+              next-val (move-into-range input-val floor ceiling)]
+          (.put input idx next-val)
+          (recur (inc idx)
+                 (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
+                 (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
+                 (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
+    input))
 
 (defn split-number-line-min-max-into-bytewise-min-max [floor ceiling ->bytes-fn]
   (if (or (= floor ceiling)
