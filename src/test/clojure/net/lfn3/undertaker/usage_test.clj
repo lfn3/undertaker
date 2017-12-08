@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest is] :as t]
             [clojure.string :as str]
             [net.lfn3.undertaker.core :as undertaker]
-            [orchestra.spec.test :as orchestra.test]))
+            [orchestra.spec.test :as orchestra.test])
+  (:import (net.lfn3.undertaker UniqueInputValuesExhaustedException)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
@@ -197,3 +198,6 @@
   (let [l (undertaker/list undertaker/keyword)]
     (is (every? keyword? l))
     (is (list? l) )))
+
+(undertaker/defprop should-throw-when-input-gets-exhausted {}
+  (is (thrown? UniqueInputValuesExhaustedException (undertaker/set-of (partial undertaker/int 1 3) 5 10))))

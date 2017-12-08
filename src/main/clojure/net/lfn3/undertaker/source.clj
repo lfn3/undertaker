@@ -6,7 +6,7 @@
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.debug :as debug]
             [net.lfn3.undertaker.intervals :as intervals])
-  (:import (net.lfn3.undertaker ChainedByteBuffer)
+  (:import (net.lfn3.undertaker ChainedByteBuffer UniqueInputValuesExhaustedException)
            (java.nio ByteBuffer)
            (net.lfn3.undertaker.source.fixed FixedSource)))
 
@@ -44,6 +44,8 @@
          completed-intervals (proto/get-intervals source)
          [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
          ranges (bytes/punch-skip-values-out-of-ranges skip ranges)]
+     (when (empty? ranges)
+       (throw (UniqueInputValuesExhaustedException. "Ran out of valid values to generate.")))
      (proto/get-bytes source ranges))))
 
 (defn push-interval
