@@ -10,7 +10,7 @@
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
   :test-paths ["src/test/clojure" "src/test/benchmarks"]
-  :target-path "target/%s"
+  :target-path "target/"
 
   :profiles {:provided  {:dependencies [[org.clojure/clojure "1.9.0-RC2"]]}
              :dev       {:source-paths      ["src/specs/clojure"]
