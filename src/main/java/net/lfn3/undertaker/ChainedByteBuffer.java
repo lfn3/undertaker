@@ -5,15 +5,11 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ChainedByteBuffer
+public class ChainedByteBuffer implements Collection<ByteBuffer>
 {
     private int position = 0;
     private int mark = -1;
-    private int limit = 0;
     private final List<ByteBuffer> buffers;
-
-    private int stashedIndex;
-    private ByteBuffer stashedBuffer;
 
     public ChainedByteBuffer()
     {
@@ -23,13 +19,43 @@ public class ChainedByteBuffer
     public ChainedByteBuffer(ByteBuffer... buffers)
     {
         this.buffers = Arrays.asList(buffers);
-        limit = Arrays.stream(buffers).mapToInt(Buffer::limit).reduce((a, b) -> a + b).orElse(0);
     }
 
-    public ChainedByteBuffer add(ByteBuffer b)
+    @Override
+    public boolean add(ByteBuffer b)
     {
         buffers.add(b);
-        return this;
+        return true;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        return buffers.remove(o);
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return buffers.containsAll(c);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends ByteBuffer> c) {
+        return buffers.addAll(c);
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return buffers.removeAll(c);
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return buffers.retainAll(c);
+    }
+
+    @Override
+    public void clear() {
+        buffers.clear();
     }
 
     public ChainedByteBuffer put(Byte b)
@@ -70,7 +96,7 @@ public class ChainedByteBuffer
 
     public int limit()
     {
-        return limit;
+        return buffers.stream().mapToInt(Buffer::limit).reduce((a, b) -> a + b).orElse(0);
     }
 
     public byte[] array()
@@ -105,32 +131,45 @@ public class ChainedByteBuffer
         return buffers.get(buffers.size() - 1);
     }
 
-    public void stash(ByteBuffer b)
+    public List<ByteBuffer> subList(int from, int to)
     {
-        if (stashedBuffer != null)
-        {
-            throw new IllegalStateException("Stash already contains " + printableByteBuffer(b));
-        }
-        this.stashedIndex = buffers.indexOf(b);
-        if (stashedIndex == -1)
-        {
-            throw new IllegalArgumentException("Could not find buffer " + printableByteBuffer(b) + " by reference");
-        }
-
-        buffers.remove(stashedIndex);
-        stashedBuffer = b;
+        return buffers.subList(from, to);
     }
 
-    public void unstash()
+    public void addAll(int at, ByteBuffer... buffers)
     {
-        buffers.add(stashedIndex, stashedBuffer);
-        discardStash();
+        this.buffers.addAll(at, Arrays.asList(buffers));
     }
 
-    public void discardStash()
+    @Override
+    public int size()
     {
-        stashedIndex = -1;
-        stashedBuffer = null;
+        return buffers.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return buffers.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return buffers.contains(o);
+    }
+
+    @Override
+    public Iterator<ByteBuffer> iterator() {
+        return buffers.iterator();
+    }
+
+    @Override
+    public Object[] toArray() {
+        return buffers.toArray();
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return buffers.toArray(a);
     }
 
     private static String printableByteBuffer(ByteBuffer buf)
@@ -153,7 +192,7 @@ public class ChainedByteBuffer
         return "ChainedByteBuffer{" +
                 "position=" + position +
                 ", mark=" + mark +
-                ", limit=" + limit +
+                ", limit=" + limit() +
                 ", buffers=" + bufferString +
                 '}';
     }
