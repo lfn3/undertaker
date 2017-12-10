@@ -4,7 +4,8 @@
             [net.lfn3.undertaker.specs.proto]
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.spec.alpha :as s]
-            [net.lfn3.undertaker.specs.source]))
+            [net.lfn3.undertaker.specs.source]
+            [clojure.test.check.generators :as gen]))
 
 (s/fdef undertaker/next-seed
         :args (s/cat :seed integer?)
@@ -17,6 +18,8 @@
 (s/def ::undertaker/iterations-run integer?)
 (s/def ::undertaker/results-map (s/keys :req [::undertaker/result ::undertaker/source-used?]
                                         :opt [::undertaker/generated-values]))
+
+(s/def ::undertaker/cause (s/nilable any?))
 
 (s/def ::undertaker/prop-fn-results (s/keys :req [::undertaker/result ::undertaker/cause ::undertaker/reported]))
 

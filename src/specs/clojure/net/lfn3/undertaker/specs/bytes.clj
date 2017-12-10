@@ -1,7 +1,8 @@
 (ns net.lfn3.undertaker.specs.bytes
   (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as s.gen]
-            [net.lfn3.undertaker.bytes :as bytes])
+            [net.lfn3.undertaker.bytes :as bytes]
+            [clojure.test.check.generators :as gen])
   (:import (java.nio ByteBuffer)
            (net.lfn3.undertaker ChainedByteBuffer)))
 
@@ -40,7 +41,7 @@
             (= ret (or (zero? x) (neg? y)))))))
 
 (s/fdef bytes/move-into-range
-  :args (s/cat :b ::bytes/byte :floor ::bytes/byte :ceiling ::bytes/byte :skip-values (s/? ::bytes/bytes))
+  :args (s/cat :b ::bytes/byte :floor ::bytes/byte :ceiling ::bytes/byte)
   :ret ::bytes/byte)
 
 (s/fdef bytes/is-in-range
@@ -97,13 +98,19 @@
             (not (skip-values (.array ret)))
             true))))
 
+(s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
+                                       #(gen/fmap (fn [^bytes b] (ByteBuffer/wrap b)) gen/bytes)))
+
+(s/def ::bytes/->bytes-fn (s/fspec :args (s/cat :number number?)
+                                   :ret bytes?))
+
 (s/fdef bytes/split-number-line-min-max-into-bytewise-min-max
-  :args (s/cat :floor number? :ceiling number? :->bytes-fn fn?)
+  :args (s/cat :floor number? :ceiling number? :->bytes-fn ::bytes/->bytes-fn)
   :ret ::bytes/ranges)
 
 (s/fdef bytes/split-number-line-ranges-into-bytewise-min-max
   :args (s/cat :ranges (s/and (s/coll-of number?) (comp even? count))
-               :->bytes-fn fn?)
+               :->bytes-fn ::bytes/->bytes-fn)
   :ret ::bytes/ranges)
 
 (s/def ::bytes/short (s/and int?
