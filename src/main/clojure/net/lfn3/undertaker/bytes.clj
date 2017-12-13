@@ -135,10 +135,10 @@
     (if (<= 0 idx)
       (let [updated (update-fn (get bytes idx))]
         (cond
-          (<= updated -1) (recur (dec idx)
-                                 (update bytes idx (constantly -1)))
-          (<= 256 updated) (recur (dec idx)
-                                  (update bytes idx (constantly 0)))
+          (< updated -128) (recur (dec idx)
+                                  (update bytes idx (constantly -1)))
+          (< 127 updated) (recur (dec idx)
+                                 (update bytes idx (constantly 127)))
           :default (update bytes idx update-fn)))
       [])))
 

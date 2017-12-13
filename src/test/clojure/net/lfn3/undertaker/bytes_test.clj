@@ -146,7 +146,15 @@
   (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 1] [2 2]]]) [[[1 0] [2 2]]]))
   (is (= (punch-skip-values-out-of-ranges [[0 0]] [[[0 0 0] [2 2 2]]]) [[[0 1 0] [2 2 2]]]))
   (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]])))
+  (is (= (punch-skip-values-out-of-ranges [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]]))
+
+  (is (= (punch-skip-values-out-of-ranges [[-2]] [[[-4] [-1]]]) [[[-4] [-3]] [[-1] [-1]]]))
+  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
+  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128 -128] [-1 -1]]]) [[[-127 -128] [-1 -1]]]))
+
+  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0] [127]]]) [[[0] [126]]]))
+  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 0]]]))
+  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]])))
 
 (deftest test-range<
   (is (true? (range< [[1] [1]] [[2] [2]])))
