@@ -14,7 +14,7 @@
           result '()]
      (let [to-check (first targets)]
        (if to-check
-         (let [test-sym (symbol (str "check-" (str/replace to-check #"/" "-")))
+         (let [test-sym (symbol (str "check-" (str/replace to-check #"[/\.]" "-")))
                test `(deftest ~test-sym
                        (let [result# (s.test/check (quote ~to-check) {:clojure.spec.test.check/opts {:num-tests 100}})
                              passed?# (get-in (first result#) [:clojure.spec.test.check/ret :result])]

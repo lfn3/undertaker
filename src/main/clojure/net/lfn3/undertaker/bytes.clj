@@ -47,9 +47,19 @@
              result
              (reduced false))))))))
 
-(defn ranges-are-sorted?                                    ;TODO: check if ranges are internally sorted
+(defn ranges-are-sorted?
   ([ranges] (ranges-are-sorted-xf conformed-range<))
   ([ranges range<fn] (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
+
+(defn ranges-have-same-length?
+  ([ranges]
+   (let [counts (->> ranges
+                     (mapcat (juxt first last))
+                     (map count))]
+     (every? (partial = (first counts)) counts))))
+
+(defn conformed-ranges-have-same-length? [ranges]
+  (ranges-have-same-length? (map (partial map val) ranges)))
 
 (defn negative-range? [range]
   (and (neg-int? (first (first range)))
@@ -193,8 +203,8 @@
            ranges ranges
            all-mins true
            all-maxes true]
-      (when (< idx size)
-        (let [input-val (.get input idx)
+      (when (and (< idx size) (seq ranges))                 ;Short circuit if we've gone outside the ranges
+        (let [input-val (.get input idx)                    ;This means that we've left the all-mins/all-maxes path
               sliced-ranges (slice-ranges idx ranges)
               range (or (last (is-in-ranges input-val sliced-ranges))
                         (pick-range input-val sliced-ranges))
