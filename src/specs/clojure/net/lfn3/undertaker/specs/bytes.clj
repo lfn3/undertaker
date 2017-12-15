@@ -86,13 +86,15 @@
       (count)))
 
 (s/fdef bytes/slice-range
-  :args (s/cat :idx int? :range ::bytes/range)
+  :args (s/and (s/cat :idx nat-int? :range ::bytes/range)
+               (fn [{:keys [idx range]}]
+                 (< idx (conformed-range-length range))))
   :ret ::bytes/sliced-range)
 
 (s/fdef bytes/slice-ranges
-  :args (s/and (s/cat :idx int? :ranges ::bytes/ranges)
+  :args (s/and (s/cat :idx nat-int? :ranges ::bytes/ranges)
                (fn [{:keys [idx ranges]}]
-                 (<= idx (conformed-range-length (first ranges)))))
+                 (< idx (conformed-range-length (first ranges)))))
   :ret ::bytes/sliced-ranges)
 
 (s/fdef bytes/collapse-identical-ranges
@@ -118,7 +120,7 @@
   :ret ::bytes/ranges)
 
 (s/fdef bytes/punch-skip-value-out-if-in-range
-  :args (s/and (s/cat :range ::bytes/range :skip ::bytes/bytes)
+  :args (s/and (s/cat :range ::bytes/range :skip-value ::bytes/bytes)
                skip-val-must-be-equal-or-shorter-length-than-range)
   :ret ::bytes/ranges)
 
