@@ -51,6 +51,10 @@
   ([ranges] (ranges-are-sorted-xf conformed-range<))
   ([ranges range<fn] (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
 
+(defn negative-range? [range]
+  (and (neg-int? (first (first range)))
+       (neg-int? (first (last range)))))
+
 (defn unsigned<= [x y]
   (not= 1 (Long/compareUnsigned x y)))
 
@@ -133,28 +137,35 @@
   (loop [idx (dec (count bytes))
          bytes (vec bytes)]
     (if (<= 0 idx)
-      (let [updated (update-fn (get bytes idx))]
+      (let [value (get bytes idx)
+            updated (update-fn value)]
         (cond
-          (< updated -128) (recur (dec idx)
-                                  (update bytes idx (constantly -1)))
-          (< 127 updated) (recur (dec idx)
-                                 (update bytes idx (constantly 127)))
+          (and (= 0 value) (= -1 updated)) (recur (dec idx)
+                                                  (update bytes idx (constantly -1)))
+          (and (= -1 value) (= 0 updated)) (recur (dec idx)
+                                                  (update bytes idx (constantly 0)))
+          (< updated -128) []
+          (< 127 updated) []
           :default (update bytes idx update-fn)))
       [])))
 
 (defn punch-skip-value-out-of-range [range skip-value]
   (let [size-of-range (count (first range))
         index-of-last-skip-value (dec (count skip-value))
+        fill-lower #(fill %1 size-of-range -1)
+        fill-upper (if (negative-range? range)
+                     #(fill %1 size-of-range -128)
+                     #(fill %1 size-of-range 0))
         lower-range (some-> skip-value
                             (handle-underflow dec)
                             (seq)
-                            (fill size-of-range -1)
+                            (fill-lower)
                             (vec)
                             (->> (vector (first range))))
         upper-range (some-> skip-value
                             (handle-underflow inc)
                             (seq)
-                            (fill size-of-range 0)
+                            (fill-upper)
                             (vec)
                             (vector (last range)))]
     (->> [lower-range upper-range]

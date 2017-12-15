@@ -130,14 +130,6 @@
   (is (= (vec (double->bytes 1.0000000000000002))
          [63 -16 0 0 0 0 0 1])))
 
-#_(deftest test-skip-disallowed-values
-  (is (= -128 (skip-disallowed-values 127 #{(byte-array [127])} )))
-  (is (= -2 (skip-disallowed-values -2 #{(byte-array [127])} )))
-  (is (= 6 (skip-disallowed-values 5 #{(byte-array [1])
-                                     (byte-array [5])} )))
-  (is (= 4 (skip-disallowed-values 4 #{(byte-array [1])
-                                     (byte-array [5])}))))
-
 (deftest test-punch-skip-values-out-of-range
   (is (= (punch-skip-values-out-of-ranges [[1]] [[[1] [4]]]) [[[2] [4]]]))
   (is (= (punch-skip-values-out-of-ranges [[2]] [[[1] [4]]]) [[[1] [1]] [[3] [4]]]))
@@ -151,9 +143,11 @@
   (is (= (punch-skip-values-out-of-ranges [[-2]] [[[-4] [-1]]]) [[[-4] [-3]] [[-1] [-1]]]))
   (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
   (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128 -128] [-1 -1]]]) [[[-127 -128] [-1 -1]]]))
+  (is (= (punch-skip-values-out-of-ranges [[-1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -1]]]))
+  (is (= (punch-skip-values-out-of-ranges [[-2 -1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -2]] [[-1 0] [-1 -1]]]))
 
   (is (= (punch-skip-values-out-of-ranges [[127]] [[[0] [127]]]) [[[0] [126]]]))
-  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 0]]]))
+  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 -1]]]))
   (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]])))
 
 (deftest test-range<
