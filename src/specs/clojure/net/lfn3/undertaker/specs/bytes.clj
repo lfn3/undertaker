@@ -136,14 +136,11 @@
 (s/fdef bytes/map-into-ranges!
   :args (s/with-gen (s/and (s/cat :input ::bytes/byte-buffer :ranges ::bytes/ranges)
                            (fn [{:keys [input ranges]}]
-                             (= (.limit input) (conformed-range-length (first ranges)))))
+                             (= (.remaining input) (conformed-range-length (first ranges)))))
                     #(gen/bind (s/gen ::bytes/byte-buffer)
                                (fn [bb] (gen/tuple (gen/return bb)
                                                    (range-gen (.limit bb))))))
-  :ret (partial instance? ByteBuffer)
-  :fn (fn [{:keys [args ret]}]
-        (let [{:keys [^ByteBuffer input ranges]} args]
-          (= (.limit input) (conformed-range-length (first ranges))))))
+  :ret (partial instance? ByteBuffer))
 
 (s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
                                        #(gen/fmap (fn [^bytes b] (ByteBuffer/wrap b)) gen/bytes)))

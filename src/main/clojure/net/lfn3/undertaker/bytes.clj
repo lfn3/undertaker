@@ -197,21 +197,23 @@
              (rest skip-bytes))
       (vec ranges))))
 
-(defn map-into-ranges! [input ranges]
-  (let [size (.limit input)]
+(defn map-into-ranges! [^ByteBuffer input ranges]
+  (let [size (.remaining input)
+        limit (.limit input)
+        offset (.position input)]
     (loop [idx 0
            ranges ranges
            all-mins true
            all-maxes true]
-      (when (and (< idx size) (seq ranges))                 ;Short circuit if we've gone outside the ranges
-        (let [input-val (.get input idx)                    ;This means that we've left the all-mins/all-maxes path
+      (when (and (< (+ offset idx) limit) (seq ranges))                ;Short circuit if we've gone outside the ranges
+        (let [input-val (.get input (int (+ offset idx)))              ;This means that we've left the all-mins/all-maxes path
               sliced-ranges (slice-ranges idx ranges)
               range (or (last (is-in-ranges input-val sliced-ranges))
                         (pick-range input-val sliced-ranges))
               floor (if all-mins (first range) 0)
               ceiling (if all-maxes (last range) -1)        ;TODO: some kind of short circuit based on all-mins and all-maxes?
               next-val (move-into-range input-val floor ceiling)]
-          (.put input idx next-val)
+          (.put input (+ offset idx) next-val)
           (recur (inc idx)
                  (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
                  (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))

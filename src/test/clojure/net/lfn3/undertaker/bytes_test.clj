@@ -76,6 +76,9 @@
          (map-into-ranges! ranges)
          (.getShort)))))
 
+(deftest test-map-bytes-into-ranges-with-offset-buffer
+  (is (= 4 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]])))))
+
 (deftest test-split-number-line-min-max-into-bytewise-min-max
   (let [vectorized #(->> (split-number-line-min-max-into-bytewise-min-max %1 %2 short->bytes)
                          (map (partial map vec))
