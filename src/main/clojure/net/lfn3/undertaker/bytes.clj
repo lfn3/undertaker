@@ -199,8 +199,7 @@
       (vec ranges))))
 
 (defn map-into-ranges! [^ByteBuffer input ranges]
-  (let [size (.remaining input)
-        limit (.limit input)
+  (let [limit (.limit input)
         offset (.position input)]
     (loop [idx 0
            ranges ranges
@@ -281,6 +280,6 @@
    (->> buffers
         (drop start)
         (take (- end start))
-        (mapcat #(vec (for [i (range (.remaining %1))]
-                        (.get %1 i))))
+        (mapcat #(for [i (range (.position %1) (.limit %1))]
+                   (.get %1 i)))
         (byte-array))))

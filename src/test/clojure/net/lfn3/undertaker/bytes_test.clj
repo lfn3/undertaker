@@ -77,7 +77,17 @@
          (.getShort)))))
 
 (deftest test-map-bytes-into-ranges-with-offset-buffer
-  (is (= 4 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]])))))
+  (is (= 4 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]]))))
+  (is (= 2 (.getInt (map-into-ranges! (ByteBuffer/wrap (byte-array [2 27 73 67 -38 97 58 -23 -58 -14]) 1 4)
+                                      [[[0 0 0 0] [0 0 0 5]]])))))
+
+(deftest test-buffers->bytes
+  (let [arr (byte-array [1 0 0 0 2 1 0 0 0 4])
+        buffers [(ByteBuffer/wrap arr 0 1) (ByteBuffer/wrap arr 1 4) (ByteBuffer/wrap arr 5 1) (ByteBuffer/wrap arr 6 4)]]
+    (is (= [1] (vec (buffers->bytes buffers 0 1))) (nth buffers 0))
+    (is (= [0 0 0 2] (vec (buffers->bytes buffers 1 2))) (nth buffers 1))
+    (is (= [1] (vec (buffers->bytes buffers 2 3))) (nth buffers 2))
+    (is (= [0 0 0 4] (vec (buffers->bytes buffers 3 4)))) (nth buffers 3)))
 
 (deftest test-split-number-line-min-max-into-bytewise-min-max
   (let [vectorized #(->> (split-number-line-min-max-into-bytewise-min-max %1 %2 short->bytes)
