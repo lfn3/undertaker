@@ -14,7 +14,8 @@
             [net.lfn3.undertaker.debug :as debug])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
            (net.lfn3.undertaker.source.sample SampleSource)
-           (java.util UUID)))
+           (java.util UUID)
+           (java.nio ByteBuffer)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
@@ -125,6 +126,10 @@
     (not (::result initial-results)) (messages/format-failed name results)
     :default nil))
 
+(defmacro get-from-byte-buffer-abs [f ^ByteBuffer byte-buffer]
+  `(let [buffer# ~byte-buffer]
+     (~f buffer# (.position buffer#))))
+
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -136,7 +141,7 @@
    (with-interval      ;This is slightly ridiculous, but consistency is key!
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
           (source/get-bytes *source*)
-          (.get)))))
+          (get-from-byte-buffer-abs .get)))))
 
 (defn boolean
   ([]
@@ -152,7 +157,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
           (source/get-bytes *source*)
-          (.getShort)))))
+          (get-from-byte-buffer-abs .getShort)))))
 
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
@@ -161,7 +166,7 @@
    (with-interval
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
           (source/get-bytes *source*)
-          (.getInt)))))
+          (get-from-byte-buffer-abs .getInt)))))
 
 (defn char
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
@@ -175,7 +180,7 @@
    (with-interval
      (->> ascii-range
           (source/get-bytes *source*)
-          (.get)
+          (get-from-byte-buffer-abs .get)
           (core/char)))))
 
 (def alphanumeric-range [[[48] [57]]
@@ -188,7 +193,7 @@
    (with-interval
      (->> alphanumeric-range
           (source/get-bytes *source*)
-          (.get)
+          (get-from-byte-buffer-abs .get)
           (core/char)))))
 
 (def alpha-range [[[65] [90]]
@@ -200,7 +205,7 @@
    (with-interval
      (->> alpha-range
           (source/get-bytes *source*)
-          (.get)
+          (get-from-byte-buffer-abs .get)
           (core/char)))))
 
 (defn long
@@ -210,7 +215,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
-          (.getLong)))))
+          (get-from-byte-buffer-abs .getLong)))))
 
 (defn uuid [] (UUID. (long) (long)))
 
@@ -221,7 +226,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
           (source/get-bytes *source*)
-          (.getFloat)))))
+          (get-from-byte-buffer-abs .getFloat)))))
 
 (def start-of-unreal-doubles (->> (range -1 -17 -1)
                                   (mapcat (fn [i] [[127 i] [-1 i]]))
@@ -234,7 +239,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source* start-of-unreal-doubles)
-          (.getDouble)))))
+          (get-from-byte-buffer-abs .getDouble)))))
 
 (defn double
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
@@ -243,7 +248,7 @@
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
           (source/get-bytes *source*)
-          (.getDouble)))))
+          (get-from-byte-buffer-abs .getDouble)))))
 
 (def default-string-max-size 2048)
 
