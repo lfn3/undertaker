@@ -12,5 +12,5 @@
 
 (defprotocol Recall
   "Allows you to get the sequence of bytes this source of randomness has emitted since the last reset."
-  (get-sourced-bytes [this])
+  (get-sourced-byte-buffers [this])
   (reset [this]))

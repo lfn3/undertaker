@@ -3,7 +3,9 @@
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.set :as set]
             [net.lfn3.undertaker.debug :as debug])
-  (:import (net.lfn3.undertaker ChainedByteBuffer)))
+  (:import (net.lfn3.undertaker ChainedByteBuffer)
+           (java.util Collection)
+           (java.nio ByteBuffer)))
 
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
@@ -21,41 +23,38 @@
     (concat this-hints immediate-children-hints)))
 
 (defn push-interval [state hints]
-  (let [^ChainedByteBuffer chained-byte-buffer (::bytes/chained-byte-buffer state)]
-    (update state ::proto/interval-stack conj {::proto/interval-start (.limit chained-byte-buffer)
-                                               ::proto/interval-depth (count (::proto/interval-stack state))
-                                               ::proto/hints          hints})))
+  (let [{:keys [::bytes/byte-buffers ::proto/interval-stack]} state]
+    (update state ::proto/interval-stack conj {::proto/interval-start-buffer (count byte-buffers)
+                                               ::proto/interval-start        (bytes/length-of-buffers byte-buffers)
+                                               ::proto/interval-depth        (count interval-stack)
+                                               ::proto/hints                 hints})))
 
-(defn build-completed-interval [wip-interval ending-at generated-value chained-buffer uniqueness-hint-id]
+(defn build-completed-interval [wip-interval generated-value byte-buffers uniqueness-hint-id]
   (cond-> wip-interval
-    true (assoc ::proto/interval-end ending-at)
-    generated-value (assoc ::proto/generated-value generated-value)
-    uniqueness-hint-id (assoc ::proto/mapped-bytes (-> chained-buffer
-                                                       (.last)
-                                                       (.array)))
+    true (assoc ::proto/interval-end (bytes/length-of-buffers byte-buffers))
+    true (assoc ::proto/generated-value generated-value)
+    uniqueness-hint-id (assoc ::proto/mapped-bytes (bytes/buffers->bytes byte-buffers
+                                                                         (::proto/interval-start-buffer wip-interval)
+                                                                         (count byte-buffers)))
     uniqueness-hint-id (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))
 
 (defn pop-interval [state generated-value]
-  (let [interval-to-update (last (::proto/interval-stack state))]
-    (let [started-at (::proto/interval-start interval-to-update)
-          ^ChainedByteBuffer chained-buffer (::bytes/chained-byte-buffer state)
-          ending-at (.limit chained-buffer)
-          length (- ending-at started-at)
-          applicable-hints (hints-that-apply (::proto/interval-stack state))
-          uniqueness-hint-id (->> applicable-hints
-                                  (filter #(= ::proto/unique (nth %1 1))) ;Assumes there's only one.
-                                  (last)
-                                  (last))
-          generated-value (and (zero? (::proto/interval-depth interval-to-update)) generated-value)
-          snippable? (some (comp (partial = ::proto/snippable) #(nth %1 1)) applicable-hints)
-          keep? (or snippable? generated-value uniqueness-hint-id)]
-      (cond-> state
-              true (update ::proto/interval-stack pop)
-              keep? (update ::proto/completed-intervals conj (build-completed-interval interval-to-update
-                                                                                       ending-at
-                                                                                       generated-value
-                                                                                       chained-buffer
-                                                                                       uniqueness-hint-id))))))
+  (let [interval-to-update (last (::proto/interval-stack state))
+        byte-buffers (::bytes/byte-buffers state)
+        applicable-hints (hints-that-apply (::proto/interval-stack state))
+        uniqueness-hint-id (->> applicable-hints
+                                (filter #(= ::proto/unique (nth %1 1))) ;Assumes there's only one.
+                                (last)
+                                (last))
+        top-of-intervals? (zero? (::proto/interval-depth interval-to-update))
+        snippable? (some (comp (partial = ::proto/snippable) #(nth %1 1)) applicable-hints)
+        keep? (or snippable? top-of-intervals? uniqueness-hint-id)]
+    (cond-> state
+      true (update ::proto/interval-stack pop)
+      keep? (update ::proto/completed-intervals conj (build-completed-interval interval-to-update
+                                                                               generated-value
+                                                                               byte-buffers
+                                                                               uniqueness-hint-id)))))
 
 (defmulti apply-hint*
           (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))

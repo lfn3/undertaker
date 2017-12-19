@@ -1,6 +1,7 @@
 (ns net.lfn3.undertaker.bytes
   (:import (java.nio ByteBuffer)
-           (net.lfn3.undertaker ChainedByteBuffer)))
+           (net.lfn3.undertaker ChainedByteBuffer)
+           (java.util Collection)))
 
 (defn unsign [b] (bit-and 0xff b))
 
@@ -268,3 +269,18 @@
         wrapped (ByteBuffer/wrap out)]
     (.putDouble wrapped d)
     out))
+
+(defn length-of-buffers [^Collection buffers]
+  (->> buffers
+       (map (fn [^ByteBuffer buf] (.remaining buf)))
+       (reduce + 0)))
+
+(defn buffers->bytes
+  ([^Collection buffers] (buffers->bytes buffers 0 (count buffers)))
+  ([^Collection buffers start end]
+   (->> buffers
+        (drop start)
+        (take (- end start))
+        (mapcat #(vec (for [i (range (.remaining %1))]
+                        (.get %1 i))))
+        (byte-array))))

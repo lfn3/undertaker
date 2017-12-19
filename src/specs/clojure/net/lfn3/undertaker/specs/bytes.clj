@@ -42,7 +42,9 @@
                                   range-gen))
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
 (s/def ::bytes/sliced-ranges (s/coll-of ::bytes/sliced-range))
-(s/def ::bytes/byte-buffer (partial instance? ByteBuffer))
+(s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
+                                       (fn [] (gen/fmap #(ByteBuffer/wrap %1) gen/bytes))))
+(s/def ::bytes/byte-buffers (s/coll-of ::bytes/byte-buffer))
 (s/def ::bytes/chained-byte-buffer (partial instance? ChainedByteBuffer))
 
 (s/fdef bytes/unsigned<=

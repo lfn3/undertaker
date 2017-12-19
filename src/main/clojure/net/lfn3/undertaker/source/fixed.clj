@@ -1,42 +1,24 @@
 (ns net.lfn3.undertaker.source.fixed
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.debug :as debug])
+            [net.lfn3.undertaker.debug :as debug]
+            [net.lfn3.undertaker.intervals :as intervals])
   (:import (net.lfn3.undertaker OverrunException ChainedByteBuffer)
            (java.nio ByteBuffer)))
-
-(defn- push-interval* [state hints]
-  (update state ::proto/interval-stack conj {::proto/interval-start (get state ::cursor)
-                                             ::proto/interval-depth (count (::proto/interval-stack state))
-                                             ::proto/hints          hints}))
-
-(defn- pop-interval* [state generated-value]
-  (let [interval-to-update (last (::proto/interval-stack state))]
-    (let [started-at (get interval-to-update ::proto/interval-start)
-          ending-at (get state ::cursor)
-          length (- ending-at started-at)]
-      (-> state
-          (update ::proto/interval-stack pop)
-          (update ::proto/completed-intervals conj (-> interval-to-update
-                                                       (assoc ::proto/interval-end ending-at)
-                                                       (assoc ::proto/generated-value generated-value)
-                                                       (assoc ::proto/mapped-bytes (->> state
-                                                                                        ::bytes/bytes
-                                                                                        (drop ending-at)
-                                                                                        (take length)
-                                                                                        (vec)))))))))
 
 (defn initial-state [bytes]
   {::cursor                    0
    ::bytes/bytes               bytes
    ::proto/interval-stack      []
-   ::proto/completed-intervals []})
+   ::proto/completed-intervals []
+   ::bytes/byte-buffers []})
 
 (defn reset-state [state]
   (-> state
       (assoc ::cursor 0)
       (assoc ::proto/completed-intervals [])
-      (assoc ::proto/interval-stack [])))
+      (assoc ::proto/interval-stack [])
+      (assoc ::bytes/byte-buffers [])))
 
 (defrecord FixedSource [state-atom]
   proto/ByteArraySource
@@ -51,30 +33,22 @@
       (when-not (= (count bytes) size)
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
-      (swap! state-atom update ::cursor + size)
+      (swap! state-atom #(-> %1
+                             (update ::cursor + size)
+                             (update ::bytes/byte-buffers conj buf)))
       (bytes/map-into-ranges! buf ranges)
       buf))
   proto/Interval
   (push-interval [_ hints]
-    (swap! state-atom push-interval* hints)
+    (swap! state-atom intervals/push-interval hints)
     nil)
-  (pop-interval [_ generated-value]
-    (swap! state-atom pop-interval* generated-value)
+  (pop-interval [_ generated-value] (swap! state-atom intervals/pop-interval generated-value)
     nil)
   (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
-  (get-sourced-bytes [_]
-    (->> state-atom
-         deref
-         ::bytes/bytes
-         (byte-array)
-         (ByteBuffer/wrap)
-         (vector)
-         (into-array ByteBuffer)
-         (ChainedByteBuffer.)))
-  (reset [_]
-    (swap! state-atom reset-state)))
+  (get-sourced-byte-buffers [_] (::bytes/byte-buffers @state-atom))
+  (reset [_] (swap! state-atom reset-state)))
 
 (defn make-fixed-source [bytes]
   (let [state (atom (initial-state bytes))]

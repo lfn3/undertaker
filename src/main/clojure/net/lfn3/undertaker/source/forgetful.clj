@@ -20,9 +20,7 @@
   (get-intervals [_] [])
   (get-wip-intervals [_] [])
   proto/Recall
-  (get-sourced-bytes [_] (-> (byte-array 0)
-                             (ByteBuffer/wrap)
-                             (ChainedByteBuffer.)))
+  (get-sourced-byte-buffers [_] [])
   (reset [_]))
 
 (defn make-source [seed]

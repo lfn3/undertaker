@@ -27,8 +27,7 @@
 
 (s/fdef intervals/build-completed-interval
   :args (s/cat :wip-interval ::proto/wip-interval
-               :ending-at ::proto/interval-end
                :generated-value (s/nilable ::proto/generated-value)
-               :chained-buffer ::bytes/chained-byte-buffer
+               :byte-buffers ::bytes/byte-buffers
                :uniqueness-hint-id (s/nilable ::proto/uniqueness-hint-id))
   :ret ::proto/interval)

@@ -18,7 +18,7 @@
         underlying (byte-array some-bytes)
         duplicated (byte-array some-bytes)
         byte-buffer (ByteBuffer/wrap underlying)
-        chained-buffer (ChainedByteBuffer. (into-array ByteBuffer [(ByteBuffer/wrap duplicated)]))]
+        chained-buffer (ChainedByteBuffer/wrap [(ByteBuffer/wrap duplicated)])]
 
     (loop [remaining-ops (get-ops)]
       (when-let [op (first remaining-ops)]
@@ -51,8 +51,8 @@
         first-duplicated (byte-array (take split-at some-bytes))
         second-duplicated (byte-array (drop split-at some-bytes))
         byte-buffer (ByteBuffer/wrap underlying)
-        chained-buffer (ChainedByteBuffer. (into-array ByteBuffer [(ByteBuffer/wrap first-duplicated)
-                                                                   (ByteBuffer/wrap second-duplicated)]))]
+        chained-buffer (ChainedByteBuffer/wrap [(ByteBuffer/wrap first-duplicated)
+                                                (ByteBuffer/wrap second-duplicated)])]
 
     (loop [remaining-ops (get-ops)]
       (when-let [op (first remaining-ops)]

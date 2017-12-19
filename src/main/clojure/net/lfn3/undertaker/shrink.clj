@@ -117,7 +117,7 @@
 (defn shrink
   ([source f]
    (try
-     (let [bytes (.array (source/get-sourced-bytes source))
+     (let [bytes (source/get-sourced-bytes source)
            intervals (source/get-intervals source)]
        (source/shrinking!)
        (let [shrunk-source (-> bytes
@@ -127,7 +127,6 @@
              _ (f shrunk-source)
              intervals (proto/get-intervals shrunk-source)
              shrunk-source (-> (source/get-sourced-bytes shrunk-source)
-                               (.array)
                                (snip-intervals intervals f)
                                (fixed-source/make-fixed-source))
              result-map (f shrunk-source)]

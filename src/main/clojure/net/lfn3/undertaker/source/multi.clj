@@ -4,14 +4,15 @@ net.lfn3.undertaker.source.multi
             [net.lfn3.undertaker.source.always-max :as source.max]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
             [net.lfn3.undertaker.source.always-min :as source.zero]
-            [net.lfn3.undertaker.source :as source]))
+            [net.lfn3.undertaker.source :as source]
+            [net.lfn3.undertaker.bytes :as bytes]))
 
 (defn next-source [state]
   (let [next-source (first (::sources state))
         current-source (::current-source state)
         current-max-size (::max-size-of-source state)
-        max-size-of-source (-> (source/get-sourced-bytes current-source)
-                               (.limit)
+        max-size-of-source (-> (source/get-sourced-byte-buffers current-source)
+                               (bytes/length-of-buffers)
                                (max current-max-size))]
     (if next-source
       (if (fn? next-source)
@@ -38,7 +39,7 @@ net.lfn3.undertaker.source.multi
   (get-intervals [_] (proto/get-intervals (::current-source @state-atom)))
   (get-wip-intervals [_] (proto/get-wip-intervals (::current-source @state-atom)))
   proto/Recall
-  (get-sourced-bytes [_] (proto/get-sourced-bytes (::current-source @state-atom)))
+  (get-sourced-byte-buffers [_] (proto/get-sourced-byte-buffers (::current-source @state-atom)))
   (reset [_] (if (first (::sources @state-atom))
                (swap! state-atom next-source)
                (proto/reset (::current-source @state-atom)))))

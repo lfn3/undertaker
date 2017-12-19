@@ -19,6 +19,10 @@
         :args (s/cat :source ::source/source :hints (s/? ::proto/hints))
         :ret nil?)
 
+(s/fdef source/get-sourced-byte-buffers
+  :args (s/cat :source ::source/source)
+  :ret ::bytes/byte-buffers)
+
 (s/fdef source/get-sourced-bytes
   :args (s/cat :source ::source/source)
-  :ret (partial instance? ChainedByteBuffer))
+  :ret ::bytes/bytes)

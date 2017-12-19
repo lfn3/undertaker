@@ -9,7 +9,7 @@
 (defn initial-state []
   {::proto/interval-stack      []
    ::proto/completed-intervals []
-   ::bytes/chained-byte-buffer (ChainedByteBuffer.)})
+   ::bytes/byte-buffers []})
 
 (defrecord AlwaysMaxSource [state-atom]
   proto/ByteArraySource
@@ -29,7 +29,7 @@
                               (< (inc idx) (count (last ranges))) (first max-ranges)
                               :default (recur (inc idx) max-ranges))))
               buf (ByteBuffer/wrap (byte-array max-range))]
-          (.add (source.common/get-buffer state-atom) buf)
+          (swap! state-atom update ::bytes/byte-buffers conj buf)
           buf))))
   proto/Interval
   (push-interval [_ hints]
@@ -41,8 +41,7 @@
   (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
-  (get-sourced-bytes [_]
-    (source.common/get-buffer state-atom))
+  (get-sourced-byte-buffers [_] (::bytes/byte-buffers @state-atom))
   (reset [_]
     (reset! state-atom (initial-state))))
 

@@ -13,7 +13,7 @@
   (get-intervals [_] (proto/get-intervals wrapped-source))
   (get-wip-intervals [_] (proto/get-wip-intervals wrapped-source))
   proto/Recall
-  (get-sourced-bytes [_] (proto/get-sourced-bytes wrapped-source))
+  (get-sourced-byte-buffers [_] (proto/get-sourced-byte-buffers wrapped-source))
   (reset [_] (proto/reset wrapped-source)))
 
 (defn make-source [seed]

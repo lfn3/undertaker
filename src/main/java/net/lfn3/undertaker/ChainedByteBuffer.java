@@ -5,57 +5,31 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ChainedByteBuffer implements Collection<ByteBuffer>
+public class ChainedByteBuffer
 {
     private int position = 0;
     private int mark = -1;
     private final List<ByteBuffer> buffers;
 
-    public ChainedByteBuffer()
-    {
-        buffers = new LinkedList<>();
-    }
-
-    public ChainedByteBuffer(ByteBuffer... buffers)
+    private ChainedByteBuffer(ByteBuffer... buffers)
     {
         this.buffers = Arrays.asList(buffers);
     }
 
-    @Override
+    private ChainedByteBuffer(Collection<ByteBuffer> buffers)
+    {
+        this.buffers = new ArrayList<>(buffers);
+    }
+
+    public static ChainedByteBuffer wrap(Collection<ByteBuffer> buffers)
+    {
+        return new ChainedByteBuffer(buffers);
+    }
+
     public boolean add(ByteBuffer b)
     {
         buffers.add(b);
         return true;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        return buffers.remove(o);
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return buffers.containsAll(c);
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends ByteBuffer> c) {
-        return buffers.addAll(c);
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        return buffers.removeAll(c);
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return buffers.retainAll(c);
-    }
-
-    @Override
-    public void clear() {
-        buffers.clear();
     }
 
     public ChainedByteBuffer put(Byte b)
@@ -131,45 +105,9 @@ public class ChainedByteBuffer implements Collection<ByteBuffer>
         return buffers.get(buffers.size() - 1);
     }
 
-    public List<ByteBuffer> subList(int from, int to)
-    {
-        return buffers.subList(from, to);
-    }
-
-    public void addAll(int at, ByteBuffer... buffers)
-    {
-        this.buffers.addAll(at, Arrays.asList(buffers));
-    }
-
-    @Override
     public int size()
     {
         return buffers.size();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return buffers.isEmpty();
-    }
-
-    @Override
-    public boolean contains(Object o) {
-        return buffers.contains(o);
-    }
-
-    @Override
-    public Iterator<ByteBuffer> iterator() {
-        return buffers.iterator();
-    }
-
-    @Override
-    public Object[] toArray() {
-        return buffers.toArray();
-    }
-
-    @Override
-    public <T> T[] toArray(T[] a) {
-        return buffers.toArray(a);
     }
 
     private static String printableByteBuffer(ByteBuffer buf)

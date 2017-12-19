@@ -112,9 +112,9 @@
   (let [result (->> #(let [bool-1 (undertaker/boolean)
                            a-number (undertaker/int)
                            bool-2 (undertaker/boolean)]
-                       (is (not bool-1)))
+                       (is bool-1))
                     (undertaker/run-prop {}))]
-    (is (= [true 0 false] (-> result
+    (is (= [false 0 false] (-> result
                               ::undertaker/shrunk-results
                               ::undertaker/generated-values
                               (vec)))

@@ -8,7 +8,8 @@
             [net.lfn3.undertaker.intervals :as intervals])
   (:import (net.lfn3.undertaker ChainedByteBuffer UniqueInputValuesExhaustedException)
            (java.nio ByteBuffer)
-           (net.lfn3.undertaker.source.fixed FixedSource)))
+           (net.lfn3.undertaker.source.fixed FixedSource)
+           (java.util Collection)))
 
 (def source-in-use (atom #{}))
 (defn done-with-test! [] (reset! source-in-use #{}))
@@ -65,9 +66,12 @@
                                       :wip-intervals wip-intervals})))
   (proto/get-intervals source))
 
-(defn ^ChainedByteBuffer get-sourced-bytes [source]
+(defn ^Collection get-sourced-byte-buffers [source]
   (check-invariants source)
-  (proto/get-sourced-bytes source))
+  (proto/get-sourced-byte-buffers source))
+
+(defn get-sourced-bytes [source]
+  (bytes/buffers->bytes (get-sourced-byte-buffers source)))
 
 (defn reset [source]
   (check-invariants source)
@@ -78,10 +82,7 @@
         intervals (get-intervals source)]
     (cond-> result-map
       debug/debug-mode (assoc :net.lfn3.undertaker.core/intervals intervals)
-      debug/debug-mode (assoc :net.lfn3.undertaker.core/generated-bytes (-> source
-                                                                            (get-sourced-bytes)
-                                                                            (.array)
-                                                                            (vec)))
+      debug/debug-mode (assoc :net.lfn3.undertaker.core/generated-bytes (get-sourced-bytes source))
       debug/debug-mode (assoc :net.lfn3.undertaker.core/source source)
       true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values

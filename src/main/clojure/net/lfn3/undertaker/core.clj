@@ -146,9 +146,7 @@
 (defn boolean
   ([]
    (with-interval
-     (if (= 1 (byte 0 1))
-       true
-       false))))
+     (= 1 (byte 0 1)))))
 
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))

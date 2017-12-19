@@ -21,9 +21,9 @@
 (defn initial-state [pre-genned]
   {::proto/interval-stack      []
    ::proto/completed-intervals []
-   ::bytes/chained-byte-buffer (ChainedByteBuffer.)
-   ::bytes/bytes pre-genned
-   ::remaining-pre-genned (count pre-genned)})
+   ::bytes/byte-buffers        []
+   ::bytes/bytes               pre-genned
+   ::remaining-pre-genned      (count pre-genned)})
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
@@ -31,13 +31,15 @@
   (get-bytes [this ranges]
     (let [number-of-bytes-requested (-> ranges (first) (first) (count))
           {:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
-          buf (if (< number-of-bytes-requested remaining-pre-genned)
+          can-use-pregen? (< number-of-bytes-requested remaining-pre-genned)
+          buf (if can-use-pregen?
                 (let [offset (- (count bytes) remaining-pre-genned)]
-                  (swap! state-atom update ::remaining-pre-genned - number-of-bytes-requested)
                   (ByteBuffer/wrap bytes offset number-of-bytes-requested))
                 (ByteBuffer/wrap (get-bytes-from-java-random rnd number-of-bytes-requested)))]
       (bytes/map-into-ranges! buf ranges)
-      (.add (source.common/get-buffer state-atom) buf)
+      (swap! state-atom #(cond-> %1
+                           can-use-pregen? (update ::remaining-pre-genned - number-of-bytes-requested)
+                           true (update ::bytes/byte-buffers conj buf)))
       buf))
   proto/Interval
   (push-interval [_ hints]
@@ -49,8 +51,8 @@
   (get-intervals [_] (::proto/completed-intervals @state-atom))
   (get-wip-intervals [_] (::proto/interval-stack @state-atom))
   proto/Recall
-  (get-sourced-bytes [_]
-    (source.common/get-buffer state-atom))
+  (get-sourced-byte-buffers [_]
+    (::bytes/byte-buffers @state-atom))
   (reset [_]
     (swap! state-atom #(->> %1
                             ::bytes/bytes

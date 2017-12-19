@@ -34,5 +34,5 @@
 
 (s/def ::proto/source-state (s/keys :req [::proto/interval-stack
                                           ::proto/completed-intervals
-                                          ::bytes/chained-byte-buffer]))
+                                          ::bytes/byte-buffers]))
 
