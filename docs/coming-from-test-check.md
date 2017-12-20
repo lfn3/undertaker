@@ -50,8 +50,8 @@ Thankfully people have already written lots about how find assertions for genera
 
 ### Changes to generators
 
-The most obvious changes are the generators. A lot of them are based around java primitives, for instance
-the `int` generator will only emit values representable as java primitive ints: -2147483648 to 2147483647.
+A lot of generators are based around java primitives, for instance the `int` generator will only emit values 
+representable as java primitive ints: -2147483648 to 2147483647.
 `nat` and `large-integer` are still available if you don't need or want primitives.
 
 I was able to remove many of the combinator generators, for example `fmap` can just be done with function 
@@ -60,11 +60,13 @@ application:
 ```clojure
 (def even-num-gen (gen/fmap (partial * 2) gen/nat))
 
-; =
+; equivalent to
 
-(defn even-num-gen [] (* 2 (undertaker/int)))
+(defn even-num-gen [] (undertaker/with-interval (* 2 (undertaker/int))))
 ```
 
+This shows the only caveat when writing your own generators - you should wrap them with `with-interval`
+so that the test output will show 
 Other generators like `tuple` have been removed, since you can just use 'regular' clojure: 
 `[(undertaker/int) (undertaker/string)]`. For the same reason `list-distinct`, `sorted-set` and etc are 
 also gone: `(sort (undertaker/vec-of undertaker/int))`. `return` can be replaced with `constantly` from 
