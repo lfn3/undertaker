@@ -81,14 +81,13 @@
             (reset! result [])))))))
 
 (defn run-prop-1 [source f]
-  (let [result-map (f source)
-        success? (::result result-map)
-        result-map (source/add-source-data-to-results-map source result-map)]
-    (if success?
-      {::initial-results result-map}
+  (let [result-map (source/add-source-data-to-results-map source (f source))
+        {:keys [::result ::source-used?]} result-map]
+    (if (and (false? result) source-used?)
       (let [shrunk-result (shrink/shrink source f)]
         {::initial-results result-map
-         ::shrunk-results shrunk-result}))))
+         ::shrunk-results shrunk-result})
+      {::initial-results result-map})))
 
 (defn run-prop
   ([{:keys [:seed :iterations]
