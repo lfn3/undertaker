@@ -12,7 +12,7 @@
   :test-paths ["src/test/clojure" "src/test/benchmarks"]
   :target-path "target/"
 
-  :profiles {:provided  {:dependencies [[org.clojure/clojure "1.9.0-RC2"]]}
+  :profiles {:provided  {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :dev       {:source-paths      ["src/specs/clojure"]
                          :jvm-opts          ["-Dundertaker.debug=true"]
                          :dependencies      [[orchestra "2017.11.12-1"]
