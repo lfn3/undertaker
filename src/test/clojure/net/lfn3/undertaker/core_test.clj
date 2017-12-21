@@ -189,3 +189,11 @@
     ;Should ~2/3
     (is (< 3/6 ratio))
     (is (< ratio 5/6))))
+
+(deftest can-get-any
+  (let [val (undertaker/any)]
+    (is (any? val))))
+
+(deftest can-get-any-printable                              ;TODO walk and check it's all ascii?
+  (let [val (undertaker/any-printable)]
+    (is (any? val))))

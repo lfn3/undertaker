@@ -276,6 +276,7 @@
   ([elem-gen min max] (collection vector elem-gen conj min max)))
 
 (defn set-of
+  ([elem-gen] (set-of elem-gen 0 default-collection-max-size))
   ([elem-gen min max]
    (let [uniqueness-id (swap! set-uniqueness-id inc)]
      (collection (fn [] #{})
@@ -426,6 +427,25 @@
   ([gen] (list-of gen 0 default-collection-max-size))
   ([gen size] (list-of gen size size))
   ([gen min-size max-size] (collection (constantly '()) gen conj min-size max-size)))
+
+(defn any* [limit leaf-gen]
+  (if (< 0 (swap! limit dec))
+    (frequency [[10 leaf-gen
+                 1 (list-of leaf-gen)
+                 1 (set-of leaf-gen)
+                 1 (vec-of leaf-gen)
+                 1 (map-of leaf-gen leaf-gen)]])
+    (frequency [[3 (any* limit leaf-gen)
+                 2 (list-of (any* limit leaf-gen))
+                 2 (set-of (any* limit leaf-gen))
+                 2 (vec-of (any* limit leaf-gen))
+                 1 (map-of (any* limit leaf-gen) (any* limit leaf-gen))]])))
+
+(defn any-printable []
+  (any* (atom 200) simple-type-printable))
+
+(defn any []
+  (any* (atom 200) simple-type))
 
 (defmacro defprop [name opts & body]
   (let [name-string (str name)]
