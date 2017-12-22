@@ -1,6 +1,6 @@
-# undertaker
+# Undertaker
 
-FIXME: description
+A property testing library for Clojure and [Java](https://github.com/lfn3/undertaker-junit).
 
 ## Installation
 

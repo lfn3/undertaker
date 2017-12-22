@@ -45,8 +45,8 @@ Okay, so that example is a bit contrived, especially since we have the `+` funct
 Usually the hard part is going to be the third step where you have to figure out what you can assert on
 and how much confidence that actually gives you!
 
-Thankfully people have already written lots about how find assertions for generative tests:
-<!--TODO: links-->
+Thankfully people have already written lots about how figure out assertions for generative tests. 
+The best example I've found is by [Scott Wlaschin](https://fsharpforfunandprofit.com/posts/property-based-testing-2/)
 
 ### Changes to generators
 
@@ -55,7 +55,7 @@ representable as java primitive ints: -2147483648 to 2147483647.
 `nat` and `large-integer` are still available if you don't need or want primitives.
 
 I was able to remove many of the combinator generators, for example `fmap` can just be done with function 
-application: 
+application:
 
 ```clojure
 (def even-num-gen (gen/fmap (partial * 2) gen/nat))
@@ -66,7 +66,19 @@ application:
 ```
 
 This shows the only caveat when writing your own generators - you should wrap them with `with-interval`
-so that the test output will show 
+so that the test output will show the value emitted by your generator, rather than the internal undertaker generators.
+Similarly, `bind` is no longer with us:
+
+```clojure
+(def bytes-and-idx-gen (gen/bind gen/bytes #(gen/tuple %1 (gen/choose 0 (count %1)))))
+
+; equivalent to
+
+(defn bytes-and-idx [] (undertaker/with-interval
+                         (let [b (undertaker/bytes)]
+                           [b (undertaker/int 0 (count b))])))
+```
+
 Other generators like `tuple` have been removed, since you can just use 'regular' clojure: 
 `[(undertaker/int) (undertaker/string)]`. For the same reason `list-distinct`, `sorted-set` and etc are 
 also gone: `(sort (undertaker/vec-of undertaker/int))`. `return` can be replaced with `constantly` from 
