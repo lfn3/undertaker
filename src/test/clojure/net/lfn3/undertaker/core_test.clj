@@ -111,10 +111,10 @@
   (let [values (set (repeatedly 3 undertaker/int))]
     (is (values (undertaker/elements values)))))
 
-(deftest long-gen-test
-  (is (instance? Long (undertaker/long)))
-  (is (>= (undertaker/long) Long/MIN_VALUE))
-  (is (<= (undertaker/long) Long/MAX_VALUE)))
+(deftest long-gen-test                                      ;large-integer is aliased to long
+  (is (instance? Long (undertaker/large-integer)))
+  (is (>= (undertaker/large-integer) Long/MIN_VALUE))
+  (is (<= (undertaker/large-integer) Long/MAX_VALUE)))
 
 (deftest double-get-test
   (is (instance? Double (undertaker/double)))
@@ -197,3 +197,8 @@
 (deftest can-get-any-printable                              ;TODO walk and check it's all ascii?
   (let [val (undertaker/any-printable)]
     (is (any? val))))
+
+(deftest can-get-nat
+  (let [n (undertaker/nat)]
+    (is (not (zero? n)))
+    (is (<= n 200))))

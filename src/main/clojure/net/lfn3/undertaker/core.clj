@@ -156,6 +156,8 @@
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getShort)))))
 
+(defn nat [] (short 0 200))
+
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
@@ -213,6 +215,8 @@
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getLong)))))
+
+(def large-integer long)
 
 (defn uuid [] (UUID. (long) (long)))
 
