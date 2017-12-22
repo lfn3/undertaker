@@ -1,6 +1,6 @@
 (ns net.lfn3.undertaker.messages)
 
-(def bug-tracker-url "https://github.com/lfn3/net.lfn3.undertaker.undertaker/issues/new")
+(def bug-tracker-url "https://github.com/lfn3/undertaker/issues/new")
 
 (defn missing-source-err-msg []
   "Source is nil.
