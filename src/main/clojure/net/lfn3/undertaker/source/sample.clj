@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.source.sample
   (:require [net.lfn3.undertaker.source.forgetful :as source.forgetful]
-            [net.lfn3.undertaker.proto :as proto])
-  (:import (java.util Random)))
+            [net.lfn3.undertaker.proto :as proto]))
 
 (defrecord SampleSource
   [wrapped-source]

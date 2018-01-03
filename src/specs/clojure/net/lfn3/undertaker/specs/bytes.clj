@@ -3,8 +3,7 @@
             [clojure.spec.gen.alpha :as s.gen]
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.test.check.generators :as gen])
-  (:import (java.nio ByteBuffer)
-           (net.lfn3.undertaker ChainedByteBuffer)))
+  (:import (java.nio ByteBuffer)))
 
 (s/fdef bytes/byte?
   :args (s/cat :b number?)
@@ -45,7 +44,6 @@
 (s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
                                        (fn [] (gen/fmap #(ByteBuffer/wrap %1) gen/bytes))))
 (s/def ::bytes/byte-buffers (s/coll-of ::bytes/byte-buffer))
-(s/def ::bytes/chained-byte-buffer (partial instance? ChainedByteBuffer))
 
 (s/fdef bytes/unsigned<=
   :args (s/cat :x int? :y int?)
@@ -108,7 +106,7 @@
   :ret ::bytes/bytes)
 
 (defn skip-val-must-be-equal-or-shorter-length-than-range
-  ([{:keys [range skip-value] :as args}]
+  ([{:keys [range skip-value]}]
    (skip-val-must-be-equal-or-shorter-length-than-range range skip-value))
   ([range skip-value]
    (let [range-len (count (val (first range)))

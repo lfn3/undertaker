@@ -1,9 +1,8 @@
 (ns net.lfn3.undertaker.source.fixed
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.debug :as debug]
             [net.lfn3.undertaker.intervals :as intervals])
-  (:import (net.lfn3.undertaker OverrunException ChainedByteBuffer)
+  (:import (net.lfn3.undertaker OverrunException)
            (java.nio ByteBuffer)))
 
 (defn initial-state [bytes]

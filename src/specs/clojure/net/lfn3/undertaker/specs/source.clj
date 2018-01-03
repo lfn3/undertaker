@@ -5,8 +5,7 @@
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
             [net.lfn3.undertaker.bytes :as bytes])
-  (:import (net.lfn3.undertaker ChainedByteBuffer)
-           (java.nio ByteBuffer)))
+  (:import (java.nio ByteBuffer)))
 
 (s/def ::source/source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap source.random/make-source (s.gen/int))))

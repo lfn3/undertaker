@@ -1,11 +1,7 @@
 (ns net.lfn3.undertaker.intervals
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [clojure.set :as set]
-            [net.lfn3.undertaker.debug :as debug])
-  (:import (net.lfn3.undertaker ChainedByteBuffer)
-           (java.util Collection)
-           (java.nio ByteBuffer)))
+            [clojure.set :as set]))
 
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
@@ -56,8 +52,7 @@
                                                                                byte-buffers
                                                                                uniqueness-hint-id)))))
 
-(defmulti apply-hint*
-          (fn [wip-intervals completed-intervals ranges skip hint] (nth hint 1)))
+(defmulti apply-hint* (fn [_ _ _ _ [_ hint _]] hint))
 
 (defn get-already-generated-when-unique [[_ _ uniqueness-id] wip-intervals completed-intervals]
   (->> completed-intervals
@@ -71,7 +66,7 @@
   [ranges (set/union skip (get-already-generated-when-unique hint wip-intervals completed-intervals))])
 
 (defmethod apply-hint* :default
-  [wip-intervals completed-intervals ranges skip hint]
+  [_ _ _ _ hint]
   (throw (IllegalArgumentException. (str "Can't apply hint " hint))))
 
 (defn apply-hints [wip-intervals completed-intervals ranges skip]

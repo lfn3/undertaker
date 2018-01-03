@@ -1,6 +1,5 @@
 (ns net.lfn3.undertaker.bytes
   (:import (java.nio ByteBuffer)
-           (net.lfn3.undertaker ChainedByteBuffer)
            (java.util Collection)))
 
 (defn unsign [b] (bit-and 0xff b))

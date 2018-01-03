@@ -2,8 +2,7 @@
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes])
   (:import (java.util Random)
-           (java.nio ByteBuffer)
-           (net.lfn3.undertaker ChainedByteBuffer)))
+           (java.nio ByteBuffer)))
 
 (defrecord ForgetfulSource
   [rnd]

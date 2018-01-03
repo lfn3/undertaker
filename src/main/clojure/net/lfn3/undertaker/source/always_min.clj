@@ -1,15 +1,13 @@
 (ns net.lfn3.undertaker.source.always-min
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.intervals :as intervals]
-            [net.lfn3.undertaker.source.common :as source.common])
-  (:import (java.nio ByteBuffer)
-           (net.lfn3.undertaker ChainedByteBuffer)))
+            [net.lfn3.undertaker.intervals :as intervals])
+  (:import (java.nio ByteBuffer)))
 
 (defn initial-state []
   {::proto/interval-stack      []
    ::proto/completed-intervals []
-   ::bytes/byte-buffers []})
+   ::bytes/byte-buffers        []})
 
 (defrecord AlwaysMinSource [state-atom]
   proto/ByteArraySource

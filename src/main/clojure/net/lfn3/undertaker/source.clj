@@ -1,12 +1,11 @@
 (ns net.lfn3.undertaker.source
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.source.wrapped-random :as source.random]
-            [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.debug :as debug]
-            [net.lfn3.undertaker.intervals :as intervals])
-  (:import (net.lfn3.undertaker ChainedByteBuffer UniqueInputValuesExhaustedException)
+            [net.lfn3.undertaker.intervals :as intervals]
+            [net.lfn3.undertaker.source.fixed])
+  (:import (net.lfn3.undertaker  UniqueInputValuesExhaustedException)
            (java.nio ByteBuffer)
            (net.lfn3.undertaker.source.fixed FixedSource)
            (java.util Collection)))
