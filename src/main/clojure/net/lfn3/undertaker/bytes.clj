@@ -204,8 +204,8 @@
            ranges ranges
            all-mins true
            all-maxes true]
-      (when (and (< (+ offset idx) limit) (seq ranges))                ;Short circuit if we've gone outside the ranges
-        (let [input-val (.get input (int (+ offset idx)))              ;This means that we've left the all-mins/all-maxes path
+      (when (and (< (+ offset idx) limit) (seq ranges))     ;Short circuit if we've gone outside the ranges
+        (let [input-val (.get input (int (+ offset idx)))   ;This means that we've left the all-mins/all-maxes path
               sliced-ranges (slice-ranges idx ranges)
               range (or (last (is-in-ranges input-val sliced-ranges))
                         (pick-range input-val sliced-ranges))
@@ -238,11 +238,21 @@
     (aset-byte out 0 b)
     out))
 
+(defn bytes->short [b1 b2]
+  (unchecked-short (bit-or (bit-and 0xff b2)
+                           (bit-shift-left (bit-and 0xff b1) 8))))
+
 (defn short->bytes [s]
   (let [out (byte-array 2)
         wrapped (ByteBuffer/wrap out)]
     (.putShort wrapped s)
     out))
+
+(defn bytes->int [b1 b2 b3 b4]
+  (unchecked-int (bit-or (bit-and 0xff b4)
+                         (bit-shift-left (bit-and 0xff b3) 8)
+                         (bit-shift-left (bit-and 0xff b2) 16)
+                         (bit-shift-left (bit-and 0xff b1) 24))))
 
 (defn int->bytes [^Integer i]
   (let [out (byte-array 4)
@@ -250,17 +260,44 @@
     (.putInt wrapped i)
     out))
 
+(defn bytes->long [b1 b2 b3 b4 b5 b6 b7 b8]
+  (unchecked-long (bit-or (bit-and 0xff b8)
+                          (bit-shift-left (bit-and 0xff b7) 8)
+                          (bit-shift-left (bit-and 0xff b6) 16)
+                          (bit-shift-left (bit-and 0xff b5) 24)
+                          (bit-shift-left (bit-and 0xff b4) 32)
+                          (bit-shift-left (bit-and 0xff b3) 40)
+                          (bit-shift-left (bit-and 0xff b2) 48)
+                          (bit-shift-left (bit-and 0xff b1) 56))))
+
 (defn long->bytes [^Long i]
   (let [out (byte-array 8)
         wrapped (ByteBuffer/wrap out)]
     (.putLong wrapped i)
     out))
 
+
+(defn bytes->float [b1 b2 b3 b4]
+  (Float/intBitsToFloat (unchecked-int (bit-or (bit-and 0xff b4)
+                                               (bit-shift-left (bit-and 0xff b3) 8)
+                                               (bit-shift-left (bit-and 0xff b2) 16)
+                                               (bit-shift-left (bit-and 0xff b1) 24)))))
+
 (defn float->bytes [^Float f]
   (let [out (byte-array 4)
         wrapped (ByteBuffer/wrap out)]
     (.putFloat wrapped f)
     out))
+
+(defn bytes->double [b1 b2 b3 b4 b5 b6 b7 b8]
+  (Double/longBitsToDouble (unchecked-long (bit-or (bit-and 0xff b8)
+                                                   (bit-shift-left (bit-and 0xff b7) 8)
+                                                   (bit-shift-left (bit-and 0xff b6) 16)
+                                                   (bit-shift-left (bit-and 0xff b5) 24)
+                                                   (bit-shift-left (bit-and 0xff b4) 32)
+                                                   (bit-shift-left (bit-and 0xff b3) 40)
+                                                   (bit-shift-left (bit-and 0xff b2) 48)
+                                                   (bit-shift-left (bit-and 0xff b1) 56)))))
 
 (defn double->bytes [^Double d]
   (let [out (byte-array 8)

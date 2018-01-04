@@ -174,3 +174,57 @@
 (s/fdef bytes/int->bytes
   :args (s/cat :i ::bytes/int)
   :ret bytes?)
+
+(s/fdef bytes/bytes->short
+  :args (s/cat :b1 ::bytes/byte :b2 ::bytes/byte)
+  :ret ::bytes/short
+  :fn (fn [{:keys [args ret]}]
+        (let [arr (byte-array (vals args))]
+          (and (= ret (.getShort (ByteBuffer/wrap arr)))
+               (= (vec (bytes/short->bytes ret)) (vec arr))))))
+
+(s/fdef bytes/bytes->int
+  :args (s/cat :b1 ::bytes/byte :b2 ::bytes/byte :b3 ::bytes/byte :b4 ::bytes/byte)
+  :ret ::bytes/int
+  :fn (fn [{:keys [args ret]}]
+        (let [arr (byte-array (vals args))]
+          (and (= ret (.getInt (ByteBuffer/wrap arr)))
+               (= (vec (bytes/int->bytes ret)) (vec arr))))))
+
+(s/fdef bytes/bytes->long
+  :args (s/cat :b1 ::bytes/byte
+               :b2 ::bytes/byte
+               :b3 ::bytes/byte
+               :b4 ::bytes/byte
+               :b5 ::bytes/byte
+               :b6 ::bytes/byte
+               :b7 ::bytes/byte
+               :b8 ::bytes/byte)
+  :ret int?
+  :fn (fn [{:keys [args ret]}]
+        (let [arr (byte-array (vals args))]
+          (and (= ret (.getLong (ByteBuffer/wrap arr)))
+               (= (vec (bytes/long->bytes ret)) (vec arr))))))
+
+(s/fdef bytes/bytes->float
+  :args (s/cat :b1 ::bytes/byte :b2 ::bytes/byte :b3 ::bytes/byte :b4 ::bytes/byte)
+  :ret number?
+  :fn (fn [{:keys [args ret]}]
+        (let [arr (byte-array (vals args))]
+          (and (= ret (.getFloat (ByteBuffer/wrap arr)))
+               (= (vec (bytes/float->bytes ret)) (vec arr))))))
+
+(s/fdef bytes/bytes->double
+  :args (s/cat :b1 ::bytes/byte
+               :b2 ::bytes/byte
+               :b3 ::bytes/byte
+               :b4 ::bytes/byte
+               :b5 ::bytes/byte
+               :b6 ::bytes/byte
+               :b7 ::bytes/byte
+               :b8 ::bytes/byte)
+  :ret number?
+  :fn (fn [{:keys [args ret]}]
+        (let [arr (byte-array (vals args))]
+          (and (= ret (.getDouble (ByteBuffer/wrap arr)))
+               (= (vec (bytes/double->bytes ret)) (vec arr))))))
