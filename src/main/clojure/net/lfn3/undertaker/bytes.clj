@@ -239,8 +239,9 @@
     out))
 
 (defn bytes->short [b1 b2]
-  (unchecked-short (bit-or (bit-and 0xff b2)
-                           (bit-shift-left (bit-and 0xff b1) 8))))
+  (-> (bit-or (bit-and 0xff b2)
+              (bit-shift-left (bit-and 0xff b1) 8))
+      (unchecked-short)))
 
 (defn short->bytes [s]
   (let [out (byte-array 2)
@@ -249,10 +250,11 @@
     out))
 
 (defn bytes->int [b1 b2 b3 b4]
-  (unchecked-int (bit-or (bit-and 0xff b4)
-                         (bit-shift-left (bit-and 0xff b3) 8)
-                         (bit-shift-left (bit-and 0xff b2) 16)
-                         (bit-shift-left (bit-and 0xff b1) 24))))
+  (-> (bit-or (bit-and 0xff b4)
+              (bit-shift-left (bit-and 0xff b3) 8)
+              (bit-shift-left (bit-and 0xff b2) 16)
+              (bit-shift-left (bit-and 0xff b1) 24))
+      (unchecked-int)))
 
 (defn int->bytes [^Integer i]
   (let [out (byte-array 4)
@@ -261,14 +263,15 @@
     out))
 
 (defn bytes->long [b1 b2 b3 b4 b5 b6 b7 b8]
-  (unchecked-long (bit-or (bit-and 0xff b8)
-                          (bit-shift-left (bit-and 0xff b7) 8)
-                          (bit-shift-left (bit-and 0xff b6) 16)
-                          (bit-shift-left (bit-and 0xff b5) 24)
-                          (bit-shift-left (bit-and 0xff b4) 32)
-                          (bit-shift-left (bit-and 0xff b3) 40)
-                          (bit-shift-left (bit-and 0xff b2) 48)
-                          (bit-shift-left (bit-and 0xff b1) 56))))
+  (-> (bit-or (bit-and 0xff b8)
+              (bit-shift-left (bit-and 0xff b7) 8)
+              (bit-shift-left (bit-and 0xff b6) 16)
+              (bit-shift-left (bit-and 0xff b5) 24)
+              (bit-shift-left (bit-and 0xff b4) 32)
+              (bit-shift-left (bit-and 0xff b3) 40)
+              (bit-shift-left (bit-and 0xff b2) 48)
+              (bit-shift-left (bit-and 0xff b1) 56))
+      (unchecked-long)))
 
 (defn long->bytes [^Long i]
   (let [out (byte-array 8)
@@ -278,10 +281,12 @@
 
 
 (defn bytes->float [b1 b2 b3 b4]
-  (Float/intBitsToFloat (unchecked-int (bit-or (bit-and 0xff b4)
-                                               (bit-shift-left (bit-and 0xff b3) 8)
-                                               (bit-shift-left (bit-and 0xff b2) 16)
-                                               (bit-shift-left (bit-and 0xff b1) 24)))))
+  (-> (bit-or (bit-and 0xff b4)
+              (bit-shift-left (bit-and 0xff b3) 8)
+              (bit-shift-left (bit-and 0xff b2) 16)
+              (bit-shift-left (bit-and 0xff b1) 24))
+      (unchecked-int)
+      (Float/intBitsToFloat)))
 
 (defn float->bytes [^Float f]
   (let [out (byte-array 4)
@@ -290,14 +295,16 @@
     out))
 
 (defn bytes->double [b1 b2 b3 b4 b5 b6 b7 b8]
-  (Double/longBitsToDouble (unchecked-long (bit-or (bit-and 0xff b8)
-                                                   (bit-shift-left (bit-and 0xff b7) 8)
-                                                   (bit-shift-left (bit-and 0xff b6) 16)
-                                                   (bit-shift-left (bit-and 0xff b5) 24)
-                                                   (bit-shift-left (bit-and 0xff b4) 32)
-                                                   (bit-shift-left (bit-and 0xff b3) 40)
-                                                   (bit-shift-left (bit-and 0xff b2) 48)
-                                                   (bit-shift-left (bit-and 0xff b1) 56)))))
+  (-> (bit-or (bit-and 0xff b8)
+              (bit-shift-left (bit-and 0xff b7) 8)
+              (bit-shift-left (bit-and 0xff b6) 16)
+              (bit-shift-left (bit-and 0xff b5) 24)
+              (bit-shift-left (bit-and 0xff b4) 32)
+              (bit-shift-left (bit-and 0xff b3) 40)
+              (bit-shift-left (bit-and 0xff b2) 48)
+              (bit-shift-left (bit-and 0xff b1) 56))
+      (unchecked-long)
+      (Double/longBitsToDouble)))
 
 (defn double->bytes [^Double d]
   (let [out (byte-array 8)
