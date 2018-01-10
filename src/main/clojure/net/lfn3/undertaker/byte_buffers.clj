@@ -23,17 +23,21 @@
            ::arrays       arrays
            ::skip-ranges  (adjust-skip-indices (- start-offset to-skip) skip-ranges)})))))
 
-(defn get-short [buffer]
+(defn get-bytes-and-apply-fn [number-of-bytes f buffer]
   (let [{:keys [::start-offset ::arrays ::skip-ranges]} buffer]
     (loop [idx start-offset
            arrays arrays
            skip skip-ranges
            found-bytes []]
-      (if (= 2 (count found-bytes))
-        (bytes/bytes->short (nth found-bytes 0) (nth found-bytes 1))
+      (if (= number-of-bytes (count found-bytes))
+        (f found-bytes)
         (let [arr (first arrays)]
           (cond
             (and (< idx (count arr))
                  (not (bytes/is-in-ranges idx skip))) (recur (inc idx) arrays skip (conj found-bytes (aget arr idx)))
-            (seq (rest arrays)) (recur 0 (rest arrays) (adjust-skip-indices idx skip) found-bytes)
+            (< idx (count arr)) (recur (inc idx) arrays skip found-bytes)
+            (and (<= (count arr) idx) (seq (rest arrays))) (recur 0 (rest arrays) (adjust-skip-indices idx skip) found-bytes)
             :default (throw (OverrunException.))))))))
+
+(defn get-short [buffer] (get-bytes-and-apply-fn 2 #(apply bytes/bytes->short %1) buffer))
+(defn get-int [buffer] (get-bytes-and-apply-fn 4 #(apply bytes/bytes->int %1) buffer))
