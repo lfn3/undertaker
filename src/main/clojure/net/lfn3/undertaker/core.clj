@@ -276,11 +276,12 @@
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
-  ([elem-gen min] (vec-of elem-gen min (+ min default-collection-max-size)))
+  ([elem-gen size] (vec-of elem-gen size size))
   ([elem-gen min max] (collection vector elem-gen conj min max)))
 
 (defn set-of
   ([elem-gen] (set-of elem-gen 0 default-collection-max-size))
+  ([elem-gen size] (set-of elem-gen size size))
   ([elem-gen min max]
    (let [uniqueness-id (swap! set-uniqueness-id inc)]
      (collection (fn [] #{})
@@ -414,7 +415,7 @@
 
 (defn map-of
   ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
-  ([key-gen value-gen min-size] (map-of key-gen value-gen min-size (+ min-size default-collection-max-size)))
+  ([key-gen value-gen size] (map-of key-gen value-gen size size))
   ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
   ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
    (with-interval

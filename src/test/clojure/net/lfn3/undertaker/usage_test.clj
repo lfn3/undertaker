@@ -197,7 +197,10 @@
 (undertaker/defprop can-get-list {}
   (let [l (undertaker/list-of undertaker/keyword)]
     (is (every? keyword? l))
-    (is (list? l) )))
+    (is (list? l) ))
+
+  (let [sized (undertaker/list-of undertaker/long 10)]
+    (is (= 10 (count sized)))))
 
 (undertaker/defprop should-throw-when-input-gets-exhausted {}
   (is (thrown? UniqueInputValuesExhaustedException (undertaker/set-of (partial undertaker/int 1 3) 5 10))))
