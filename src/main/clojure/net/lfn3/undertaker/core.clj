@@ -286,7 +286,7 @@
    (let [uniqueness-id (swap! set-uniqueness-id inc)]
      (collection (fn [] #{})
                  #(with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
-                                           (elem-gen))
+                    (elem-gen))
                  conj
                  min
                  max))))
