@@ -16,7 +16,8 @@
             [net.lfn3.undertaker.source.forgetful :as source.forgetful]
             [net.lfn3.undertaker.source.always-max :as source.max]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.specs.core]))
+            [net.lfn3.undertaker.specs.core])
+  (:import (java.util Random)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
@@ -170,11 +171,12 @@
       (is (= (count s) 5)))))
 
 (deftest should-be-deterministic
-  (let [r1 (atom [])
+  (let [seed (.nextInt (Random.))
+        r1 (atom [])
         r2 (atom [])]
-    (undertaker/run-prop {:seed 1}
+    (undertaker/run-prop {:seed seed}
       (fn [] (swap! r1 conj (undertaker/int))))
-    (undertaker/run-prop {:seed 1}
+    (undertaker/run-prop {:seed seed}
       (fn [] (swap! r2 conj (undertaker/int))))
     (is (= @r1 @r2))))
 
