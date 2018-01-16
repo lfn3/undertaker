@@ -13,7 +13,6 @@
             [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.source.wrapped-random :as source.wrapped]
             [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.source.forgetful :as source.forgetful]
             [net.lfn3.undertaker.source.always-max :as source.max]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.specs.core])

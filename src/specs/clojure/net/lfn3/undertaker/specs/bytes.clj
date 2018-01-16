@@ -206,12 +206,17 @@
           (and (= ret (.getLong (ByteBuffer/wrap arr)))
                (= (vec (bytes/long->bytes ret)) (vec arr))))))
 
+(defn equal-or-both-nan? [v1 v2]
+  (or (= v1 v2)
+      (and (float? v1) (Float/isNaN v1) (float? v2) (Float/isNaN v2))
+      (and (double? v1) (Double/isNaN v1) (double? v2) (Double/isNaN v2))))
+
 (s/fdef bytes/bytes->float
   :args (s/cat :b1 ::bytes/byte :b2 ::bytes/byte :b3 ::bytes/byte :b4 ::bytes/byte)
   :ret number?
   :fn (fn [{:keys [args ret]}]
         (let [arr (byte-array (vals args))]
-          (and (= ret (.getFloat (ByteBuffer/wrap arr)))
+          (and (equal-or-both-nan? ret (.getFloat (ByteBuffer/wrap arr)))
                (= (vec (bytes/float->bytes ret)) (vec arr))))))
 
 (s/fdef bytes/bytes->double
@@ -226,5 +231,5 @@
   :ret number?
   :fn (fn [{:keys [args ret]}]
         (let [arr (byte-array (vals args))]
-          (and (= ret (.getDouble (ByteBuffer/wrap arr)))
+          (and (equal-or-both-nan? ret (.getDouble (ByteBuffer/wrap arr)))
                (= (vec (bytes/double->bytes ret)) (vec arr))))))
