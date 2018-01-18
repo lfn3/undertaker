@@ -13,13 +13,6 @@
       (.nextBytes rnd generated)
       (bytes/map-into-ranges! buf ranges)
       buf))
-  proto/Interval
-  (push-interval [_ hints])
-  (pop-interval [_ generated-value])
-  (get-intervals [_] [])
-  (get-wip-intervals [_] [])
-  proto/Recall
-  (get-sourced-byte-buffers [_] [])
   (reset [_]))
 
 (defn make-source [seed]

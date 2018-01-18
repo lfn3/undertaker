@@ -58,6 +58,7 @@
 
 (defn wrap-fn [f]
   (fn [source]
+    (source/starting-test-instance source)
     (let [result (atom [])
           report-fn (make-report-fn result)]
       (when-not (instance? SampleSource *source*)
@@ -78,6 +79,7 @@
              ::cause    e
              ::reported @result})
           (finally
+            (source/completed-test-instance source)
             (reset! result [])))))))
 
 (defn run-prop-1 [source f]
@@ -97,6 +99,7 @@
     f]
    (let [source (source.multi/make-source seed)
          wrapped-fn (wrap-fn f)
+         _ (source/starting-test source)
          result (loop [iterations-left iterations]
                   (let [run-data (run-prop-1 source wrapped-fn)
                         passed? (-> run-data
@@ -115,7 +118,7 @@
                       (-> run-data
                           (assoc ::iterations-run (- iterations (dec iterations-left)))
                           (assoc ::seed seed)))))]
-     (source/done-with-test!)
+     (source/completed-test source)
      result)))
 
 (defn format-results [name {:keys [::initial-results ::shrunk-results] :as results}]

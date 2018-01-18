@@ -125,7 +125,7 @@
                                (repeatedly-move-towards-zero f)
                                (fixed-source/make-fixed-source))
              _ (f shrunk-source)
-             intervals (proto/get-intervals shrunk-source)
+             intervals (source/get-intervals shrunk-source)
              shrunk-source (-> (source/get-sourced-bytes shrunk-source)
                                (snip-intervals intervals f)
                                (fixed-source/make-fixed-source))

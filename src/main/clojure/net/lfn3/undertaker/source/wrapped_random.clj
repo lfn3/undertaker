@@ -15,16 +15,13 @@
     arr))
 
 (defn initial-state [pre-genned]
-  {::proto/interval-stack      []
-   ::proto/completed-intervals []
-   ::bytes/byte-buffers        []
-   ::bytes/bytes               pre-genned
+  {::bytes/bytes               pre-genned
    ::remaining-pre-genned      (count pre-genned)})
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
-  (get-bytes [this ranges]
+  (get-bytes [_ ranges]
     (let [number-of-bytes-requested (-> ranges (first) (first) (count))
           {:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
           can-use-pregen? (< number-of-bytes-requested remaining-pre-genned)
@@ -37,18 +34,6 @@
                            can-use-pregen? (update ::remaining-pre-genned - number-of-bytes-requested)
                            true (update ::bytes/byte-buffers conj buf)))
       buf))
-  proto/Interval
-  (push-interval [_ hints]
-    (swap! state-atom intervals/push-interval hints)
-    nil)
-  (pop-interval [_ generated-value]
-    (swap! state-atom intervals/pop-interval generated-value)
-    nil)
-  (get-intervals [_] (::proto/completed-intervals @state-atom))
-  (get-wip-intervals [_] (::proto/interval-stack @state-atom))
-  proto/Recall
-  (get-sourced-byte-buffers [_]
-    (::bytes/byte-buffers @state-atom))
   (reset [_]
     (swap! state-atom #(->> %1
                             ::bytes/bytes

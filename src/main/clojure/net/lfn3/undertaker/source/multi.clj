@@ -33,13 +33,6 @@ net.lfn3.undertaker.source.multi
 (defrecord MultiSource [state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges] (proto/get-bytes (::current-source @state-atom) ranges))
-  proto/Interval
-  (push-interval [_ hints] (proto/push-interval (::current-source @state-atom) hints))
-  (pop-interval [_ generated-value] (proto/pop-interval (::current-source @state-atom) generated-value))
-  (get-intervals [_] (proto/get-intervals (::current-source @state-atom)))
-  (get-wip-intervals [_] (proto/get-wip-intervals (::current-source @state-atom)))
-  proto/Recall
-  (get-sourced-byte-buffers [_] (proto/get-sourced-byte-buffers (::current-source @state-atom)))
   (reset [_] (if (first (::sources @state-atom))
                (swap! state-atom next-source)
                (proto/reset (::current-source @state-atom)))))

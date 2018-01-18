@@ -6,13 +6,6 @@
   [wrapped-source]
   proto/ByteArraySource
   (get-bytes [_ ranges] (proto/get-bytes wrapped-source ranges))
-  proto/Interval
-  (push-interval [_ hints] (proto/push-interval wrapped-source hints))
-  (pop-interval [_ generated-value] (proto/pop-interval wrapped-source generated-value))
-  (get-intervals [_] (proto/get-intervals wrapped-source))
-  (get-wip-intervals [_] (proto/get-wip-intervals wrapped-source))
-  proto/Recall
-  (get-sourced-byte-buffers [_] (proto/get-sourced-byte-buffers wrapped-source))
   (reset [_] (proto/reset wrapped-source)))
 
 (defn make-source [seed]

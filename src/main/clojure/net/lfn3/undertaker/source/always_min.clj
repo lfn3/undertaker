@@ -4,12 +4,7 @@
             [net.lfn3.undertaker.intervals :as intervals])
   (:import (java.nio ByteBuffer)))
 
-(defn initial-state []
-  {::proto/interval-stack      []
-   ::proto/completed-intervals []
-   ::bytes/byte-buffers        []})
-
-(defrecord AlwaysMinSource [state-atom]
+(defrecord AlwaysMinSource []
   proto/ByteArraySource
   (get-bytes [_ ranges]
     (let [flattened-ranges (mapcat identity ranges)]
@@ -25,25 +20,8 @@
                               (= 0 (count min-ranges)) (first ranges)
                               (= 1 (count min-ranges)) (first min-ranges)
                               (< (inc idx) (count (last ranges))) (first min-ranges)
-                              :default (recur (inc idx) min-ranges))))
-              buf (ByteBuffer/wrap (byte-array min-range))]
-          (swap! state-atom update ::bytes/byte-buffers conj buf)
-          buf))))
-  proto/Interval
-  (push-interval [_ hints]
-    (swap! state-atom intervals/push-interval hints)
-    nil)
-  (pop-interval [_ generated-value]
-    (swap! state-atom intervals/pop-interval generated-value)
-    nil)
-  (get-intervals [_] (::proto/completed-intervals @state-atom))
-  (get-wip-intervals [_] (::proto/interval-stack @state-atom))
-  proto/Recall
-  (get-sourced-byte-buffers [_]
-    (::bytes/byte-buffers @state-atom))
-  (reset [_]
-    (reset! state-atom (initial-state))))
+                              :default (recur (inc idx) min-ranges))))]
+          (ByteBuffer/wrap (byte-array min-range))))))
+  (reset [_]))
 
-(defn make-always-min-source []
-  (let [state (atom (initial-state))]
-    (->AlwaysMinSource state)))
+(defn make-always-min-source [] (->AlwaysMinSource))

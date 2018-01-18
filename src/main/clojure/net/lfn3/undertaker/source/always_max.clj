@@ -4,12 +4,7 @@
             [net.lfn3.undertaker.bytes :as bytes])
   (:import (java.nio ByteBuffer)))
 
-(defn initial-state []
-  {::proto/interval-stack      []
-   ::proto/completed-intervals []
-   ::bytes/byte-buffers []})
-
-(defrecord AlwaysMaxSource [state-atom]
+(defrecord AlwaysMaxSource []
   proto/ByteArraySource
   (get-bytes [_ ranges]
     (let [flattened-ranges (mapcat identity ranges)]
@@ -25,24 +20,9 @@
                               (= 0 (count max-ranges)) (first ranges)
                               (= 1 (count max-ranges)) (first max-ranges)
                               (< (inc idx) (count (last ranges))) (first max-ranges)
-                              :default (recur (inc idx) max-ranges))))
-              buf (ByteBuffer/wrap (byte-array max-range))]
-          (swap! state-atom update ::bytes/byte-buffers conj buf)
-          buf))))
-  proto/Interval
-  (push-interval [_ hints]
-    (swap! state-atom intervals/push-interval hints)
-    nil)
-  (pop-interval [_ generated-value]
-    (swap! state-atom intervals/pop-interval generated-value)
-    nil)
-  (get-intervals [_] (::proto/completed-intervals @state-atom))
-  (get-wip-intervals [_] (::proto/interval-stack @state-atom))
-  proto/Recall
-  (get-sourced-byte-buffers [_] (::bytes/byte-buffers @state-atom))
-  (reset [_]
-    (reset! state-atom (initial-state))))
+                              :default (recur (inc idx) max-ranges))))]
+          (ByteBuffer/wrap (byte-array max-range))))))
+  (reset [_]))
 
 (defn make-always-max-source []
-  (let [state (atom (initial-state))]
-    (->AlwaysMaxSource state)))
+  (->AlwaysMaxSource))
