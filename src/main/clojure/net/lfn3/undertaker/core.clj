@@ -355,10 +355,10 @@
   "Non-alphanumeric characters that can be in a symbol."
   [\* \+ \! \- \_ \?])
 
-(defn frequency [int-gens]
-  (let [chosen (->> int-gens
-                    (sort-by (fn [[int]] int))              ;So we shrink towards the highest freq
-                    (mapcat (fn [[int gen]] (repeat int gen)))
+(defn frequency [frequencies-and-generators]
+  (let [chosen (->> frequencies-and-generators
+                    (sort-by (fn [[freq]] freq))              ;So we shrink towards the highest freq
+                    (mapcat (fn [[freq gen]] (repeat freq gen)))
                     (elements))]
     (chosen)))
 

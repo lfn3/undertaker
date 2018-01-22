@@ -161,7 +161,6 @@
 
 (defn punch-skip-value-out-of-range [range skip-value]
   (let [size-of-range (count (first range))
-        index-of-last-skip-value (dec (count skip-value))
         fill-lower #(fill %1 size-of-range -1)
         fill-upper (if (negative-range? range)
                      #(fill %1 size-of-range -128)
