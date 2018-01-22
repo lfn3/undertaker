@@ -202,3 +202,9 @@
   (let [n (undertaker/nat)]
     (is (not (zero? n)))
     (is (<= n 200))))
+
+(deftest can-gen-heterogeneous-set
+  (let [s (undertaker/set-of #(undertaker/frequency [[1 undertaker/int]
+                                                     [1 undertaker/double]])
+                             10)]
+    (is (= 10 (count s)))))
