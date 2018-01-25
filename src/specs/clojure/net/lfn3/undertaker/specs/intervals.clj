@@ -9,9 +9,8 @@
 (s/fdef intervals/apply-hints
   :args (s/cat :wip-intervals ::proto/interval-stack
                :completed-intervals ::proto/completed-intervals
-               :ranges ::bytes/ranges
-               :skip ::bytes/bytes-to-skip)
-  :ret (s/tuple ::bytes/ranges ::bytes/bytes-to-skip))
+               :ranges ::bytes/ranges)
+  :ret ::bytes/ranges)
 
 (s/fdef intervals/get-already-generated-when-unique
         :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)

@@ -242,7 +242,8 @@
   ([floor ceiling]
    (with-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
-          (source/get-bytes *source* start-of-unreal-doubles)
+          (bytes/punch-skip-values-out-of-ranges start-of-unreal-doubles)
+          (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getDouble)))))
 
 (defn double

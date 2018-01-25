@@ -55,13 +55,11 @@
   (::proto/completed-intervals @state-atom))
 
 (defn ^ByteBuffer get-bytes
-  ([source ranges] (get-bytes source #{} ranges))
-  ([source skip ranges]
+  ([source ranges]
    (check-invariants source)
    (let [interval-stack (get-wip-intervals source)
          completed-intervals (get-intervals source)
-         [ranges skip] (intervals/apply-hints interval-stack completed-intervals ranges skip)
-         ranges (bytes/punch-skip-values-out-of-ranges skip ranges)]
+         ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
      (when (empty? ranges)
        (throw (UniqueInputValuesExhaustedException. "Ran out of valid values to generate.")))
      (let [buffer (proto/get-bytes source ranges)]

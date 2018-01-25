@@ -52,7 +52,7 @@
                                                                                byte-buffers
                                                                                uniqueness-hint-id)))))
 
-(defmulti apply-hint* (fn [_ _ _ _ [_ hint _]] hint))
+(defmulti apply-hint* (fn [_ _ _ [_ hint _]] hint))
 
 (defn get-already-generated-when-unique [[_ _ uniqueness-id] wip-intervals completed-intervals]
   (->> completed-intervals
@@ -62,20 +62,20 @@
        (into #{})))
 
 (defmethod apply-hint* ::proto/unique
-  [wip-intervals completed-intervals ranges skip hint]
-  [ranges (set/union skip (get-already-generated-when-unique hint wip-intervals completed-intervals))])
+  [wip-intervals completed-intervals ranges hint]
+  (-> (get-already-generated-when-unique hint wip-intervals completed-intervals)
+      (bytes/punch-skip-values-out-of-ranges ranges)))
 
 (defmethod apply-hint* :default
   [_ _ _ _ hint]
   (throw (IllegalArgumentException. (str "Can't apply hint " hint))))
 
-(defn apply-hints [wip-intervals completed-intervals ranges skip]
+(defn apply-hints [wip-intervals completed-intervals ranges]
   "Picks hints off the wip-intervals stack"
   (let [hints (hints-that-apply wip-intervals)]
     (loop [ranges ranges
-           skip skip
            hints hints]
       (if-let [hint (first hints)]
-        (let [[ranges skip] (apply-hint* wip-intervals completed-intervals ranges skip hint)]
-          (recur ranges skip (rest hints)))
-        [ranges skip]))))
+        (let [ranges (apply-hint* wip-intervals completed-intervals ranges hint)]
+          (recur ranges (rest hints)))
+        ranges))))
