@@ -10,8 +10,7 @@
             [net.lfn3.undertaker.source.sample :as source.sample]
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.messages :as messages]
-            [net.lfn3.undertaker.debug :as debug])
+            [net.lfn3.undertaker.messages :as messages])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
            (net.lfn3.undertaker.source.sample SampleSource)
            (java.util UUID)
@@ -92,14 +91,14 @@
       {::initial-results result-map})))
 
 (defn run-prop
-  ([{:keys [:seed :iterations]
+  ([{:keys [seed iterations debug]
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
             iterations 1000}
      :as   opts-map}
     f]
    (let [source (source.multi/make-source seed)
          wrapped-fn (wrap-fn f)
-         _ (source/starting-test source)
+         _ (source/starting-test source debug)
          result (loop [iterations-left iterations]
                   (let [run-data (run-prop-1 source wrapped-fn)
                         passed? (-> run-data

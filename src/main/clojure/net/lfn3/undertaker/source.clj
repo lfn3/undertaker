@@ -2,63 +2,77 @@
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.debug :as debug]
             [net.lfn3.undertaker.intervals :as intervals]
             [net.lfn3.undertaker.source.fixed])
-  (:import (net.lfn3.undertaker  UniqueInputValuesExhaustedException)
+  (:import (net.lfn3.undertaker UniqueInputValuesExhaustedException UndertakerDebugException)
            (java.nio ByteBuffer)
            (net.lfn3.undertaker.source.fixed FixedSource)
            (java.util Collection)))
 
-(def state-atom (atom {::sampling? true
-                       ::shrinking? false
-                       ::source-in-use nil
+(def state-atom (atom {::sampling?                 true
+                       ::debug?                    false
+                       ::shrinking?                false
+                       ::source-in-use             nil
                        ::proto/interval-stack      []
                        ::proto/completed-intervals []
                        ::bytes/byte-buffers        []}))
 
-(defn starting-test [source] (swap! state-atom assoc ::sampling? false))
-(defn starting-test-instance [source] (swap! state-atom assoc ::source-in-use source))
-(defn completed-test-instance [source] (swap! state-atom assoc ::source-in-use nil))
-(defn completed-test [source] (swap! state-atom assoc ::sampling true))
+;; Most of this stuff is related to invariants & etc
+
+(defn starting-test [source debug]
+  (swap! state-atom assoc
+         ::sampling? false
+         ::debug? debug))
+(defn starting-test-instance [source]
+  (swap! state-atom assoc ::source-in-use source))
+(defn completed-test-instance [source]
+  (swap! state-atom assoc ::source-in-use nil))
+(defn completed-test [source]
+  (swap! state-atom assoc
+         ::proto/interval-stack      []
+         ::proto/completed-intervals []
+         ::bytes/byte-buffers        []
+         ::sampling true
+         ::debug false))
 
 (defn shrinking? [] (::shrinking? @state-atom))
 (defn shrinking! [] (swap! state-atom assoc ::shrinking? true))
 (defn done-shrinking! [] (swap! state-atom assoc ::shrinking? false))
 
+(defn internal-exception
+  ([msg info] (internal-exception msg info nil))
+  ([msg info cause]
+   (UndertakerDebugException. (ex-info (str "DEBUGGING ERROR: " msg) info cause))))
+
 (defn throw-if-source-is-nil [source]
   (when (nil? source)
-    (throw (debug/internal-exception (messages/missing-source-err-msg) {:source source}))))
+    (throw (internal-exception (messages/missing-source-err-msg) {:source source
+                                                                  :state @state-atom}))))
 
 (defn every-call-in-scope-of-test-should-use-same-source [source]
   (when (not= source (::source-in-use @state-atom))
-    (throw (debug/internal-exception (messages/more-than-one-source-in-test-scope-err-msg) {:source source}))))
+    (throw (internal-exception (messages/more-than-one-source-in-test-scope-err-msg) {:source source
+                                                                                      :state @state-atom}))))
 
 (defn should-only-use-fixed-source-while-shrinking [source]
   (when (and (shrinking?) (not (instance? FixedSource source)))
-    (throw (debug/internal-exception (messages/non-fixed-source-during-shrinking-error-msg) {:source source}))))
+    (throw (internal-exception (messages/non-fixed-source-during-shrinking-error-msg) {:source source
+                                                                                       :state @state-atom}))))
 
 (defn check-invariants [source]
-  (when debug/debug-mode
+  (when (::debug? @state-atom)
     (throw-if-source-is-nil source)
     (every-call-in-scope-of-test-should-use-same-source source)
     (should-only-use-fixed-source-while-shrinking source)))
 
-(defn get-wip-intervals [source] (::proto/interval-stack @state-atom))
-
-(defn get-intervals [source]
-  (check-invariants source)
-  (when-let [wip-intervals (and debug/debug-mode (seq (get-wip-intervals source)))]
-    (throw (debug/internal-exception "Tried to get intervals when test has not finished generating input!"
-                                     {:source        source
-                                      :wip-intervals wip-intervals})))
-  (::proto/completed-intervals @state-atom))
+;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
 (defn ^ByteBuffer get-bytes
   ([source ranges]
    (check-invariants source)
-   (let [interval-stack (get-wip-intervals source)
-         completed-intervals (get-intervals source)
+    ;TODO: check we don't already have any ranges?
+   (swap! state-atom update ::proto/interval-stack #(update %1 (dec (count %1)) assoc ::bytes/ranges ranges))
+   (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
          ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
      (when (empty? ranges)
        (throw (UniqueInputValuesExhaustedException. "Ran out of valid values to generate.")))
@@ -71,39 +85,48 @@
   ([source hints]
    (check-invariants source)
    (swap! state-atom intervals/push-interval hints)
-    nil))
+   nil))
+
+(defn pop-interval [source generated-value]
+  (check-invariants source)
+  (swap! state-atom #(cond-> %1
+                       true (intervals/pop-interval generated-value)
+                       (and (::sampling? %1)
+                            (empty? (::proto/interval-stack %1))) (assoc ::proto/completed-intervals []
+                                                                         ::bytes/byte-buffers []))))
+
+; Used to gather data after a test run.
+
+(defn get-wip-intervals [source] (::proto/interval-stack @state-atom))
+
+(defn get-intervals [source]
+  (when-let [wip-intervals (and (::debug? @state-atom) (seq (get-wip-intervals source)))]
+    (throw (internal-exception "Tried to get intervals when test has not finished generating input!"
+                                     {:source        source
+                                      :wip-intervals wip-intervals
+                                      :state @state-atom})))
+  (::proto/completed-intervals @state-atom))
 
 (defn reset [source]
-  (check-invariants source)
   (swap! state-atom assoc
          ::proto/interval-stack      []
          ::proto/completed-intervals []
          ::bytes/byte-buffers        [])
   (proto/reset source))
 
-(defn pop-interval [source generated-value]
-  (check-invariants source)
-  (swap! state-atom #(cond-> %1
-                             true (intervals/pop-interval generated-value)
-                             (and (::sampling? %1)
-                                  (empty? (::proto/interval-stack %1))) (assoc ::proto/completed-intervals []
-                                                                               ::bytes/byte-buffers []))))
-
 (defn ^Collection get-sourced-byte-buffers [source]
-  (check-invariants source)
   (::bytes/byte-buffers @state-atom))
 
 (defn get-sourced-bytes [source]
-  (check-invariants source)
   (bytes/buffers->bytes (::bytes/byte-buffers @state-atom)))
 
 (defn add-source-data-to-results-map [source result-map]
   (let [success? (:net.lfn3.undertaker.core/result result-map)
         intervals (get-intervals source)]
     (cond-> result-map
-      debug/debug-mode (assoc :net.lfn3.undertaker.core/intervals intervals)
-      debug/debug-mode (assoc :net.lfn3.undertaker.core/generated-bytes (get-sourced-bytes source))
-      debug/debug-mode (assoc :net.lfn3.undertaker.core/source source)
+      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/intervals intervals)
+      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (get-sourced-bytes source))
+      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
       true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values
                             (->> intervals
