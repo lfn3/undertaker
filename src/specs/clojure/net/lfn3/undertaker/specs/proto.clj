@@ -6,11 +6,11 @@
 
 (s/def ::proto/interval-start nat-int?)
 (s/def ::proto/interval-depth nat-int?)
-(s/def ::proto/hint-applies-to #{::proto/immediate-children-of ::proto/this})
-(s/def ::proto/hint-names #{::proto/unique ::proto/snippable})
+(s/def ::proto/hint-names #{::proto/unique ::proto/snippable ::proto/loops})
 (s/def ::proto/hint-args any?)
-(s/def ::proto/hint (s/tuple ::proto/hint-applies-to ::proto/hint-names ::proto/hint-args))
+(s/def ::proto/hint (s/tuple ::proto/hint-names ::proto/hint-args))
 (s/def ::proto/hints (s/coll-of ::proto/hint))
+(s/def ::proto/hints-for-next-interval ::proto/hints)
 
 (s/def ::proto/wip-interval (s/keys :req [::proto/interval-start ::proto/hints ::proto/interval-depth]))
 

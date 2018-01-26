@@ -6,24 +6,18 @@
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
   [wip-intervals]
-  (let [this-hints (->> wip-intervals
-                        last
-                        ::proto/hints
-                        (filter (comp (partial = ::proto/this) first)))
-        immediate-children-hints (if (<= 2 (count wip-intervals))
-                                   (->> (- (count wip-intervals) 2)
-                                        (nth wip-intervals)
-                                        ::proto/hints
-                                        (filter (comp (partial = ::proto/immediate-children-of) first)))
-                                   [])]
-    (concat this-hints immediate-children-hints)))
+  (->> wip-intervals
+       last
+       ::proto/hints))
 
 (defn push-interval [state hints]
   (let [{:keys [::bytes/byte-buffers ::proto/interval-stack]} state]
-    (update state ::proto/interval-stack conj {::proto/interval-start-buffer (count byte-buffers)
-                                               ::proto/interval-start        (bytes/length-of-buffers byte-buffers)
-                                               ::proto/interval-depth        (count interval-stack)
-                                               ::proto/hints                 hints})))
+    (-> state
+        (update ::proto/interval-stack conj {::proto/interval-start-buffer (count byte-buffers)
+                                             ::proto/interval-start        (bytes/length-of-buffers byte-buffers)
+                                             ::proto/interval-depth        (count interval-stack)
+                                             ::proto/hints                 (concat hints (::proto/hints-for-next-interval state))})
+        (assoc ::proto/hints-for-next-interval []))))
 
 (defn build-completed-interval [wip-interval generated-value byte-buffers uniqueness-hint-id]
   (cond-> wip-interval
@@ -39,11 +33,11 @@
         byte-buffers (::bytes/byte-buffers state)
         applicable-hints (hints-that-apply (::proto/interval-stack state))
         uniqueness-hint-id (->> applicable-hints
-                                (filter #(= ::proto/unique (nth %1 1))) ;Assumes there's only one.
+                                (filter #(= ::proto/unique (first %1))) ;Assumes there's only one.
                                 (last)
                                 (last))
         top-of-intervals? (zero? (::proto/interval-depth interval-to-update))
-        snippable? (some (comp (partial = ::proto/snippable) #(nth %1 1)) applicable-hints)
+        snippable? (some (comp (partial = ::proto/snippable) #(first %1)) applicable-hints)
         keep? (or snippable? top-of-intervals? uniqueness-hint-id)]
     (cond-> state
       true (update ::proto/interval-stack pop)
@@ -52,9 +46,9 @@
                                                                                byte-buffers
                                                                                uniqueness-hint-id)))))
 
-(defmulti apply-hint* (fn [_ _ _ [_ hint _]] hint))
+(defmulti apply-hint* (fn [_ _ _ [hint _]] hint))
 
-(defn get-already-generated-when-unique [[_ _ uniqueness-id] wip-intervals completed-intervals]
+(defn get-already-generated-when-unique [[_ uniqueness-id] wip-intervals completed-intervals]
   (->> completed-intervals
        (filter #(= uniqueness-id (::proto/uniqueness-hint-id %1)))
        (seq)

@@ -27,7 +27,7 @@
 
 (def ^:dynamic *source* (source.sample/make-source (System/nanoTime)))
 
-(def set-uniqueness-id (atom 0))
+(def unique-hint-ids (atom 0))
 
 (defmacro with-interval-and-hints [hints & body]
   `(do
@@ -269,13 +269,14 @@
 (defmacro collection
   ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
    `(with-interval
-       (loop [result# (~collection-init-fn)
-              i# 0]
-         (if-let [next# (with-interval-and-hints [[::proto/this ::proto/snippable nil]]
-                          (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
-                            (~generation-fn)))]
-           (recur (~add-to-coll-fn result# next#) (inc i#))
-           result#)))))
+      (let [hint-id# (swap! unique-hint-ids inc)]
+        (loop [result# (~collection-init-fn)
+               i# 0]
+          (if-let [next# (with-interval-and-hints [[::proto/snippable nil]]
+                                                  (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
+                                                    (~generation-fn)))]
+            (recur (~add-to-coll-fn result# next#) (inc i#))
+            result#))))))
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0))
@@ -286,10 +287,10 @@
   ([elem-gen] (set-of elem-gen 0 default-collection-max-size))
   ([elem-gen size] (set-of elem-gen size size))
   ([elem-gen min max]
-   (let [uniqueness-id (swap! set-uniqueness-id inc)]
-     (collection (fn [] #{})
-                 #(with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
-                    (elem-gen))
+   (let [hint-id (swap! unique-hint-ids inc)]
+     (collection hash-set
+                 #(do (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
+                      (elem-gen))
                  conj
                  min
                  max))))
@@ -422,8 +423,9 @@
   ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
   ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
    (with-interval
-     (let [uniqueness-id (swap! set-uniqueness-id inc)
-           kv-gen #(let [k (with-interval-and-hints [[::proto/immediate-children-of ::proto/unique uniqueness-id]]
+     (let [hint-id (swap! unique-hint-ids inc)
+           kv-gen #(let [k (with-interval
+                             (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
                              (key-gen))
                          v (if value-gen-takes-key-as-arg
                              (value-gen k)

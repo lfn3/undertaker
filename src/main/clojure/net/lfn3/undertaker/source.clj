@@ -9,13 +9,14 @@
            (net.lfn3.undertaker.source.fixed FixedSource)
            (java.util Collection)))
 
-(def state-atom (atom {::sampling?                 true
-                       ::debug?                    false
-                       ::shrinking?                false
-                       ::source-in-use             nil
-                       ::proto/interval-stack      []
-                       ::proto/completed-intervals []
-                       ::bytes/byte-buffers        []}))
+(def state-atom (atom {::sampling?                     true
+                       ::debug?                        false
+                       ::shrinking?                    false
+                       ::source-in-use                 nil
+                       ::proto/hints-for-next-interval []
+                       ::proto/interval-stack          []
+                       ::proto/completed-intervals     []
+                       ::bytes/byte-buffers            []}))
 
 ;; Most of this stuff is related to invariants & etc
 
@@ -29,9 +30,10 @@
   (swap! state-atom assoc ::source-in-use nil))
 (defn completed-test [source]
   (swap! state-atom assoc
-         ::proto/interval-stack      []
+         ::proto/interval-stack []
          ::proto/completed-intervals []
-         ::bytes/byte-buffers        []
+         ::bytes/byte-buffers []
+         ::proto/hints-for-next-interval []
          ::sampling true
          ::debug false))
 
@@ -79,6 +81,9 @@
      (let [buffer (proto/get-bytes source ranges)]
        (swap! state-atom update ::bytes/byte-buffers conj buffer)
        buffer))))
+
+(defn add-hints-to-next-interval [source hints]
+  (swap! state-atom update ::proto/hints-for-next-interval concat hints))
 
 (defn push-interval
   ([source] (push-interval source []))
