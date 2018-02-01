@@ -11,17 +11,17 @@
        ::proto/hints))
 
 (defn push-interval [state hints]
-  (let [{:keys [::bytes/byte-buffers ::proto/interval-stack]} state]
+  (let [{:keys [::bytes/byte-buffers ::proto/interval-stack :net.lfn3.undertaker.source/bytes-requested]} state]
     (-> state
         (update ::proto/interval-stack conj {::proto/interval-start-buffer (count byte-buffers)
-                                             ::proto/interval-start        (bytes/length-of-buffers byte-buffers)
+                                             ::proto/interval-start        bytes-requested
                                              ::proto/interval-depth        (count interval-stack)
                                              ::proto/hints                 (concat hints (::proto/hints-for-next-interval state))})
         (assoc ::proto/hints-for-next-interval []))))
 
-(defn build-completed-interval [wip-interval generated-value byte-buffers uniqueness-hint-id]
+(defn build-completed-interval [wip-interval generated-value byte-buffers uniqueness-hint-id bytes-requested]
   (cond-> wip-interval
-    true (assoc ::proto/interval-end (bytes/length-of-buffers byte-buffers))
+    true (assoc ::proto/interval-end bytes-requested)
     true (assoc ::proto/generated-value generated-value)
     uniqueness-hint-id (assoc ::proto/mapped-bytes (bytes/buffers->bytes byte-buffers
                                                                          (::proto/interval-start-buffer wip-interval)
@@ -29,9 +29,10 @@
     uniqueness-hint-id (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))
 
 (defn pop-interval [state generated-value]
-  (let [interval-to-update (last (::proto/interval-stack state))
+  (let [{:keys [:net.lfn3.undertaker.source/bytes-requested ::proto/interval-stack]} state
+        interval-to-update (last interval-stack)
         byte-buffers (::bytes/byte-buffers state)
-        applicable-hints (hints-that-apply (::proto/interval-stack state))
+        applicable-hints (hints-that-apply interval-stack)
         uniqueness-hint-id (->> applicable-hints
                                 (filter #(= ::proto/unique (first %1))) ;Assumes there's only one.
                                 (last)
@@ -44,7 +45,8 @@
       keep? (update ::proto/completed-intervals conj (build-completed-interval interval-to-update
                                                                                generated-value
                                                                                byte-buffers
-                                                                               uniqueness-hint-id)))))
+                                                                               uniqueness-hint-id
+                                                                               bytes-requested)))))
 
 (defmulti apply-hint* (fn [_ _ _ [hint _]] hint))
 

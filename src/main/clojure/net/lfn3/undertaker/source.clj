@@ -13,6 +13,7 @@
                        ::debug?                        false
                        ::shrinking?                    false
                        ::source-in-use                 nil
+                       ::bytes-requested               0
                        ::proto/hints-for-next-interval []
                        ::proto/interval-stack          []
                        ::proto/completed-intervals     []
@@ -34,6 +35,7 @@
          ::proto/completed-intervals []
          ::bytes/byte-buffers []
          ::proto/hints-for-next-interval []
+         ::bytes-requested 0
          ::sampling true
          ::debug false))
 
@@ -74,6 +76,7 @@
    (check-invariants source)
     ;TODO: check we don't already have any ranges?
    (swap! state-atom update ::proto/interval-stack #(update %1 (dec (count %1)) assoc ::bytes/ranges ranges))
+   (swap! state-atom update ::bytes-requested + (count (last (last ranges))))
    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
          ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
      (when (empty? ranges)
@@ -116,7 +119,8 @@
   (swap! state-atom assoc
          ::proto/interval-stack      []
          ::proto/completed-intervals []
-         ::bytes/byte-buffers        [])
+         ::bytes/byte-buffers        []
+         ::bytes-requested           0)
   (proto/reset source))
 
 (defn ^Collection get-sourced-byte-buffers [source]
