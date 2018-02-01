@@ -10,7 +10,8 @@
             [net.lfn3.undertaker.source.sample :as source.sample]
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.messages :as messages])
+            [net.lfn3.undertaker.messages :as messages]
+            [net.lfn3.undertaker.source.wrapped-random :as source.random])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
            (net.lfn3.undertaker.source.sample SampleSource)
            (java.util UUID)
@@ -96,7 +97,7 @@
             iterations 1000}
      :as   opts-map}
     f]
-   (let [source (source.multi/make-source seed)
+   (let [source (source.random/make-source seed)
          wrapped-fn (wrap-fn f)
          _ (source/starting-test source debug)
          result (loop [iterations-left iterations]
