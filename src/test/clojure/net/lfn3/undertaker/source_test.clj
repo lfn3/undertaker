@@ -30,23 +30,33 @@
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
 
 (deftest should-emit-bytes
+  (source/push-interval forgetful-source)
   (let [value (.get (source/get-bytes forgetful-source [[[-128] [-1]] [[0] [127]]]))]
     (is bytes/byte? value)
-    (is (contains? (set (range -128 127)) value))))
+    (is (contains? (set (range -128 127)) value))
+    (source/pop-interval forgetful-source value)))
 
 (deftest should-emit-positive-number
+  (source/push-interval forgetful-source)
   (let [value (.get (source/get-bytes forgetful-source [[[0] [127]]]))]
     (is pos-int? value)
-    (is (contains? (set (range 0 127)) value))))
+    (is (contains? (set (range 0 127)) value))
+    (source/pop-interval forgetful-source value)))
 
 (deftest should-emit-unsigned-numbers-in-range
-  (is (= 0 (.get (source/get-bytes forgetful-source [[[0] [0]]]))))
+  (source/push-interval forgetful-source)
+  (let [value (.get (source/get-bytes forgetful-source [[[0] [0]]]))]
+    (is (= 0 value))
+    (source/pop-interval forgetful-source value))
 
+  (source/push-interval forgetful-source)
   (let [values (byte-array 10)]
     (.get (source/get-bytes forgetful-source [[(vec (repeat 10 0)) (vec (repeat 10 1))]]) values)
     (is (not-every? (partial = 0) values))
-    (is (not-every? (partial = 1) values)))
+    (is (not-every? (partial = 1) values))
+    (source/pop-interval forgetful-source values))
 
+  (source/push-interval forgetful-source)
   (let [size 10000
         values (byte-array size)]
     (.get (source/get-bytes forgetful-source [[(vec (repeat size -128)) (vec (repeat size -1))]
@@ -55,4 +65,5 @@
     (is (->> values
              (map (fn [val] [((set (range -128 128)) val) val]))
              (filter (comp nil? first))
-             (empty?)))))
+             (empty?)))
+    (source/pop-interval forgetful-source values)))
