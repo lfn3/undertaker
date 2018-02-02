@@ -271,12 +271,11 @@
   ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
    `(with-interval
       (let [hint-id# (swap! unique-hint-ids inc)]
-        (loop [result# (~collection-init-fn)
-               i# 0]
+        (loop [result# (~collection-init-fn)]
           (if-let [next# (with-interval-and-hints [[::proto/snippable nil]]
-                                                  (when-let [gen-next?# (should-generate-elem? ~min-size ~max-size i#)]
+                                                  (when (should-generate-elem? ~min-size ~max-size (count result#))
                                                     (~generation-fn)))]
-            (recur (~add-to-coll-fn result# next#) (inc i#))
+            (recur (~add-to-coll-fn result# next#))
             result#))))))
 
 (defn vec-of
