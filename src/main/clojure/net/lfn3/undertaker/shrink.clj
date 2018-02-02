@@ -41,7 +41,7 @@
 (defn is-snippable? [interval]
   (->> interval
        ::proto/hints
-       (some (comp (partial = ::proto/snippable) #(nth %1 1)))
+       (some (comp (partial = ::proto/snippable) first))
        (nil?)
        (not)))
 
@@ -54,6 +54,7 @@
             continue? (< (inc index) (count intervals))
             shrunk-bytes (snip-interval bytes interval)
             source (fixed-source/make-fixed-source shrunk-bytes)
+            _ (source/reset source)
             result (fn source)
             passed? (:net.lfn3.undertaker.core/result result)
             overrun? (is-overrun? result)]
@@ -87,6 +88,7 @@
            shrunk-bytes (-> (byte-array bytes)              ;;clone it so we can mutate it safely.
                             (shrink-at! working-on))]
       (let [shrunk-source (fixed-source/make-fixed-source shrunk-bytes)
+            _ (source/reset shrunk-source)
             keep-trying-current-byte? (not (zero? (nth shrunk-bytes working-on)))
             result-map (fn shrunk-source)
             passed? (true? (:net.lfn3.undertaker.core/result result-map))
@@ -124,11 +126,13 @@
                                (snip-intervals intervals f)
                                (repeatedly-move-towards-zero f)
                                (fixed-source/make-fixed-source))
+             _ (source/reset shrunk-source)
              _ (f shrunk-source)
              intervals (source/get-intervals shrunk-source)
              shrunk-source (-> (source/get-sourced-bytes shrunk-source)
                                (snip-intervals intervals f)
                                (fixed-source/make-fixed-source))
+             _ (source/reset shrunk-source)
              result-map (f shrunk-source)]
          (source/add-source-data-to-results-map shrunk-source result-map)))
      (finally (source/done-shrinking!)))))
