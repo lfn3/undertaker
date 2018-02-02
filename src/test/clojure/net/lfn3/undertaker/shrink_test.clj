@@ -45,7 +45,7 @@
   (is (true? (get-in (undertaker/run-prop {} (constantly true)) [::undertaker/initial-results ::undertaker/result]))))
 
 (deftest should-shrink-to-zero
-  (let [result (undertaker/run-prop {} #(is (boolean? (undertaker/byte))))]
+  (let [result (undertaker/run-prop {:debug true} #(is (boolean? (undertaker/byte))))]
     (is (= 0 (->> result
                   ::undertaker/shrunk-results
                   ::undertaker/generated-values
@@ -144,6 +144,16 @@
         shrunk-val (first (get-in result [::undertaker/shrunk-results ::undertaker/generated-values]))]
     (is (<= 0.9 shrunk-val) result)
     (is (<= shrunk-val 2.0) result)))
+
+(deftest should-move-bytes-towards-zero
+  (let [test-fn (undertaker/wrap-fn (fn [] (is (not (< 1 (undertaker/byte))))))
+        shrunk (shrink/move-bytes-towards-zero (byte-array [3]) test-fn)]
+    (is (= [2] (vec shrunk)))))
+
+(deftest should-move-bytes-in-array-towards-zero
+  (let [test-fn (undertaker/wrap-fn (fn [] (is (every? #(not (< 1 %1)) (undertaker/vec-of undertaker/byte)))))
+        shrunk (shrink/move-bytes-towards-zero (byte-array [1 3 1 4]) test-fn)]
+    (is (= [1 3 0 0] (vec shrunk)))))
 
 (def get-first-key #(some-> %1
                             (first)
