@@ -280,7 +280,7 @@
             result#))))))
 
 (defn vec-of
-  ([elem-gen] (vec-of elem-gen 0))
+  ([elem-gen] (vec-of elem-gen 0 default-collection-max-size))
   ([elem-gen size] (vec-of elem-gen size size))
   ([elem-gen min max] (collection vector elem-gen conj min max)))
 
