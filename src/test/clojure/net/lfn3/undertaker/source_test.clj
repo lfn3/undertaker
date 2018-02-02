@@ -7,6 +7,12 @@
             [clojure.spec.test.alpha :as s.test]
             [net.lfn3.undertaker.bytes :as bytes]))
 
+(def forgetful-source (source.forgetful/make-source (System/nanoTime)))
+(t/use-fixtures :each #(do (source/completed-test-instance forgetful-source)
+                           (source/reset forgetful-source)
+                           (source/starting-test-instance forgetful-source)
+                           (%1)))
+
 (def this-ns *ns*)
 
 (def ignored #{})
@@ -26,8 +32,6 @@
     (println (str "Checked following specs in " target-namespace ": "))
     (dorun (map println targets))
     (is (empty? failures))))
-
-(def forgetful-source (source.forgetful/make-source (System/nanoTime)))
 
 (deftest should-emit-bytes
   (source/push-interval forgetful-source)
