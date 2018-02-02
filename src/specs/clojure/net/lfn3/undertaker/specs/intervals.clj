@@ -28,5 +28,6 @@
   :args (s/cat :wip-interval ::proto/wip-interval
                :generated-value (s/nilable ::proto/generated-value)
                :byte-buffers ::bytes/byte-buffers
-               :uniqueness-hint-id (s/nilable ::proto/uniqueness-hint-id))
+               :uniqueness-hint-id (s/nilable ::proto/uniqueness-hint-id)
+               :bytes-requested int?)
   :ret ::proto/interval)
