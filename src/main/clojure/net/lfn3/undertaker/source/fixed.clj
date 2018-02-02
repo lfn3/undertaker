@@ -21,6 +21,7 @@
       (when-not (= (count bytes) size)
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
+      (swap! state-atom update ::cursor + size)
       (bytes/map-into-ranges! buf ranges)
       buf))
   (reset [_] (swap! state-atom assoc ::cursor 0)))
