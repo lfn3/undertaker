@@ -153,9 +153,9 @@
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
-  ([floor ceiling]
+  ([floor ceiling & more-ranges]
    (with-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/short->bytes)
+     (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/short->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getShort)))))
 
