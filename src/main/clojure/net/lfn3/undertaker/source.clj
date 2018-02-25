@@ -134,7 +134,7 @@
         intervals (get-intervals source)]
     (cond-> result-map
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/intervals intervals)
-      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (get-sourced-bytes source))
+      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (vec (get-sourced-bytes source)))
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
       true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values
