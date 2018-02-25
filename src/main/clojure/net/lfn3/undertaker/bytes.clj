@@ -317,7 +317,11 @@
        (reduce + 0)))
 
 (defn buffers->bytes
-  ([^Collection buffers] (buffers->bytes buffers 0 (count buffers)))
+  ([^Collection buffers]
+   (->> buffers
+        (mapcat #(for [i (range (.position %1) (.limit %1))]
+                   (.get %1 i)))
+        (byte-array)))
   ([^Collection buffers start end]
    (->> buffers
         (drop start)
