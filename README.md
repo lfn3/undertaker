@@ -2,35 +2,9 @@
 
 A property testing library for Clojure and [Java](https://github.com/lfn3/undertaker-junit).
 
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar undertaker-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
 ## License
 
-Copyright © 2017 FIXME
+Copyright © 2017 Liam Falconer
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
