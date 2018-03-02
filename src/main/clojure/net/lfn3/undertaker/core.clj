@@ -121,12 +121,13 @@
      (source/completed-test source)
      result)))
 
-(defn format-results [name {:keys [::initial-results ::shrunk-results] :as results}]
-  (cond
-    (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name results)
-    (not (::source-used? initial-results)) (messages/format-not-property-test-failed name results)
-    (not (::result initial-results)) (messages/format-failed name results)
-    :default nil))
+(defn format-results
+  ([name {:keys [::initial-results ::shrunk-results] :as results} failed-lang-fn]
+   (cond
+     (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name results)
+     (not (::source-used? initial-results)) (messages/format-not-property-test-failed name results)
+     (not (::result initial-results)) (str (messages/format-failed name results) (failed-lang-fn name results))
+     :default nil)))
 
 (defmacro get-from-byte-buffer-abs [f ^ByteBuffer byte-buffer]
   `(let [buffer# ~byte-buffer]
@@ -464,7 +465,7 @@
     `(t/deftest ~name
        (let [result# (run-prop ~opts (fn [] (do ~@body)))]
          (dorun (map t/report (::reported result#)))
-         (when-let [message# (format-results ~name-string result#)]
+         (when-let [message# (format-results ~name-string result# messages/clojure-seed-message)]
            (println message#))
          (when (:debug ~opts)
            (println "\n\nDebug output follows:\n")

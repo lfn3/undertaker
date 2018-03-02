@@ -35,10 +35,11 @@ This probably means you've nested tests inside each other.
 If you can't find the cause of the error, please raise an issue at "
     bug-tracker-url))
 
-(defn format-failed [name {:keys [:net.lfn3.undertaker.core/iterations-run
-                                  :net.lfn3.undertaker.core/initial-results
-                                  :net.lfn3.undertaker.core/shrunk-results
-                                  :net.lfn3.undertaker.core/seed]}]
+(defn format-failed [name
+                     {:keys [:net.lfn3.undertaker.core/iterations-run
+                             :net.lfn3.undertaker.core/initial-results
+                             :net.lfn3.undertaker.core/shrunk-results
+                             :net.lfn3.undertaker.core/seed]}]
   (format "%s failed after running %d times.
 
 The cause of the failure was:
@@ -51,25 +52,18 @@ The initial failing values were:
 %s
 
 The seed that generated the initial case was %s.
-If you want to rerun this particular failing case, you can add this seed to the test.
-
-If you're using Clojure, you can add :seed to this test's options map:
-(defprop %s {:seed %s} ...)
-
-If you're using Java and jUnit, you can add an annotation to the test:
-@Test
-@net.lfn3.undertaker.undertaker.junit.Seed(%s)
-public void %s() { ... }"
+"
           name
           iterations-run
           (:net.lfn3.undertaker.core/cause shrunk-results)
           (vec (:net.lfn3.undertaker.core/generated-values shrunk-results))
           (vec (:net.lfn3.undertaker.core/generated-values initial-results))
-          seed
-          name
-          seed
-          seed
-          name))
+          seed))
+
+(defn clojure-seed-message [name {:keys [:net.lfn3.undertaker.core/seed]}]
+  (format "You can add :seed to this test's options map to rerun this particular failing case:
+(defprop %s {:seed %s} ...)"
+          name seed))
 
 (defn format-not-property-test-failed [name {:keys [:net.lfn3.undertaker.core/initial-results]}]
   (format "This test (%s) did not contain any calls to undertaker generators, so was not treated as a property test and repeatedly run or shrunk.
