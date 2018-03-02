@@ -73,15 +73,17 @@
 
 (defn ^ByteBuffer get-bytes
   ([source ranges]
-   (check-invariants source)
+   (when (empty? ranges)
+     (throw (IllegalArgumentException. "Ranges may not be empty.")))
     ;TODO: check we don't already have any ranges?
+   (check-invariants source)
    (swap! state-atom update ::proto/interval-stack #(update %1 (dec (count %1)) assoc ::bytes/ranges ranges))
    (swap! state-atom update ::bytes-requested + (count (last (last ranges))))
    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
-         ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
-     (when (empty? ranges)
-       (throw (UniqueInputValuesExhaustedException. "Ran out of valid values to generate.")))
-     (let [buffer (proto/get-bytes source ranges)]
+         hinted-ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
+     (when (empty? hinted-ranges)
+       (throw (UniqueInputValuesExhaustedException. (str "Started with " (intervals/printable-ranges ranges)) )))
+     (let [buffer (proto/get-bytes source hinted-ranges)]
        (swap! state-atom update ::bytes/byte-buffers conj buffer)
        buffer))))
 

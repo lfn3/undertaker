@@ -75,3 +75,11 @@
         (let [ranges (apply-hint* wip-intervals completed-intervals ranges hint)]
           (recur ranges (rest hints)))
         ranges))))
+
+(defn printable-ranges
+  "Transforms the byte arrays inside ranges into a vector"
+  [ranges]
+  (->> ranges
+       (map (partial map vec))
+       (map vec)
+       vec))
