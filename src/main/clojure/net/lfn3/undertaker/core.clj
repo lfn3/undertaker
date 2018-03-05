@@ -11,7 +11,8 @@
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.messages :as messages]
-            [net.lfn3.undertaker.source.wrapped-random :as source.random])
+            [net.lfn3.undertaker.source.wrapped-random :as source.random]
+            [clojure.pprint])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
            (net.lfn3.undertaker.source.sample SampleSource)
            (java.util UUID)
@@ -122,12 +123,12 @@
      result)))
 
 (defn format-results
-  ([name {:keys [::initial-results ::shrunk-results] :as results} failed-lang-fn]
-   (cond
-     (and (not (::source-used? initial-results)) (::result initial-results)) (messages/format-not-property-passed name results)
-     (not (::source-used? initial-results)) (messages/format-not-property-test-failed name results)
-     (not (::result initial-results)) (str (messages/format-failed name results) (failed-lang-fn name results))
-     :default nil)))
+  ([name {:keys [::initial-results ::shrunk-results] :as results} failed-lang-fn debug?]
+   (cond-> ""
+     (and (not (::source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
+     (and (not (::source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
+     (and (::source-used? initial-results) (not (::result initial-results))) (str (messages/format-failed name results) (failed-lang-fn name results))
+     debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results))))))
 
 (defmacro get-from-byte-buffer-abs [f ^ByteBuffer byte-buffer]
   `(let [buffer# ~byte-buffer]
@@ -465,8 +466,5 @@
     `(t/deftest ~name
        (let [result# (run-prop ~opts (fn [] (do ~@body)))]
          (dorun (map t/report (::reported result#)))
-         (when-let [message# (format-results ~name-string result# messages/clojure-seed-message)]
-           (println message#))
-         (when (:debug ~opts)
-           (println "\n\nDebug output follows:\n")
-           (println result#))))))
+         (when-let [message# (format-results ~name-string result# messages/clojure-seed-message (:debug ~opts))]
+           (println message#))))))

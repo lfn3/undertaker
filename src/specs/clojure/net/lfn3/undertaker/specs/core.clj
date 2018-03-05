@@ -52,7 +52,7 @@
   :ret ::undertaker/all-results)
 
 (s/fdef undertaker/format-results
-  :args (s/cat :name string? :results ::undertaker/all-results :failed-lang-fn fn?)
+  :args (s/cat :name string? :results ::undertaker/all-results :failed-lang-fn fn? :debug boolean?)
   :ret (s/nilable string?))
 
 (s/fdef undertaker/byte
