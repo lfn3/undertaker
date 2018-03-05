@@ -109,13 +109,7 @@
 
 (defn get-wip-intervals [source] (::proto/interval-stack @state-atom))
 
-(defn get-intervals [source]
-  (when-let [wip-intervals (and (::debug? @state-atom) (seq (get-wip-intervals source)))]
-    (throw (internal-exception "Tried to get intervals when test has not finished generating input!"
-                                     {:source        source
-                                      :wip-intervals wip-intervals
-                                      :state @state-atom})))
-  (::proto/completed-intervals @state-atom))
+(defn get-intervals [source] (::proto/completed-intervals @state-atom))
 
 (defn reset [source]
   (swap! state-atom assoc
@@ -135,7 +129,8 @@
   (let [success? (:net.lfn3.undertaker.core/result result-map)
         intervals (get-intervals source)]
     (cond-> result-map
-      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/intervals intervals)
+      (::debug? @state-atom) (assoc ::proto/interval-stack (get-wip-intervals source))
+      (::debug? @state-atom) (assoc ::proto/completed-intervals intervals)
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (vec (get-sourced-bytes source)))
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
       true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
