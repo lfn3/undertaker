@@ -65,6 +65,9 @@
   (and (neg-int? (first (first range)))
        (neg-int? (first (last range)))))
 
+(defn unsigned< [x y]
+  (= -1 (Long/compareUnsigned x y)))
+
 (defn unsigned<= [x y]
   (not= 1 (Long/compareUnsigned x y)))
 
@@ -139,6 +142,13 @@
 (defn fill [coll target-size value]
   (let [add (- target-size (count coll))]
     (concat coll (repeat add value))))
+
+(defn not-inverted [range1 range2]
+  (or (->> range2
+           (map = range1)
+           (reduce and))
+      (->> range2
+           (map ))))
 
 (defn collapse-identical-ranges [ranges]
   (filter (comp (partial reduce #(and %1 %2) true) #(apply map unsigned<= %)) ranges))

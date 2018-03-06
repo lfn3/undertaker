@@ -150,6 +150,9 @@
   (let [s (undertaker/set-of (partial undertaker/int 0 5) 5 5)]
     (is (= (count s) 5))))
 
+(undertaker/defprop can-get-set-of-shorts {}
+  (let [s (undertaker/set-of (partial undertaker/short 2313 2569) 1 4)])) ;Bytes are [9, 9] -> [10,9]
+
 (undertaker/defprop can-get-fixed-size-set {}
   (let [s (undertaker/set-of (partial undertaker/string 0 5) 5)]
     (is (= (count s) 5))))
