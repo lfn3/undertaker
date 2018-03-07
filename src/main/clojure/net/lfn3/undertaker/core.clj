@@ -128,7 +128,8 @@
      (and (not (::source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
      (and (not (::source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
      (and (::source-used? initial-results) (not (::result initial-results))) (str (messages/format-failed name results) (failed-lang-fn name results))
-     debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results))))))
+     debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results)))
+     true (not-empty))))
 
 (defmacro get-from-byte-buffer-abs [f ^ByteBuffer byte-buffer]
   `(let [buffer# ~byte-buffer]
