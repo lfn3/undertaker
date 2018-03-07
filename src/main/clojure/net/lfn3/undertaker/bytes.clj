@@ -105,11 +105,22 @@
 (defn range-by-idx [range]
   (map (fn [lower upper] [lower upper]) (first range) (last range)))
 
-(defn bytes-are-in-range [value range]
-  (->> range
-       (range-by-idx)
-       (map is-in-range value)
-       (every? true?)))
+(defn bytes-are-in-range [bytes range]
+  (loop [bytes bytes
+         by-idx (range-by-idx range)
+         on-lower? true                                     ;is the value sticking to the lower end of the range?
+         on-upper? true]
+    (let [b (first bytes)
+          [lower upper] (first by-idx)]
+      ;(prn b lower upper on-lower? on-upper?)
+      (if (nil? b)
+        true                                                ;Got the end without falling out of ranges, we're good.
+        (cond
+          (and (unsigned< lower b) (unsigned< b upper)) true
+          (and (false? on-upper?) (unsigned<= lower b)) true
+          (and (false? on-lower?) (unsigned<= b upper)) true
+          (or (unsigned< b lower) (unsigned< upper b)) false
+          :default (recur (rest bytes) (rest by-idx) (and on-lower? (= lower b)) (and on-upper? (= upper b))))))))
 
 (defn pick-range [value ranges]
   (when (seq ranges)
@@ -144,14 +155,17 @@
     (concat coll (repeat add value))))
 
 (defn not-inverted [range1 range2]
-  (or (->> range2
-           (map = range1)
-           (reduce and))
-      (->> range2
-           (map ))))
+  (let [gte-until (->> range2
+                       (map unsigned<= range1)
+                       (take-while true?)
+                       (count))]
+    (or (= gte-until (count range1))
+        (->> (take gte-until range2)
+             (map unsigned< (take gte-until range1))
+             (some true?)))))
 
 (defn collapse-identical-ranges [ranges]
-  (filter (comp (partial reduce #(and %1 %2) true) #(apply map unsigned<= %)) ranges))
+  (filter #(apply not-inverted %) ranges))
 
 (defn handle-underflow [bytes update-fn]
   (loop [idx (dec (count bytes))

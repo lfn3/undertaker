@@ -145,7 +145,7 @@
   (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 -1]]]))
   (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
 
-  (is (= (punch-skip-values-out-of-ranges [[9 -50] [10 9]] [[[9 9] [10 9]]]) [[[9 9] [9 -49]] [9 -51] [10 8]])))
+  (is (= (punch-skip-values-out-of-ranges [[9 -50] [10 9]] [[[9 9] [10 9]]]) [[[9 9] [9 -51]] [[9 -49] [10 8]]])))
 
 (deftest test-collapse-identical-ranges
   (is (= [[[9 9] [10 8]]] (collapse-identical-ranges [[[9 9] [10 8]]]))))

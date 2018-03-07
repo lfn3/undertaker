@@ -67,7 +67,9 @@
   :ret (s/nilable ::bytes/sliced-ranges))
 
 (s/fdef bytes/bytes-are-in-range
-  :args (s/cat :value ::bytes/bytes :range ::bytes/range)
+  :args (s/and (s/cat :value ::bytes/bytes :range ::bytes/range)
+               (fn [{:keys [value range]}]
+                 (<= (count (val value)) (count (val (first range))))))
   :ret boolean?)
 
 (s/fdef bytes/pick-range

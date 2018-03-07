@@ -78,7 +78,7 @@
                :or   {min Short/MIN_VALUE
                       max Short/MAX_VALUE}} args]
           (and (<= min ret)
-               (>= max ret)))))
+               (<= ret max)))))
 
 (s/fdef undertaker/int
   :args (s/cat :floor (s/? int?)
