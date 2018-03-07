@@ -466,5 +466,5 @@
     `(t/deftest ~name
        (let [result# (run-prop ~opts (fn [] (do ~@body)))]
          (dorun (map t/report (::reported result#)))
-         (when-let [message# (format-results ~name-string result# messages/clojure-seed-message (:debug ~opts))]
+         (when-let [message# (format-results ~name-string result# messages/clojure-seed-message (true? (:debug ~opts)))]
            (println message#))))))
