@@ -61,9 +61,30 @@
   (let [short (undertaker/short 1)]
     (is (<= 1 short))))
 
+(undertaker/defprop short-in-range {}
+  (let [upper (undertaker/short)
+        lower (undertaker/short Short/MIN_VALUE upper)
+        s (undertaker/short lower upper)]
+    (is (<= lower s))
+    (is (<= s upper))))
+
 (undertaker/defprop int-above-one {}
   (let [int (undertaker/int 1)]
     (is (<= 1 int))))
+
+(undertaker/defprop int-in-range {}
+  (let [upper (undertaker/int)
+        lower (undertaker/int Integer/MIN_VALUE upper)
+        i (undertaker/int lower upper)]
+    (is (<= lower i))
+    (is (<= i upper))))
+
+(undertaker/defprop long-in-range {}
+  (let [upper (undertaker/long)
+        lower (undertaker/long Long/MIN_VALUE upper)
+        l (undertaker/long lower upper)]
+    (is (<= lower l))
+    (is (<= l upper))))
 
 (undertaker/defprop int-in-one-of-many-ranges {}
   (let [i (undertaker/int 1 2 4 5 7 9)]
@@ -149,6 +170,11 @@
 (undertaker/defprop can-get-set {}
   (let [s (undertaker/set-of (partial undertaker/int 0 5) 5 5)]
     (is (= (count s) 5))))
+
+(undertaker/defprop can-get-set-of-longs-in-range {}
+  (let [lower (undertaker/long Long/MIN_VALUE (- Long/MAX_VALUE 100))
+        upper (undertaker/long (+ lower 100))
+        s (undertaker/set-of (partial undertaker/long lower upper) 2 100)]))
 
 (undertaker/defprop can-get-set-of-shorts {}
   (let [s (undertaker/set-of (partial undertaker/short 2313 2569) 1 4)])) ;Bytes are [9, 9] -> [10,9]

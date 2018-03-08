@@ -112,15 +112,13 @@
          on-upper? true]
     (let [b (first bytes)
           [lower upper] (first by-idx)]
-      ;(prn b lower upper on-lower? on-upper?)
-      (if (nil? b)
-        true                                                ;Got the end without falling out of ranges, we're good.
-        (cond
-          (and (unsigned< lower b) (unsigned< b upper)) true
-          (and (false? on-upper?) (unsigned<= lower b)) true
-          (and (false? on-lower?) (unsigned<= b upper)) true
-          (or (unsigned< b lower) (unsigned< upper b)) false
-          :default (recur (rest bytes) (rest by-idx) (and on-lower? (= lower b)) (and on-upper? (= upper b))))))))
+      (cond
+        (nil? b) true                                       ;Got the end without falling out of ranges, we're good.
+        (and (unsigned< lower b) (unsigned< b upper)) true
+        (and (false? on-upper?) (unsigned<= lower b)) true
+        (and (false? on-lower?) (unsigned<= b upper)) true
+        (or (unsigned< b lower) (unsigned< upper b)) false
+        :default (recur (rest bytes) (rest by-idx) (and on-lower? (= lower b)) (and on-upper? (= upper b)))))))
 
 (defn pick-range [value ranges]
   (when (seq ranges)

@@ -6,7 +6,8 @@
             [clojure.spec.test.alpha :as s.test]
             [orchestra.spec.test :as orchestra.test]
             [net.lfn3.undertaker.specs.bytes]
-            [net.lfn3.undertaker.test-utils :as test-utils])
+            [net.lfn3.undertaker.test-utils :as test-utils]
+            [net.lfn3.undertaker.core :as undertaker])
   (:import (java.nio ByteBuffer)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
@@ -218,3 +219,19 @@
   (is (not= -5 (vectorized-move-bytes-into-range [-1 -18] -10 1 #{-5})))
   (is (not= -5 (vectorized-move-bytes-into-range [-1 -19] -10 1 #{-5})))
   (is (not= -5 (vectorized-move-bytes-into-range [-1 -25] -10 1 #{-5}))))
+
+(undertaker/defprop should-punch-out-values {}
+  (let [upper (undertaker/long (inc Long/MIN_VALUE))
+        lower (undertaker/long Long/MIN_VALUE (dec upper))
+        skip (undertaker/set-of (partial undertaker/long lower upper))
+        result (punch-skip-values-out-of-ranges (map long->bytes skip)
+                                                (split-number-line-min-max-into-bytewise-min-max lower upper long->bytes))
+        ranges-as-bigints (map (partial map #(bigint (apply bytes->long %))) result)
+        length-of-ranges (->> (map - (map last ranges-as-bigints) (map first ranges-as-bigints))
+                              (map #(if (neg? %1)
+                                      (- %1)
+                                      %1))
+                              (map inc)
+                              (reduce +))
+        length-of-initial-range (inc (- (bigint upper) (bigint lower)))]
+    (is (= length-of-ranges (- length-of-initial-range (count skip))))))
