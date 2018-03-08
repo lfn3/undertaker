@@ -4,7 +4,7 @@
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.intervals :as intervals])
-  (:import (net.lfn3.undertaker OverrunException)))
+  (:import (net.lfn3.undertaker OverrunException UniqueInputValuesExhaustedException)))
 
 (defn move-towards-0 [byte]
   (if (zero? byte)
@@ -21,17 +21,21 @@
     (System/arraycopy bytes (+ interval-start range) output interval-start (- (count bytes) interval-start range))
     output))
 
+(defn ignoreable-ex? [ex]
+  (or (instance? OverrunException ex)
+      (instance? UniqueInputValuesExhaustedException ex)))
+
 (defn is-overrun? [result-map]
   (let [cause (:net.lfn3.undertaker.core/cause result-map)]
-    (or (instance? OverrunException cause)
+    (or (ignoreable-ex? cause)
         (->> cause
              :actual
-             (instance? OverrunException))
+             (ignoreable-ex?))
         (if (->> cause
                  (seq?))
           (->> cause
                (map :actual)
-               (filter (partial instance? OverrunException))
+               (filter ignoreable-ex?)
                (not-empty)
                (nil?)
                (not))
