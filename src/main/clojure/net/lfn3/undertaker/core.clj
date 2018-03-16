@@ -231,7 +231,7 @@
   ([min] (float min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/float->bytes)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Float/MIN_VALUE) bytes/float->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getFloat)))))
 
@@ -244,7 +244,7 @@
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
           (bytes/punch-skip-values-out-of-ranges start-of-unreal-doubles)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getDouble)))))
@@ -254,7 +254,7 @@
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
    (with-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/double->bytes)
+     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getDouble)))))
 

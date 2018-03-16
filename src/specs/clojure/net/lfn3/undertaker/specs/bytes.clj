@@ -153,7 +153,7 @@
                                                              "class java.lang.Double" (bytes/double->bytes n))))))
 
 (s/fdef bytes/split-number-line-min-max-into-bytewise-min-max
-  :args (s/cat :floor number? :ceiling number? :->bytes-fn ::bytes/->bytes-fn)
+  :args (s/cat :floor number? :ceiling number? :min-neg-val (s/? number?) :->bytes-fn ::bytes/->bytes-fn)
   :ret ::bytes/ranges)
 
 (s/fdef bytes/split-number-line-ranges-into-bytewise-min-max
