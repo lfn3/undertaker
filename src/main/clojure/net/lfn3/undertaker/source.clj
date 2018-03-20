@@ -66,7 +66,7 @@
 (defn check-invariants [source]
   (when (::debug? @state-atom)
     (throw-if-source-is-nil source)
-    (every-call-in-scope-of-test-should-use-same-source source)
+    ;(every-call-in-scope-of-test-should-use-same-source source)
     (should-only-use-fixed-source-while-shrinking source)))
 
 ;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
@@ -82,7 +82,7 @@
    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
          hinted-ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
      (when (empty? hinted-ranges)
-       (throw (UniqueInputValuesExhaustedException. (str "Started with " (intervals/printable-ranges ranges)) )))
+       (throw (UniqueInputValuesExhaustedException. (str "Started with " (intervals/printable-ranges ranges)))))
      (let [buffer (proto/get-bytes source hinted-ranges)]
        (swap! state-atom update ::bytes/byte-buffers conj buffer)
        buffer))))

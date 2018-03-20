@@ -204,6 +204,13 @@
     (is (not (zero? n)))
     (is (<= n 200))))
 
+(deftest can-get-set-of-shorts
+  (let [upper 1025
+        lower 282
+        source (source.fixed/make-fixed-source [1, 1, 27, 1, 4, 1, 0])]
+    (with-bindings {#'undertaker/*source* source}
+      (undertaker/set-of (partial undertaker/short lower upper)))))
+
 (deftest can-gen-heterogeneous-set
   (let [s (undertaker/set-of #(undertaker/frequency [[1 undertaker/int]
                                                      [1 undertaker/double]])

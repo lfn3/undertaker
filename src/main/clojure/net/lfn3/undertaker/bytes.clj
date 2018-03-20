@@ -9,6 +9,12 @@
        (>= Byte/MAX_VALUE b)
        (<= Byte/MIN_VALUE b)))
 
+(defn unsigned< [x y]
+  (= -1 (Long/compareUnsigned x y)))
+
+(defn unsigned<= [x y]
+  (not= 1 (Long/compareUnsigned x y)))
+
 (defn range<xf []
   (fn [xf]
     (fn
@@ -20,11 +26,18 @@
       ([result [b1 b2]]
        (cond
          (= b1 b2) result
-         (< b1 b2) (reduced true)
+         (unsigned< b1 b2) (reduced true)
          :default (reduced false))))))
 
+(defn by-idx [b1 b2]
+  (map (fn [v1 v2] [v1 v2]) b1 b2))
+
+(defn bytes< [b1 b2]
+  (->> (by-idx b1 b2)
+       (transduce (range<xf) identity [])))
+
 (defn range< [range1 range2]
-  (->> (map (fn [v1 v2] [v1 v2]) (last range1) (first range2))
+  (->> (by-idx (last range1) (first range2))
        (transduce (range<xf) identity [])))
 
 ;This exists so I can test this and the ranges-are-sorted-fn without tearing my hair out.
@@ -65,12 +78,6 @@
   (and (neg-int? (first (first range)))
        (neg-int? (first (last range)))))
 
-(defn unsigned< [x y]
-  (= -1 (Long/compareUnsigned x y)))
-
-(defn unsigned<= [x y]
-  (not= 1 (Long/compareUnsigned x y)))
-
 (defn unsigned-range [floor ceiling]
   (- (unsign ceiling) (unsign floor)))
 
@@ -102,23 +109,55 @@
        (filter (partial is-in-range value))
        (seq)))
 
-(defn range-by-idx [range]
-  (map (fn [lower upper] [lower upper]) (first range) (last range)))
+(defn slice-range [idx range]
+  [(nth (first range) idx) (nth (last range) idx)])
+
+(defn fill [coll target-size value]
+  (let [add (- target-size (count coll))]
+    (concat coll (repeat add value))))
+
+(defn bound-range-to [idx bound range]
+  (let [unbound-upper (last range)
+        upper (if (= (nth unbound-upper idx) bound)
+                unbound-upper
+                (-> unbound-upper
+                    ((partial take idx))
+                    (vec)
+                    (conj bound)
+                    (fill (count (first range)) -1)
+                    (vec)))
+        unbound-lower (first range)
+        lower (if (= (nth unbound-lower idx) bound)
+                unbound-lower
+                (-> unbound-lower
+                    ((partial take idx))
+                    (vec)
+                    (conj bound)
+                    (fill (count (first range)) 0)
+                    (vec)))]
+    [lower upper]))
+
+(defn flip-range-to-bitwise-order [[lower upper]]
+  (if (and (seq lower) (unsigned<= (first lower) (first upper)))
+    [lower upper]
+    [upper lower]))
 
 (defn bytes-are-in-range [bytes range]
   (loop [bytes bytes
-         by-idx (range-by-idx range)
+         range range
          on-lower? true                                     ;is the value sticking to the lower end of the range?
          on-upper? true]
-    (let [b (first bytes)
-          [lower upper] (first by-idx)]
-      (cond
-        (nil? b) true                                       ;Got the end without falling out of ranges, we're good.
-        (and (unsigned< lower b) (unsigned< b upper)) true
-        (and (false? on-upper?) (unsigned<= lower b)) true
-        (and (false? on-lower?) (unsigned<= b upper)) true
-        (or (unsigned< b lower) (unsigned< upper b)) false
-        :default (recur (rest bytes) (rest by-idx) (and on-lower? (= lower b)) (and on-upper? (= upper b)))))))
+    (if-let [b (first bytes)]
+      (let [[lower upper] (slice-range 0 range)
+            [ul uu] (if (unsigned<= lower upper) [lower upper] [upper lower])]
+        (cond
+          (and (unsigned< ul b) (unsigned< b uu)) true
+          (and (false? on-upper?) (unsigned<= ul b)) true
+          (and (false? on-lower?) (unsigned<= b uu)) true
+          (and (false? on-lower?) (false? on-upper?)) true
+          (or (unsigned< b ul) (unsigned< uu b)) false
+          :default (recur (rest bytes) (vec (map rest (bound-range-to 0 b range))) (and on-lower? (= lower b)) (and on-upper? (= upper b)))))
+      true)))                                     ;Got the end without falling out of ranges, we're good.
 
 (defn pick-range [value ranges]
   (when (seq ranges)
@@ -140,17 +179,10 @@
                     values)
        (every? true?)))
 
-(defn slice-range [idx range]
-  [(nth (first range) idx) (nth (last range) idx)])
-
 (defn slice-ranges [idx ranges]
   (->> ranges
        (map (partial map #(nth %1 idx)))
        (map vec)))
-
-(defn fill [coll target-size value]
-  (let [add (- target-size (count coll))]
-    (concat coll (repeat add value))))
 
 (defn not-inverted [range1 range2]
   (let [gte-until (->> range2
@@ -165,21 +197,29 @@
 (defn collapse-identical-ranges [ranges]
   (filter #(apply not-inverted %) ranges))
 
-(defn handle-underflow [bytes update-fn]
+(defn handle-underflow [bytes]
   (loop [idx (dec (count bytes))
          bytes (vec bytes)]
-    (if (<= 0 idx)
-      (let [value (get bytes idx)
-            updated (update-fn value)]
-        (cond
-          (and (= 0 value) (= -1 updated)) (recur (dec idx)
-                                                  (update bytes idx (constantly -1)))
-          (and (= -1 value) (= 0 updated)) (recur (dec idx)
-                                                  (update bytes idx (constantly 0)))
-          (< updated -128) []
-          (< 127 updated) []
-          :default (update bytes idx update-fn)))
-      [])))
+    (let [value (get bytes idx)]
+      (cond
+        (nil? value) nil
+        (and (not= -1 (dec idx)) (= -128 value)) (update bytes idx (constantly 127))
+        (and (= -1 (dec idx)) (= -128 value)) nil           ;Would change to a +ve value.
+        (= 0 value) (recur (dec idx)
+                           (update bytes idx (constantly -1)))
+        :default (update bytes idx dec)))))
+
+(defn handle-overflow [bytes]
+  (loop [idx (dec (count bytes))
+         bytes (vec bytes)]
+    (let [value (get bytes idx)]
+      (cond
+        (nil? value) nil
+        (and (not= -1 (dec idx)) (= 127 value)) (update bytes idx (constantly -128))
+        (and (= -1 (dec idx)) (= 127 value)) nil            ;Would change to a -ve value.
+        (= -1 value) (recur (dec idx)
+                            (update bytes idx (constantly 0)))
+        :default (update bytes idx inc)))))
 
 (defn punch-skip-value-out-of-range [range skip-value]
   (let [size-of-range (count (first range))
@@ -188,14 +228,12 @@
                      #(fill %1 size-of-range -128)
                      #(fill %1 size-of-range 0))
         lower-range (some-> skip-value
-                            (handle-underflow dec)
-                            (seq)
+                            (handle-underflow)
                             (fill-lower)
                             (vec)
                             (->> (vector (first range))))
         upper-range (some-> skip-value
-                            (handle-underflow inc)
-                            (seq)
+                            (handle-overflow)
                             (fill-upper)
                             (vec)
                             (vector (last range)))]
@@ -228,14 +266,17 @@
       (when (and (< (+ offset idx) limit) (seq ranges))     ;Short circuit if we've gone outside the ranges
         (let [input-val (.get input (int (+ offset idx)))   ;This means that we've left the all-mins/all-maxes path
               sliced-ranges (slice-ranges idx ranges)
-              range (or (last (is-in-ranges input-val sliced-ranges))
+              in-ranges (is-in-ranges input-val sliced-ranges)
+              range (or (last in-ranges)
                         (pick-range input-val sliced-ranges))
               floor (if all-mins (first range) 0)
               ceiling (if all-maxes (last range) -1)        ;TODO: some kind of short circuit based on all-mins and all-maxes?
               next-val (move-into-range input-val floor ceiling)]
           (.put input (+ offset idx) next-val)
           (recur (inc idx)
-                 (filter (comp (partial value-in-range? next-val) (partial slice-range idx)) ranges)
+                 (->> ranges
+                      (filter (comp (partial value-in-range? next-val) (partial slice-range idx)))
+                      (map (partial bound-range-to idx next-val)))
                  (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
                  (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
     input))
@@ -244,12 +285,17 @@
   ([floor ceiling ->bytes-fn]
     (split-number-line-min-max-into-bytewise-min-max floor ceiling -1 ->bytes-fn))
   ([floor ceiling min-neg-val ->bytes-fn]
+   (let [floor-bytes (->bytes-fn floor)
+         ceiling-bytes (->bytes-fn ceiling)
+         min-neg-bytes (->bytes-fn min-neg-val)]
    (if (or (= floor ceiling)
            (and (zero? floor) (pos? ceiling))
            (and (pos? floor) (pos? ceiling))
            (and (neg? floor) (neg? ceiling)))
      [[(->bytes-fn floor) (->bytes-fn ceiling)]]
-     [[(->bytes-fn floor) (->bytes-fn min-neg-val)] [(->bytes-fn 0) (->bytes-fn ceiling)]])))
+     (if (bytes< min-neg-bytes floor-bytes)
+       [[min-neg-bytes floor-bytes] [(->bytes-fn 0) ceiling-bytes]]
+       [[floor-bytes min-neg-bytes] [(->bytes-fn 0) ceiling-bytes]])))))
 
 (defn split-number-line-ranges-into-bytewise-min-max
   ([ranges ->bytes-fn]

@@ -13,7 +13,7 @@
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
             [clojure.pprint])
-  (:import (net.lfn3.undertaker OverrunException UndertakerDebugException)
+  (:import (net.lfn3.undertaker OverrunException UndertakerDebugException UniqueInputValuesExhaustedException)
            (net.lfn3.undertaker.source.sample SampleSource)
            (java.util UUID)
            (java.nio ByteBuffer)))
@@ -276,8 +276,14 @@
       (let [hint-id# (swap! unique-hint-ids inc)]
         (loop [result# (~collection-init-fn)]
           (if-let [next# (with-interval-and-hints [[::proto/snippable nil]]
-                                                  (when (should-generate-elem? ~min-size ~max-size (count result#))
-                                                    (~generation-fn)))]
+                           (when (should-generate-elem? ~min-size ~max-size (count result#))
+                             (try
+                               (~generation-fn)
+                               (catch UniqueInputValuesExhaustedException e#
+                                 (if (and (< ~min-size (count result#))
+                                          (< (count result#) ~max-size))
+                                   nil
+                                   (throw e#))))))]
             (recur (~add-to-coll-fn result# next#))
             result#))))))
 

@@ -1,6 +1,5 @@
 (ns net.lfn3.undertaker.specs.bytes
   (:require [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as s.gen]
             [net.lfn3.undertaker.bytes :as bytes]
             [clojure.test.check.generators :as gen])
   (:import (java.nio ByteBuffer)))
@@ -22,7 +21,7 @@
                            :coll (s/coll-of ::bytes/byte)))
 
 (s/def ::bytes/bytes-to-skip (s/with-gen (s/and (s/coll-of ::bytes/bytes) set?)
-                                         #(s.gen/fmap set (s/gen (s/coll-of ::bytes/bytes)))))
+                                         #(gen/fmap set (s/gen (s/coll-of ::bytes/bytes)))))
 (s/def ::bytes/range (s/with-gen (s/and (s/tuple ::bytes/bytes ::bytes/bytes)
                                         (comp bytes/conformed-ranges-have-same-length? vector))
                                  #(gen/bind gen/nat
@@ -104,8 +103,12 @@
   :ret ::bytes/ranges)
 
 (s/fdef bytes/handle-underflow
-  :args (s/cat :bytes ::bytes/bytes :update-fn (s/with-gen fn? #(gen/return inc)))
-  :ret ::bytes/bytes)
+  :args (s/cat :bytes ::bytes/bytes)
+  :ret (s/nilable ::bytes/bytes))
+
+(s/fdef bytes/handle-overflow
+  :args (s/cat :bytes ::bytes/bytes)
+  :ret (s/nilable ::bytes/bytes))
 
 (defn skip-val-must-be-equal-or-shorter-length-than-range
   ([{:keys [range skip-value]}]
@@ -135,6 +138,11 @@
                            (skip-val-must-be-equal-or-shorter-length-than-range range skip)))))
   :ret ::bytes/ranges)
 
+(defn mapped-bytes-in-range [{:keys [args ret]}]
+  (let [returned-bytes (bytes/buffers->bytes [ret])
+        ranges (vec (map (comp vec (partial map last)) (:ranges args)))]
+    (or (empty? ranges) (some (partial bytes/bytes-are-in-range returned-bytes) ranges))))
+
 (s/fdef bytes/map-into-ranges!
   :args (s/with-gen (s/and (s/cat :input ::bytes/byte-buffer :ranges ::bytes/ranges)
                            (fn [{:keys [input ranges]}]
@@ -142,7 +150,8 @@
                     #(gen/bind (s/gen ::bytes/byte-buffer)
                                (fn [bb] (gen/tuple (gen/return bb)
                                                    (range-gen (.limit bb))))))
-  :ret (partial instance? ByteBuffer))
+  :ret (partial instance? ByteBuffer)
+  :fn mapped-bytes-in-range)
 
 (s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
                                        #(gen/fmap (fn [^bytes b] (ByteBuffer/wrap b)) gen/bytes)))

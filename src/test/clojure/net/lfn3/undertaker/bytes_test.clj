@@ -14,7 +14,8 @@
                            (%1)
                            (orchestra.test/unstrument)))
 
-(test-utils/defchecks net.lfn3.undertaker.bytes)
+(test-utils/defchecks net.lfn3.undertaker.bytes
+                      #{net.lfn3.undertaker.bytes/map-into-ranges!}) ;Issues with range generation.
 
 (deftest unsigned<=-test
   (is (unsigned<= 1 1))
@@ -65,6 +66,9 @@
   (is (= [[0 0]] (map (partial map #(nth %1 0)) [[[0] [0]]])))
   (is (= [[1 -1]] (map (partial map #(nth %1 1)) [[[0 1] [0 -1]]]))))
 
+(deftest test-bytes-are-in-range
+  (is (true? (bytes-are-in-range [-2 115 -61 -12 -124 75 -10 -73] [[-1 -17 -1 -1 -1 -1 -1 -1] [-65 -16 0 0 0 0 0 0]]))))
+
 (defn vectorized-move-bytes-into-range
   ([input min max] (vectorized-move-bytes-into-range input min max #{}))
   ([input min max skip]
@@ -80,7 +84,57 @@
 (deftest test-map-bytes-into-ranges-with-offset-buffer
   (is (= 4 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]]))))
   (is (= 2 (.getInt (map-into-ranges! (ByteBuffer/wrap (byte-array [2 27 73 67 -38 97 58 -23 -58 -14]) 1 4)
-                                      [[[0 0 0 0] [0 0 0 5]]])))))
+                                      [[[0 0 0 0] [0 0 0 5]]]))))
+  (is (= 285 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 1])) [[[1 26] [1 26]] [[1 28] [4 0]]]))))
+  (is (= -1.3236780977631986E301
+         (-> [-2 115 -61 -12 -124 75 -10 -73]
+             (byte-array)
+             (ByteBuffer/wrap)
+             (map-into-ranges! [[[-1 -17 -1 -1 -1 -1 -1 -1] [-65 -16 0 0 0 0 0 0]]
+                                [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
+             (vector)
+             (buffers->bytes)
+             (#(apply bytes->double %)))))
+  (is (< (-> [-65 -23 -17 -116 -114 2 -55 55]
+             (byte-array)
+             (ByteBuffer/wrap)
+             (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-1 -17 -1 -1 -1 -1 -1 -1]]
+                                [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
+             (vector)
+             (buffers->bytes)
+             (#(apply bytes->double %)))
+         -1.0))
+  (is (-> [-65 -21 -111 16 -76 -16 -80 66]
+          (byte-array)
+          (ByteBuffer/wrap)
+          (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
+          (vector)
+          (buffers->bytes)
+          (vec)))
+  (is (-> [-65 -21 -111 16 -76 -16 -80 66]
+          (byte-array)
+          (ByteBuffer/wrap)
+          (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
+          (vector)
+          (buffers->bytes)
+          (vec)))
+  (is (-> [63 -19 10 -97 -115 -111 -66 -71]
+          (byte-array)
+          (ByteBuffer/wrap)
+          (map-into-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
+          (vector)
+          (buffers->bytes)
+          (vec)))
+  (is (-> [63 -19 10 -97 -115 -111 -66 -71]
+          (byte-array)
+          (ByteBuffer/wrap)
+          (map-into-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
+          (vector)
+          (buffers->bytes)
+          (vec))))
+
+(deftest test-bound-range-to
+  (is (= (bound-range-to 0 1 [[1 28] [4 0]]) [[1 28] [1 -1]])))
 
 (deftest test-buffers->bytes
   (let [arr (byte-array [1 0 0 0 2 1 0 0 0 4])
@@ -146,6 +200,9 @@
   (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 -1]]]))
   (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
 
+  (is (= (punch-skip-values-out-of-ranges [[0 127]] [[[0 0] [4 0]]]) [[[0 0] [0 126]] [[0 -128] [4 0]]]))
+  (is (= (punch-skip-values-out-of-ranges [[0 -128]] [[[0 0] [0 -128]]]) [[[0 0] [0 127]]]))
+  (is (= (punch-skip-values-out-of-ranges [[4 2] [4 1]] [[[4 0] [19 0]]]) [[[4 0] [4 0]] [[4 3] [19 0]]]))
   (is (= (punch-skip-values-out-of-ranges [[9 -50] [10 9]] [[[9 9] [10 9]]]) [[[9 9] [9 -51]] [[9 -49] [10 8]]])))
 
 (deftest test-collapse-identical-ranges
@@ -221,17 +278,13 @@
   (is (not= -5 (vectorized-move-bytes-into-range [-1 -25] -10 1 #{-5}))))
 
 (undertaker/defprop should-punch-out-values {}
-  (let [upper (undertaker/long (inc Long/MIN_VALUE))
-        lower (undertaker/long Long/MIN_VALUE (dec upper))
-        skip (undertaker/set-of (partial undertaker/long lower upper))
-        result (punch-skip-values-out-of-ranges (map long->bytes skip)
-                                                (split-number-line-min-max-into-bytewise-min-max lower upper long->bytes))
-        ranges-as-bigints (map (partial map #(bigint (apply bytes->long %))) result)
-        length-of-ranges (->> (map - (map last ranges-as-bigints) (map first ranges-as-bigints))
-                              (map #(if (neg? %1)
-                                      (- %1)
-                                      %1))
-                              (map inc)
-                              (reduce +))
-        length-of-initial-range (inc (- (bigint upper) (bigint lower)))]
+  (let [upper (undertaker/short 1)
+        lower (undertaker/short 0 (dec upper))
+        skip (undertaker/set-of (partial undertaker/short lower upper))
+        result (punch-skip-values-out-of-ranges (map short->bytes skip)
+                                                (split-number-line-min-max-into-bytewise-min-max lower upper short->bytes))
+        ranges-as-shorts (map (partial map #(apply bytes->short %)) result)
+        length-of-ranges (->> (mapcat range (map first ranges-as-shorts) (map (comp inc last) ranges-as-shorts))
+                              (count))
+        length-of-initial-range (count (range lower (inc upper)))]
     (is (= length-of-ranges (- length-of-initial-range (count skip))))))
