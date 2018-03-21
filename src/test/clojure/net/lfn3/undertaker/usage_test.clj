@@ -33,7 +33,7 @@
     (is false))
 
 #_(undertaker/defprop shows-details-on-legit-fail {}
-                      (is (undertaker/boolean)))
+  (is (every? (partial = 1) (undertaker/set-of undertaker/double))))
 
 (undertaker/defprop double-full-range-get-test {}
   (let [value (undertaker/double)]

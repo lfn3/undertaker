@@ -12,7 +12,8 @@
             [net.lfn3.undertaker.specs.bytes]
             [net.lfn3.undertaker.specs.core]
             [net.lfn3.undertaker.specs.shrink]
-            [net.lfn3.undertaker.specs.proto]))
+            [net.lfn3.undertaker.specs.proto])
+  (:import (net.lfn3.undertaker OverrunException)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
@@ -107,6 +108,13 @@
                     ::undertaker/shrunk-results
                     ::undertaker/generated-values
                     (first))))))
+
+(deftest test-is-overrrun?
+  (let [wrapped (undertaker/wrap-fn #(throw (OverrunException.)))]
+    (is (true? (shrink/is-overrun? (wrapped (source.fixed/make-fixed-source []))))))
+
+  (let [wrapped (undertaker/wrap-fn #(is (throw (OverrunException.))))]
+    (is (true? (shrink/is-overrun? (wrapped (source.fixed/make-fixed-source [])))))))
 
 (deftest should-shrink-middle-byte
   (let [result (->> #(let [bool-1 (undertaker/boolean)

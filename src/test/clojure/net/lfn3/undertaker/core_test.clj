@@ -15,8 +15,10 @@
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source.always-max :as source.max]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.specs.core])
-  (:import (java.util Random)))
+            [net.lfn3.undertaker.specs.core]
+            [net.lfn3.undertaker.shrink :as shrink])
+  (:import (java.util Random)
+           (net.lfn3.undertaker OverrunException)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
@@ -216,3 +218,7 @@
                                                      [1 undertaker/double]])
                              10)]
     (is (= 10 (count s)))))
+
+(deftest should-put-false-in-collections
+  (let [v (undertaker/vec-of (constantly false) 1)]
+    (is (= v [false]))))
