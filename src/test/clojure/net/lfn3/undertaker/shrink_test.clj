@@ -109,11 +109,14 @@
                     ::undertaker/generated-values
                     (first))))))
 
-(deftest test-is-overrrun?
+(deftest test-is-overrun?
   (let [wrapped (undertaker/wrap-fn #(throw (OverrunException.)))]
     (is (true? (shrink/is-overrun? (wrapped (source.fixed/make-fixed-source []))))))
 
   (let [wrapped (undertaker/wrap-fn #(is (throw (OverrunException.))))]
+    (is (true? (shrink/is-overrun? (wrapped (source.fixed/make-fixed-source []))))))
+
+  (let [wrapped (undertaker/wrap-fn #(assert (throw (OverrunException.))))]
     (is (true? (shrink/is-overrun? (wrapped (source.fixed/make-fixed-source [])))))))
 
 (deftest should-shrink-middle-byte
