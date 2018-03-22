@@ -474,6 +474,6 @@
       (throw (IllegalArgumentException. "The second argument to defprop must be a map literal.")))
     `(t/deftest ~name
        (let [result# (run-prop ~opts (fn [] (do ~@body)))]
-         (dorun (map t/report (::reported result#)))
+         (dorun (map t/report (get-in result# [::shrunk-results ::reported])))
          (when-let [message# (format-results ~name-string result# messages/clojure-seed-message (true? (:debug ~opts)))]
            (println message#))))))
