@@ -1,6 +1,6 @@
 package net.lfn3.undertaker;
 
-public class OverrunException extends Exception {
+public class OverrunException extends RuntimeException {
     public OverrunException() {
         super();
     }
