@@ -29,7 +29,7 @@
                                             ::proto/interval-end]}]
                                  (<= interval-start interval-end))))
 
-(s/def ::proto/interval-stack (s/coll-of ::proto/wip-interval))
+(s/def ::proto/interval-stack (s/coll-of (s/nilable ::proto/wip-interval)))
 (s/def ::proto/completed-intervals (s/coll-of ::proto/interval))
 
 (s/def ::proto/source-state (s/keys :req [::proto/interval-stack

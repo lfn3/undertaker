@@ -95,7 +95,8 @@
 (defn run-prop
   ([{:keys [seed iterations debug]
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
-            iterations 1000}
+            iterations 1000
+            debug false}
      :as   opts-map}
     f]
    (let [source (source.random/make-source seed)

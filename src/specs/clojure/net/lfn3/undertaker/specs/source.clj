@@ -10,6 +10,26 @@
 (s/def ::source/source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap source.random/make-source (s.gen/int))))
 
+(s/def ::source/sampling? boolean?)
+(s/def ::source/debug? boolean?)
+(s/def ::source/shrinking? boolean?)
+(s/def ::source/source-in-use (s/nilable ::source/source))
+(s/def ::source/bytes-requested nat-int?)
+
+(s/def ::source/state (s/keys :req [::source/sampling?
+                                    ::source/debug?
+                                    ::source/shrinking?
+                                    ::source/source-in-use
+                                    ::source/bytes-requested
+                                    ::proto/hints-for-next-interval
+                                    ::proto/interval-stack
+                                    ::proto/completed-intervals
+                                    ::bytes/byte-buffers]))
+
+(s/fdef source/add-range-to-last-interval-if-not-nil
+  :args (s/cat :source-state ::source/state :ranges ::bytes/ranges)
+  :rest ::source/state)
+
 (s/fdef source/get-bytes
   :args (s/cat :source ::source/source :skip (s/? ::bytes/bytes-to-skip) :ranges ::bytes/ranges)
   :ret (partial instance? ByteBuffer))

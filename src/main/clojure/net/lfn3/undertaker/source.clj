@@ -71,13 +71,20 @@
 
 ;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
+(defn add-range-to-last-interval-if-not-nil [{:keys [::proto/interval-stack] :as state} ranges]
+  (if (nil? (last interval-stack))
+    state
+    (update state ::proto/interval-stack
+            #(update %1 (dec (count %1))
+                     assoc ::bytes/ranges ranges))))
+
 (defn ^ByteBuffer get-bytes
   ([source ranges]
    (when (empty? ranges)
      (throw (IllegalArgumentException. "Ranges may not be empty.")))
     ;TODO: check we don't already have any ranges?
    (check-invariants source)
-   (swap! state-atom update ::proto/interval-stack #(update %1 (dec (count %1)) assoc ::bytes/ranges ranges))
+   (swap! state-atom add-range-to-last-interval-if-not-nil ranges)
    (swap! state-atom update ::bytes-requested + (count (last (last ranges))))
    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
          hinted-ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
