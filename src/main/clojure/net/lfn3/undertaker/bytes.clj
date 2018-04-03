@@ -106,7 +106,8 @@
 
 (defn is-in-ranges [value ranges]
   (->> ranges
-       (filter (partial is-in-range value))
+       (drop-while (comp not (partial is-in-range value)))
+       (take-while (partial is-in-range value))
        (seq)))
 
 (defn slice-range [idx range]
@@ -160,8 +161,9 @@
       true)))                                     ;Got the end without falling out of ranges, we're good.
 
 (defn pick-range [value ranges]
-  (when (seq ranges)
-    (nth ranges (mod value (count ranges)))))
+  (let [filtered-ranges (or (seq (filter (comp (partial is-in-range value) (partial slice-range 0)) ranges)) ranges)]
+    (when (seq filtered-ranges)
+      (nth filtered-ranges (mod value (count filtered-ranges))))))
 
 (defn value-in-range?
   ([value [floor ceiling]] (value-in-range? value floor ceiling))
@@ -258,27 +260,22 @@
 
 (defn map-into-ranges! [^ByteBuffer input ranges]
   (let [limit (.limit input)
-        offset (.position input)]
-    (loop [idx 0
-           ranges ranges
-           all-mins true
-           all-maxes true]
-      (when (and (< (+ offset idx) limit) (seq ranges))     ;Short circuit if we've gone outside the ranges
-        (let [input-val (.get input (int (+ offset idx)))   ;This means that we've left the all-mins/all-maxes path
-              sliced-ranges (slice-ranges idx ranges)
-              in-ranges (is-in-ranges input-val sliced-ranges)
-              range (or (last in-ranges)
-                        (pick-range input-val sliced-ranges))
-              floor (if all-mins (first range) 0)
-              ceiling (if all-maxes (last range) -1)        ;TODO: some kind of short circuit based on all-mins and all-maxes?
-              next-val (move-into-range input-val floor ceiling)]
-          (.put input (+ offset idx) next-val)
-          (recur (inc idx)
-                 (->> ranges
-                      (filter (comp (partial value-in-range? next-val) (partial slice-range idx)))
-                      (map (partial bound-range-to idx next-val)))
-                 (and all-mins (some true? (map #(= next-val (first %1)) sliced-ranges)))
-                 (and all-maxes (some true? (map #(= next-val (last %1)) sliced-ranges)))))))
+        offset (.position input)
+        range (pick-range (.get input offset) ranges)]
+    (when range
+      (loop [idx 0
+             all-mins true
+             all-maxes true]
+        (when (and (or all-maxes all-mins) (< (+ offset idx) limit)) ;Short circuit if we've gone outside the range
+          (let [input-val (.get input (int (+ offset idx)))
+                sliced-range (slice-range idx range)
+                floor (if all-mins (first sliced-range) 0)
+                ceiling (if all-maxes (last sliced-range) -1)
+                next-val (move-into-range input-val floor ceiling)]
+            (.put input (+ offset idx) next-val)
+            (recur (inc idx)
+                   (and all-mins (= next-val (first sliced-range)))
+                   (and all-maxes (= next-val (last sliced-range))))))))
     input))
 
 (defn split-number-line-min-max-into-bytewise-min-max

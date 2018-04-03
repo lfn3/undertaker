@@ -71,9 +71,6 @@
                  (<= (count (val value)) (count (val (first range))))))
   :ret boolean?)
 
-(s/fdef bytes/pick-range
-  :args (s/cat :value ::bytes/byte :ranges ::bytes/sliced-ranges)
-  :ret (s/nilable ::bytes/sliced-range))
 
 (s/fdef bytes/value-in-range?
   :args (s/or :sliced-range (s/cat :value ::bytes/byte :sliced-range ::bytes/sliced-range)
@@ -85,6 +82,12 @@
       (first)
       (last)
       (count)))
+
+(s/fdef bytes/pick-range
+  :args (s/and (s/cat :value ::bytes/byte :ranges ::bytes/ranges)
+               (fn [{:keys [ranges]}]
+                 (<= 1 (conformed-range-length (first ranges)))))
+  :ret (s/nilable ::bytes/range))
 
 (s/fdef bytes/slice-range
   :args (s/and (s/cat :idx nat-int? :range ::bytes/range)
