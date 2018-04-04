@@ -208,29 +208,6 @@
 (deftest test-collapse-identical-ranges
   (is (= [[[9 9] [10 8]]] (collapse-identical-ranges [[[9 9] [10 8]]]))))
 
-(deftest test-range<
-  (is (true? (range< [[1] [1]] [[2] [2]])))
-  (is (false? (range< [[1] [1]] [[1] [2]])))
-  (is (false? (range< [[1] [2]] [[1] [2]])))
-
-  (is (true? (range< [(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])])))
-  (is (false? (range< [(byte-array [1]) (byte-array [1])] [(byte-array [1]) (byte-array [2])])))
-  (is (false? (range< [(byte-array [1]) (byte-array [2])] [(byte-array [1]) (byte-array [2])]))))
-
-(deftest test-ranges-are-sorted
-  (let [ranges-are-sorted? #(ranges-are-sorted? %1 range<)]
-    (is (true? (ranges-are-sorted? [[[1] [1]] [[2] [2]]])))
-    (is (true? (ranges-are-sorted? [[[1] [1]] [[2] [2]]
-                                    [[3] [3]] [[4] [4]]])))
-    (is (false? (ranges-are-sorted? [[[3] [3]] [[4] [4]]
-                                     [[1] [1]] [[2] [2]]])))
-
-    (is (true? (ranges-are-sorted? [[(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]])))
-    (is (true? (ranges-are-sorted? [[(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]
-                                    [(byte-array [3]) (byte-array [3])] [(byte-array [4]) (byte-array [4])]])))
-    (is (false? (ranges-are-sorted? [[(byte-array [3]) (byte-array [3])] [(byte-array [4]) (byte-array [4])]
-                                     [(byte-array [1]) (byte-array [1])] [(byte-array [2]) (byte-array [2])]])))))
-
 (deftest test-map-into-ranges
   (is (= 0 (vectorized-move-bytes-into-range [0 0] 0 1)))
   (is (= 127 (vectorized-move-bytes-into-range [0 127] 0 127)))

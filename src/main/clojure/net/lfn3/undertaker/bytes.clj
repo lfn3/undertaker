@@ -36,34 +36,6 @@
   (->> (by-idx b1 b2)
        (transduce (range<xf) identity [])))
 
-(defn range< [range1 range2]
-  (->> (by-idx (last range1) (first range2))
-       (transduce (range<xf) identity [])))
-
-;This exists so I can test this and the ranges-are-sorted-fn without tearing my hair out.
-(defn conformed-range< [range1 range2]
-  (range< (val range1) (val range2)))
-
-(defn ranges-are-sorted-xf [range<fn]
-  (fn [xf]
-    (let [last-range (volatile! ::none)]
-      (fn
-        ([] (xf))
-        ([result] (if (boolean? result)
-                    (xf result)
-                    (xf true)))
-        ([result input]
-         (let [prior @last-range]
-           (vreset! last-range input)
-           (if (or (= ::none prior)
-                   (range<fn prior input))
-             result
-             (reduced false))))))))
-
-(defn ranges-are-sorted?
-  ([ranges] (ranges-are-sorted-xf conformed-range<))
-  ([ranges range<fn] (transduce (ranges-are-sorted-xf range<fn) identity [] ranges)))
-
 (defn ranges-have-same-length?
   ([ranges]
    (let [counts (->> ranges
@@ -137,11 +109,6 @@
                     (fill (count (first range)) 0)
                     (vec)))]
     [lower upper]))
-
-(defn flip-range-to-bitwise-order [[lower upper]]
-  (if (and (seq lower) (unsigned<= (first lower) (first upper)))
-    [lower upper]
-    [upper lower]))
 
 (defn bytes-are-in-range [bytes range]
   (loop [bytes bytes

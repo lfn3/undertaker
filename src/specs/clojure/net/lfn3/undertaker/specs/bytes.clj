@@ -8,10 +8,6 @@
   :args (s/cat :b number?)
   :ret boolean?)
 
-(s/fdef bytes/range<
-  :args (s/cat :range1 ::bytes/range :range2 ::bytes/range)
-  :ret boolean?)
-
 (s/def ::bytes/byte (s/with-gen
                       (s/and integer?
                              bytes/byte?)
@@ -34,9 +30,7 @@
   ([size] (let [g (gen/vector gen/byte size)]
             (gen/vector (gen/tuple g g)))))
 
-(s/def ::bytes/ranges (s/with-gen (s/and (s/coll-of ::bytes/range)
-                                         bytes/ranges-are-sorted?
-                                         bytes/conformed-ranges-have-same-length?)
+(s/def ::bytes/ranges (s/with-gen (s/and (s/coll-of ::bytes/range) bytes/conformed-ranges-have-same-length?)
                                   range-gen))
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
 (s/def ::bytes/sliced-ranges (s/coll-of ::bytes/sliced-range))
