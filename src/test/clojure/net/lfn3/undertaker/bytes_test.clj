@@ -1,9 +1,6 @@
 (ns net.lfn3.undertaker.bytes-test
   (:require [clojure.test :refer [deftest is] :as t]
             [net.lfn3.undertaker.bytes :refer :all]
-            [clojure.string :as str]
-            [clojure.spec.alpha :as s]
-            [clojure.spec.test.alpha :as s.test]
             [orchestra.spec.test :as orchestra.test]
             [net.lfn3.undertaker.specs.bytes]
             [net.lfn3.undertaker.test-utils :as test-utils]
