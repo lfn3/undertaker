@@ -72,7 +72,7 @@
                     (+ unchecked-floor)
                     (checked-byte))))))
 
-(defn is-in-range [value range]
+(defn is-in-range [value ^bytes range]
   (and (unsigned<= (first range) value)
        (unsigned<= value (last range))))
 
@@ -82,8 +82,8 @@
        (take-while (partial is-in-range value))
        (seq)))
 
-(defn slice-range [idx range]
-  [(nth (first range) idx) (nth (last range) idx)])
+(defn slice-range [idx [^bytes lower-range ^bytes upper-range]]
+  [(aget lower-range idx) (aget upper-range idx)])
 
 (defn fill [coll target-size value]
   (let [add (- target-size (count coll))]
@@ -199,12 +199,12 @@
         lower-range (some-> skip-value
                             (handle-underflow)
                             (fill-lower)
-                            (vec)
+                            (byte-array)
                             (->> (vector (first range))))
         upper-range (some-> skip-value
                             (handle-overflow)
                             (fill-upper)
-                            (vec)
+                            (byte-array)
                             (vector (last range)))]
     (->> [lower-range upper-range]
          (filter (comp not nil?))
@@ -268,9 +268,7 @@
         (mapcat (fn [[floor ceiling]] (split-number-line-min-max-into-bytewise-min-max floor ceiling ->bytes-fn))))))
 
 (defn byte->bytes [b]
-  (let [out (byte-array 1)]
-    (aset-byte out 0 b)
-    out))
+  (byte-array 1 (unchecked-byte b)))
 
 (defn bytes->short [b1 b2]
   (-> (bit-or (bit-and 0xff b2)
@@ -354,13 +352,13 @@
 (defn buffers->bytes
   ([^Collection buffers]
    (->> buffers
-        (mapcat #(for [i (range (.position %1) (.limit %1))]
-                   (.get %1 i)))
+        (mapcat (fn [^ByteBuffer buf] (for [^int i (range (.position buf) (.limit buf))]
+                                        (.get buf i))))
         (byte-array)))
   ([^Collection buffers start end]
    (->> buffers
         (drop start)
         (take (- end start))
-        (mapcat #(for [i (range (.position %1) (.limit %1))]
-                   (.get %1 i)))
+        (mapcat (fn [^ByteBuffer buf] (for [^int i (range (.position buf) (.limit buf))]
+                                        (.get buf i))))
         (byte-array))))

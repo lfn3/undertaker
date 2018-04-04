@@ -4,7 +4,8 @@
             [orchestra.spec.test :as orchestra.test]
             [net.lfn3.undertaker.specs.bytes]
             [net.lfn3.undertaker.test-utils :as test-utils]
-            [net.lfn3.undertaker.core :as undertaker])
+            [net.lfn3.undertaker.core :as undertaker]
+            [net.lfn3.undertaker.intervals :as intervals])
   (:import (java.nio ByteBuffer)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
@@ -79,56 +80,57 @@
          (.getShort)))))
 
 (deftest test-map-bytes-into-ranges-with-offset-buffer
-  (is (= 4 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]]))))
-  (is (= 2 (.getInt (map-into-ranges! (ByteBuffer/wrap (byte-array [2 27 73 67 -38 97 58 -23 -58 -14]) 1 4)
-                                      [[[0 0 0 0] [0 0 0 5]]]))))
-  (is (= 285 (.getShort (map-into-ranges! (ByteBuffer/wrap (byte-array [1 1])) [[[1 26] [1 26]] [[1 28] [4 0]]]))))
-  (is (= -1.3236780977631986E301
-         (-> [-2 115 -61 -12 -124 75 -10 -73]
-             (byte-array)
-             (ByteBuffer/wrap)
-             (map-into-ranges! [[[-1 -17 -1 -1 -1 -1 -1 -1] [-65 -16 0 0 0 0 0 0]]
-                                [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
-             (vector)
-             (buffers->bytes)
-             (#(apply bytes->double %)))))
-  (is (< (-> [-65 -23 -17 -116 -114 2 -55 55]
-             (byte-array)
-             (ByteBuffer/wrap)
-             (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-1 -17 -1 -1 -1 -1 -1 -1]]
-                                [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
-             (vector)
-             (buffers->bytes)
-             (#(apply bytes->double %)))
-         -1.0))
-  (is (-> [-65 -21 -111 16 -76 -16 -80 66]
-          (byte-array)
-          (ByteBuffer/wrap)
-          (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
-          (vector)
-          (buffers->bytes)
-          (vec)))
-  (is (-> [-65 -21 -111 16 -76 -16 -80 66]
-          (byte-array)
-          (ByteBuffer/wrap)
-          (map-into-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
-          (vector)
-          (buffers->bytes)
-          (vec)))
-  (is (-> [63 -19 10 -97 -115 -111 -66 -71]
-          (byte-array)
-          (ByteBuffer/wrap)
-          (map-into-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
-          (vector)
-          (buffers->bytes)
-          (vec)))
-  (is (-> [63 -19 10 -97 -115 -111 -66 -71]
-          (byte-array)
-          (ByteBuffer/wrap)
-          (map-into-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
-          (vector)
-          (buffers->bytes)
-          (vec))))
+  (let [map-into-vectorised-ranges! #(map-into-ranges! %1 (vec (map (comp vec (partial map byte-array)) %2)))]
+    (is (= 4 (.getShort (map-into-vectorised-ranges! (ByteBuffer/wrap (byte-array [1 2 3 4]) 2 2) [[[0 0] [2 2]]]))))
+    (is (= 2 (.getInt (map-into-vectorised-ranges! (ByteBuffer/wrap (byte-array [2 27 73 67 -38 97 58 -23 -58 -14]) 1 4)
+                                        [[[0 0 0 0] [0 0 0 5]]]))))
+    (is (= 285 (.getShort (map-into-vectorised-ranges! (ByteBuffer/wrap (byte-array [1 1])) [[[1 26] [1 26]] [[1 28] [4 0]]]))))
+    (is (= -1.3236780977631986E301
+           (-> [-2 115 -61 -12 -124 75 -10 -73]
+               (byte-array)
+               (ByteBuffer/wrap)
+               (map-into-vectorised-ranges! [[[-1 -17 -1 -1 -1 -1 -1 -1] [-65 -16 0 0 0 0 0 0]]
+                                  [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
+               (vector)
+               (buffers->bytes)
+               (#(apply bytes->double %)))))
+    (is (< (-> [-65 -23 -17 -116 -114 2 -55 55]
+               (byte-array)
+               (ByteBuffer/wrap)
+               (map-into-vectorised-ranges! [[[-65 -16 0 0 0 0 0 0] [-1 -17 -1 -1 -1 -1 -1 -1]]
+                                  [[0 0 0 0 0 0 0 0] [127 -17 -1 -1 -1 -1 -1 -1]]])
+               (vector)
+               (buffers->bytes)
+               (#(apply bytes->double %)))
+           -1.0))
+    (is (-> [-65 -21 -111 16 -76 -16 -80 66]
+            (byte-array)
+            (ByteBuffer/wrap)
+            (map-into-vectorised-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
+            (vector)
+            (buffers->bytes)
+            (vec)))
+    (is (-> [-65 -21 -111 16 -76 -16 -80 66]
+            (byte-array)
+            (ByteBuffer/wrap)
+            (map-into-vectorised-ranges! [[[-65 -16 0 0 0 0 0 0] [-65 -32 0 0 0 0 0 0]]])
+            (vector)
+            (buffers->bytes)
+            (vec)))
+    (is (-> [63 -19 10 -97 -115 -111 -66 -71]
+            (byte-array)
+            (ByteBuffer/wrap)
+            (map-into-vectorised-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
+            (vector)
+            (buffers->bytes)
+            (vec)))
+    (is (-> [63 -19 10 -97 -115 -111 -66 -71]
+            (byte-array)
+            (ByteBuffer/wrap)
+            (map-into-vectorised-ranges! [[[63 -16 0 0 0 0 0 0] [63 -32 0 0 0 0 0 0]]])
+            (vector)
+            (buffers->bytes)
+            (vec)))))
 
 (deftest test-bound-range-to
   (is (= (bound-range-to 0 1 [[1 28] [4 0]]) [[1 28] [1 -1]])))
@@ -178,29 +180,30 @@
          [63 -16 0 0 0 0 0 1])))
 
 (deftest test-punch-skip-values-out-of-range
-  (is (= (punch-skip-values-out-of-ranges [[1]] [[[1] [4]]]) [[[2] [4]]]))
-  (is (= (punch-skip-values-out-of-ranges [[2]] [[[1] [4]]]) [[[1] [1]] [[3] [4]]]))
-  (is (= (punch-skip-values-out-of-ranges [[2]] [[[4] [80]]]) [[[4] [80]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 0] [2 2]]]) [[[1 0] [2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0]] [[[0 1] [2 2]]]) [[[1 0] [2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0 0]] [[[0 0 0] [2 2 2]]]) [[[0 1 0] [2 2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]]))
+  (let [vectorised-psvr #(intervals/printable-ranges (punch-skip-values-out-of-ranges %1 %2))]
+    (is (= (vectorised-psvr [[1]] [[[1] [4]]]) [[[2] [4]]]))
+    (is (= (vectorised-psvr [[2]] [[[1] [4]]]) [[[1] [1]] [[3] [4]]]))
+    (is (= (vectorised-psvr [[2]] [[[4] [80]]]) [[[4] [80]]]))
+    (is (= (vectorised-psvr [[0]] [[[0 0] [2 2]]]) [[[1 0] [2 2]]]))
+    (is (= (vectorised-psvr [[0]] [[[0 1] [2 2]]]) [[[1 0] [2 2]]]))
+    (is (= (vectorised-psvr [[0 0]] [[[0 0 0] [2 2 2]]]) [[[0 1 0] [2 2 2]]]))
+    (is (= (vectorised-psvr [[1 0]] [[[0 0 0] [2 2 2]]]) [[[0 0 0] [0 -1 -1]] [[1 1 0] [2 2 2]]]))
+    (is (= (vectorised-psvr [[0 0 0 3]] [[[0 0 0 1] [0 0 0 3]]]) [[[0 0 0 1] [0 0 0 2]]]))
 
-  (is (= (punch-skip-values-out-of-ranges [[-2]] [[[-4] [-1]]]) [[[-4] [-3]] [[-1] [-1]]]))
-  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
-  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128 -128] [-1 -1]]]) [[[-127 -128] [-1 -1]]]))
-  (is (= (punch-skip-values-out-of-ranges [[-1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -1]]]))
-  (is (= (punch-skip-values-out-of-ranges [[-2 -1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -2]] [[-1 0] [-1 -1]]]))
+    (is (= (vectorised-psvr [[-2]] [[[-4] [-1]]]) [[[-4] [-3]] [[-1] [-1]]]))
+    (is (= (vectorised-psvr [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
+    (is (= (vectorised-psvr [[-128]] [[[-128 -128] [-1 -1]]]) [[[-127 -128] [-1 -1]]]))
+    (is (= (vectorised-psvr [[-1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -1]]]))
+    (is (= (vectorised-psvr [[-2 -1]] [[[-128 -128] [-1 -1]]]) [[[-128 -128] [-2 -2]] [[-1 0] [-1 -1]]]))
 
-  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0] [127]]]) [[[0] [126]]]))
-  (is (= (punch-skip-values-out-of-ranges [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 -1]]]))
-  (is (= (punch-skip-values-out-of-ranges [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
+    (is (= (vectorised-psvr [[127]] [[[0] [127]]]) [[[0] [126]]]))
+    (is (= (vectorised-psvr [[127]] [[[0 0] [127 0]]]) [[[0 0] [126 -1]]]))
+    (is (= (vectorised-psvr [[-128]] [[[-128] [-1]]]) [[[-127] [-1]]]))
 
-  (is (= (punch-skip-values-out-of-ranges [[0 127]] [[[0 0] [4 0]]]) [[[0 0] [0 126]] [[0 -128] [4 0]]]))
-  (is (= (punch-skip-values-out-of-ranges [[0 -128]] [[[0 0] [0 -128]]]) [[[0 0] [0 127]]]))
-  (is (= (punch-skip-values-out-of-ranges [[4 2] [4 1]] [[[4 0] [19 0]]]) [[[4 0] [4 0]] [[4 3] [19 0]]]))
-  (is (= (punch-skip-values-out-of-ranges [[9 -50] [10 9]] [[[9 9] [10 9]]]) [[[9 9] [9 -51]] [[9 -49] [10 8]]])))
+    (is (= (vectorised-psvr [[0 127]] [[[0 0] [4 0]]]) [[[0 0] [0 126]] [[0 -128] [4 0]]]))
+    (is (= (vectorised-psvr [[0 -128]] [[[0 0] [0 -128]]]) [[[0 0] [0 127]]]))
+    (is (= (vectorised-psvr [[4 2] [4 1]] [[[4 0] [19 0]]]) [[[4 0] [4 0]] [[4 3] [19 0]]]))
+    (is (= (vectorised-psvr [[9 -50] [10 9]] [[[9 9] [10 9]]]) [[[9 9] [9 -51]] [[9 -49] [10 8]]]))))
 
 (deftest test-collapse-identical-ranges
   (is (= [[[9 9] [10 8]]] (collapse-identical-ranges [[[9 9] [10 8]]]))))

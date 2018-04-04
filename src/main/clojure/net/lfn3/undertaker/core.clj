@@ -178,7 +178,10 @@
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
   ([] (core/char (int 0x0000 0xD800))))
 
-(def ascii-range [[[32] [126]]])
+(defn vector-ranges-to-byte-ranges [ranges]
+  (vec (map (comp vec (partial map byte-array)) ranges)))
+
+(def ascii-range (vector-ranges-to-byte-ranges [[[32] [126]]]))
 
 (defn char-ascii
   "Generates printable ascii characters"
@@ -189,9 +192,9 @@
           (get-from-byte-buffer-abs .get)
           (core/char)))))
 
-(def alphanumeric-range [[[48] [57]]
-                         [[65] [90]]
-                         [[97] [122]]])
+(def alphanumeric-range (vector-ranges-to-byte-ranges [[[48] [57]]
+                                                       [[65] [90]]
+                                                       [[97] [122]]]))
 
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
@@ -202,8 +205,8 @@
           (get-from-byte-buffer-abs .get)
           (core/char)))))
 
-(def alpha-range [[[65] [90]]
-                  [[97] [122]]])
+(def alpha-range (vector-ranges-to-byte-ranges [[[65] [90]]
+                                                [[97] [122]]]))
 
 (defn char-alpha
   "Generates characters a -> z and A -> Z"

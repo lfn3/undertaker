@@ -29,12 +29,21 @@
   ([size] (let [r (range-gen size)]
             (gen/vector r))))
 
+(defn byte-ranges-gen
+  ([] (gen/bind gen/nat byte-ranges-gen))
+  ([size] (let [br (gen/fmap byte-array (gen/vector gen/byte size))]
+            (gen/vector (gen/tuple br br)))))
+
 (s/def ::bytes/range (s/with-gen (s/and (s/tuple ::bytes/bytes ::bytes/bytes)
                                         (comp bytes/conformed-ranges-have-same-length? vector))
                                  range-gen))
 
 (s/def ::bytes/ranges (s/with-gen (s/and (s/coll-of ::bytes/range) bytes/conformed-ranges-have-same-length?)
                                   ranges-gen))
+
+(s/def ::bytes/bytes-ranges (s/with-gen (s/and (s/coll-of (s/tuple bytes? bytes?)) bytes/ranges-have-same-length?)
+                                        byte-ranges-gen))
+
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
 (s/def ::bytes/sliced-ranges (s/coll-of ::bytes/sliced-range))
 (s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
@@ -140,13 +149,13 @@
 
 (defn mapped-bytes-in-range [{:keys [args ret]}]
   (let [returned-bytes (bytes/buffers->bytes [ret])
-        ranges (vec (map (comp vec (partial map last)) (:ranges args)))]
+        ranges (vec (map vec (:ranges args)))]
     (or (empty? ranges) (some (partial bytes/bytes-are-in-range returned-bytes) ranges))))
 
 (s/fdef bytes/map-into-ranges!
-  :args (s/with-gen (s/and (s/cat :input ::bytes/byte-buffer :ranges ::bytes/ranges)
+  :args (s/with-gen (s/and (s/cat :input ::bytes/byte-buffer :ranges ::bytes/bytes-ranges)
                            (fn [{:keys [input ranges]}]
-                             (= (.remaining input) (conformed-range-length (first ranges)))))
+                             (= (.remaining input) (count (first (first ranges))))))
                     #(gen/bind (s/gen ::bytes/byte-buffer)
                                (fn [bb] (gen/tuple (gen/return bb)
                                                    (ranges-gen (.limit bb))))))
