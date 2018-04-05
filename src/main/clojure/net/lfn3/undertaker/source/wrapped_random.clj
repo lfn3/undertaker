@@ -1,6 +1,5 @@
 (ns net.lfn3.undertaker.source.wrapped-random
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.intervals :as intervals]
             [net.lfn3.undertaker.bytes :as bytes])
   (:import (java.util Random)
            (java.nio ByteBuffer)))

@@ -35,27 +35,28 @@
 
 (deftest should-emit-bytes
   (source/push-interval forgetful-source)
-  (let [value (.get (source/get-bytes forgetful-source [[[-128] [-1]] [[0] [127]]]))]
+  (let [value (.get (source/get-bytes forgetful-source [[(byte-array [-128]) (byte-array [-1])]
+                                                        [(byte-array [0]) (byte-array [127])]]))]
     (is bytes/byte? value)
     (is (contains? (set (range -128 127)) value))
     (source/pop-interval forgetful-source value)))
 
 (deftest should-emit-positive-number
   (source/push-interval forgetful-source)
-  (let [value (.get (source/get-bytes forgetful-source [[[0] [127]]]))]
+  (let [value (.get (source/get-bytes forgetful-source [[(byte-array [0]) (byte-array [127])]]))]
     (is pos-int? value)
     (is (contains? (set (range 0 127)) value))
     (source/pop-interval forgetful-source value)))
 
 (deftest should-emit-unsigned-numbers-in-range
   (source/push-interval forgetful-source)
-  (let [value (.get (source/get-bytes forgetful-source [[[0] [0]]]))]
+  (let [value (.get (source/get-bytes forgetful-source [[(byte-array [0]) (byte-array [0])]]))]
     (is (= 0 value))
     (source/pop-interval forgetful-source value))
 
   (source/push-interval forgetful-source)
   (let [values (byte-array 10)]
-    (.get (source/get-bytes forgetful-source [[(vec (repeat 10 0)) (vec (repeat 10 1))]]) values)
+    (.get (source/get-bytes forgetful-source [[(byte-array (repeat 10 0)) (byte-array (repeat 10 1))]]) values)
     (is (not-every? (partial = 0) values))
     (is (not-every? (partial = 1) values))
     (source/pop-interval forgetful-source values))
@@ -63,8 +64,8 @@
   (source/push-interval forgetful-source)
   (let [size 10000
         values (byte-array size)]
-    (.get (source/get-bytes forgetful-source [[(vec (repeat size -128)) (vec (repeat size -1))]
-                                              [(vec (repeat size 0)) (vec (repeat size 127))]])
+    (.get (source/get-bytes forgetful-source [[(byte-array (repeat size -128)) (byte-array (repeat size -1))]
+                                              [(byte-array (repeat size 0)) (byte-array (repeat size 127))]])
           values)
     (is (->> values
              (map (fn [val] [((set (range -128 128)) val) val]))

@@ -29,6 +29,11 @@
   ([size] (let [r (range-gen size)]
             (gen/vector r))))
 
+(defn byte-range-gen
+  ([] (gen/bind gen/nat byte-range-gen))
+  ([size] (let [g (gen/fmap byte-array (gen/vector gen/byte size))]
+            (gen/tuple g g))))
+
 (defn byte-ranges-gen
   ([] (gen/bind gen/nat byte-ranges-gen))
   ([size] (let [br (gen/fmap byte-array (gen/vector gen/byte size))]
@@ -41,7 +46,10 @@
 (s/def ::bytes/ranges (s/with-gen (s/and (s/coll-of ::bytes/range) bytes/conformed-ranges-have-same-length?)
                                   ranges-gen))
 
-(s/def ::bytes/bytes-ranges (s/with-gen (s/and (s/coll-of (s/tuple bytes? bytes?)) bytes/ranges-have-same-length?)
+(s/def ::bytes/bytes-range (s/with-gen (s/tuple bytes? bytes?)
+                                       byte-range-gen))
+
+(s/def ::bytes/bytes-ranges (s/with-gen (s/and (s/coll-of ::bytes/bytes-range) bytes/ranges-have-same-length?)
                                         byte-ranges-gen))
 
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
@@ -90,15 +98,15 @@
       (count)))
 
 (s/fdef bytes/pick-range
-  :args (s/and (s/cat :value ::bytes/byte :ranges ::bytes/ranges)
+  :args (s/and (s/cat :value ::bytes/byte :ranges ::bytes/bytes-ranges)
                (fn [{:keys [ranges]}]
-                 (<= 1 (conformed-range-length (first ranges)))))
+                 (<= 1 (count (first (first ranges))))))
   :ret (s/nilable ::bytes/range))
 
 (s/fdef bytes/slice-range
-  :args (s/and (s/cat :idx nat-int? :range ::bytes/range)
+  :args (s/and (s/cat :idx nat-int? :range ::bytes/bytes-range)
                (fn [{:keys [idx range]}]
-                 (< idx (conformed-range-length range))))
+                 (< idx (count (first range)))))
   :ret ::bytes/sliced-range)
 
 (s/fdef bytes/slice-ranges
@@ -131,12 +139,16 @@
 (s/fdef bytes/punch-skip-value-out-of-range
   :args (s/and (s/cat :range ::bytes/range :skip-value ::bytes/bytes)
                skip-val-must-be-equal-or-shorter-length-than-range)
-  :ret ::bytes/ranges)
+  :ret ::bytes/bytes-ranges)
 
 (s/fdef bytes/punch-skip-value-out-if-in-range
   :args (s/and (s/cat :range ::bytes/range :skip-value ::bytes/bytes)
                skip-val-must-be-equal-or-shorter-length-than-range)
-  :ret ::bytes/ranges)
+  :ret ::bytes/bytes-ranges)
+
+(s/fdef bytes/ranges->bytes-ranges
+  :args (s/cat :ranges ::bytes/ranges)
+  :ret ::bytes/bytes-ranges)
 
 (s/fdef bytes/punch-skip-values-out-of-ranges
   :args (s/and (s/cat :skip (s/coll-of ::bytes/bytes) :ranges ::bytes/ranges)
@@ -145,7 +157,7 @@
                          (for [skip skip
                                range ranges]
                            (skip-val-must-be-equal-or-shorter-length-than-range range skip)))))
-  :ret ::bytes/ranges)
+  :ret ::bytes/bytes-ranges)
 
 (defn mapped-bytes-in-range [{:keys [args ret]}]
   (let [returned-bytes (bytes/buffers->bytes [ret])

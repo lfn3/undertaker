@@ -116,7 +116,7 @@
          on-lower? true                                     ;is the value sticking to the lower end of the range?
          on-upper? true]
     (if-let [b (first bytes)]
-      (let [[lower upper] (slice-range 0 range)
+      (let [[[lower] [upper]] range
             [ul uu] (if (unsigned<= lower upper) [lower upper] [upper lower])]
         (cond
           (and (unsigned< ul b) (unsigned< b uu)) true
@@ -200,12 +200,12 @@
                             (handle-underflow)
                             (fill-lower)
                             (byte-array)
-                            (->> (vector (first range))))
+                            (->> (vector (byte-array (first range)))))
         upper-range (some-> skip-value
                             (handle-overflow)
                             (fill-upper)
                             (byte-array)
-                            (vector (last range)))]
+                            (vector (byte-array (last range))))]
     (->> [lower-range upper-range]
          (filter (comp not nil?))
          (collapse-identical-ranges)
@@ -214,7 +214,10 @@
 (defn punch-skip-value-out-if-in-range [range skip-value]
   (if (bytes-are-in-range skip-value range)
     (punch-skip-value-out-of-range range skip-value)
-    [range]))
+    [[(byte-array (first range)) (byte-array (last range))]]))
+
+(defn ranges->bytes-ranges [ranges]
+  (vec (map (comp vec (partial map byte-array)) ranges)))
 
 (defn punch-skip-values-out-of-ranges
   [skip-bytes ranges]
@@ -223,7 +226,7 @@
     (if-let [skip (first skip-bytes)]
       (recur (mapcat #(punch-skip-value-out-if-in-range %1 skip) ranges)
              (rest skip-bytes))
-      (vec ranges))))
+      (ranges->bytes-ranges ranges))))
 
 (defn map-into-ranges! [^ByteBuffer input ranges]
   (let [limit (.limit input)
