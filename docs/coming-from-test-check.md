@@ -83,10 +83,3 @@ Other generators like `tuple` have been removed, since you can just use 'regular
 `[(undertaker/int) (undertaker/string)]`. For the same reason `list-distinct`, `sorted-set` and etc are 
 also gone: `(sort (undertaker/vec-of undertaker/int))`. `return` can be replaced with `constantly` from 
 core.
-
-### How the generation model differs
-
-This is starting to dive into the internals of the library, but will offer some insight into why it behaves
-the way it does.
-
-<!--TODO: talk about set generation, etc -->
