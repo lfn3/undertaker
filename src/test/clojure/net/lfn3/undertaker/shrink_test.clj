@@ -141,11 +141,6 @@
     (is (or (= [1] shrunk-vector)
             (= [-1] shrunk-vector)) result)))
 
-(deftest should-only-run-once-since-source-is-unused
-  (let [result (->> (fn [])
-                    (undertaker/run-prop {}))]
-    (is (= 1 (::undertaker/iterations-run result)))))
-
 (deftest should-shrink-to-below-two
   ;Sometimes gets stuck at 2.0 due to reducing upper bytes before lower bytes.
   ;I think that's fine?

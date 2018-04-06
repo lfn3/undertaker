@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.core-test-unstrumented
   (:require [clojure.test :refer [deftest is] :as t]
-            [net.lfn3.undertaker.core :as undertaker]
-            [clojure.test :as t]))
+            [net.lfn3.undertaker.core :as undertaker]))
 
 (deftest can-handle-throws
   (let [ex (ex-info "An exception!" {})
@@ -15,3 +14,8 @@
            ::undertaker/initial-results
            ::undertaker/cause
            (instance? IllegalStateException))))
+
+(deftest should-only-run-once-since-source-is-unused
+  (let [result (->> (fn [])
+                    (undertaker/run-prop {}))]
+    (is (= 1 (::undertaker/iterations-run result)))))
