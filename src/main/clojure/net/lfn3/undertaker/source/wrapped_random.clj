@@ -17,21 +17,33 @@
   {::bytes/bytes               pre-genned
    ::remaining-pre-genned      (count pre-genned)})
 
+(defn get-buffer [rnd state-atom requested-size]
+  (let [{:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
+        within-existing (< requested-size remaining-pre-genned)
+        byte-arr-size (count bytes)]
+    (if within-existing
+      (let [offset (- byte-arr-size remaining-pre-genned)
+            buf (ByteBuffer/wrap bytes offset requested-size)]
+        (swap! state-atom #(-> %1
+                               (update ::remaining-pre-genned - requested-size)
+                               (update ::bytes/byte-buffers conj buf)))
+        buf)
+      (let [new-arr-size (* 2 byte-arr-size)
+            new-arr (get-bytes-from-java-random rnd new-arr-size)
+            buf (ByteBuffer/wrap new-arr 0 requested-size)]
+        (swap! state-atom #(-> %1
+                               (assoc ::remaining-pre-genned requested-size
+                                      ::bytes/bytes new-arr)
+                               (update ::bytes/byte-buffers buf)))
+        buf))))
+
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
   (get-bytes [_ ranges]
     (let [number-of-bytes-requested (-> ranges (first) (first) (count))
-          {:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
-          can-use-pregen? (< number-of-bytes-requested remaining-pre-genned)
-          buf (if can-use-pregen?
-                (let [offset (- (count bytes) remaining-pre-genned)]
-                  (ByteBuffer/wrap bytes offset number-of-bytes-requested))
-                (ByteBuffer/wrap (get-bytes-from-java-random rnd number-of-bytes-requested)))]
+          buf (get-buffer rnd state-atom number-of-bytes-requested)]
       (bytes/map-into-ranges! buf ranges)
-      (swap! state-atom #(cond-> %1
-                           can-use-pregen? (update ::remaining-pre-genned - number-of-bytes-requested)
-                           true (update ::bytes/byte-buffers conj buf)))
       buf))
   (reset [_]
     (swap! state-atom #(->> %1
@@ -40,7 +52,7 @@
                             (initial-state)))))
 
 (defn make-source
-  ([^long seed] (make-source seed 0))
+  ([^long seed] (make-source seed #=(* 64 1024)))
   ([^long seed ^long size-to-pre-gen]
    (let [rnd (Random. seed)
          pre-genned (get-bytes-from-java-random rnd size-to-pre-gen)
