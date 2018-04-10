@@ -26,8 +26,8 @@
                                     ::proto/completed-intervals
                                     ::bytes/byte-buffers]))
 
-(s/fdef source/add-range-to-last-interval-if-not-nil
-  :args (s/cat :source-state ::source/state :ranges ::bytes/ranges)
+(s/fdef source/add-range-and-buffer-to-state
+  :args (s/cat :source-state ::source/state :ranges ::bytes/ranges :buffer ::bytes/byte-buffer)
   :rest ::source/state)
 
 (s/fdef source/get-bytes

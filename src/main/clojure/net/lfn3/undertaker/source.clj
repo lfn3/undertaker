@@ -69,14 +69,16 @@
     ;(every-call-in-scope-of-test-should-use-same-source source)
     (should-only-use-fixed-source-while-shrinking source)))
 
-;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
-(defn add-range-to-last-interval-if-not-nil [{:keys [::proto/interval-stack] :as state} ranges]
-  (if (nil? (last interval-stack))
-    state
-    (update state ::proto/interval-stack
-            #(update %1 (dec (count %1))
-                     assoc ::bytes/ranges ranges))))
+(defn add-range-and-buffer-to-state [{:keys [::proto/interval-stack] :as state} ranges buffer]
+  (-> state
+      (update ::bytes-requested + (count (last (last ranges))))
+      (update ::bytes/byte-buffers conj buffer)
+      (cond->
+        (not (nil? (last interval-stack))) (update ::proto/interval-stack #(update %1 (dec (count %1))
+                                                                                   assoc ::bytes/ranges ranges)))))
+
+;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
 (defn ^ByteBuffer get-bytes
   ([source ranges]
@@ -84,14 +86,12 @@
      (throw (IllegalArgumentException. "Ranges may not be empty.")))
     ;TODO: check we don't already have any ranges?
    (check-invariants source)
-   (swap! state-atom add-range-to-last-interval-if-not-nil ranges)
-   (swap! state-atom update ::bytes-requested + (count (last (last ranges))))
    (let [{:keys [::proto/interval-stack ::proto/completed-intervals]} @state-atom
          hinted-ranges (intervals/apply-hints interval-stack completed-intervals ranges)]
      (when (empty? hinted-ranges)
        (throw (UniqueInputValuesExhaustedException. (str "Started with " (intervals/printable-ranges ranges)))))
      (let [buffer (proto/get-bytes source hinted-ranges)]
-       (swap! state-atom update ::bytes/byte-buffers conj buffer)
+       (swap! state-atom add-range-and-buffer-to-state ranges buffer)
        buffer))))
 
 (defn add-hints-to-next-interval [source hints]
