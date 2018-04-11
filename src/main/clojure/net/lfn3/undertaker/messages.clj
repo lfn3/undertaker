@@ -35,30 +35,14 @@ This probably means you've nested tests inside each other.
 If you can't find the cause of the error, please raise an issue at "
     bug-tracker-url))
 
-(defn format-failed [name
-                     {:keys [:net.lfn3.undertaker.core/iterations-run
-                             :net.lfn3.undertaker.core/initial-results
-                             :net.lfn3.undertaker.core/shrunk-results
-                             :net.lfn3.undertaker.core/seed]}]
-  (format "%s failed after running %d times.
-
-The cause of the failure was:
+(defn format-shrunk [{:keys [:net.lfn3.undertaker.core/shrunk-results]}]
+  (format "Shrinking completed. The simplest values we could make the test fail with were:
 %s
 
-The simplest values we could make the test fail with were:
-%s
-
-The initial failing values were:
-%s
-
-The seed that generated the initial case was %s.
-"
-          name
-          iterations-run
-          (:net.lfn3.undertaker.core/cause shrunk-results)
+Once shrunk the cause of failure was:
+%s"
           (vec (:net.lfn3.undertaker.core/generated-values shrunk-results))
-          (vec (:net.lfn3.undertaker.core/generated-values initial-results))
-          seed))
+          (:net.lfn3.undertaker.core/cause shrunk-results)))
 
 (defn clojure-seed-message [name {:keys [:net.lfn3.undertaker.core/seed]}]
   (format "You can add :seed to this test's options map to rerun this particular failing case:
@@ -78,3 +62,24 @@ You probably want to replace (defprop %s { opts... } test-body...) with (deftest
           name
           name
           name))
+
+(defn format-initial-failure [name {:keys [:net.lfn3.undertaker.core/iterations-run
+                                           :net.lfn3.undertaker.core/initial-results
+                                           :net.lfn3.undertaker.core/seed]}]
+  (format "%s failed after running %d times.
+
+The cause of the failure was:
+%s
+
+The initial failing values were:
+%s
+
+The seed that generated the initial case was %s.
+
+Shrinking in progress...
+"
+          name
+          iterations-run
+          (:net.lfn3.undertaker.core/cause initial-results)
+          (vec (:net.lfn3.undertaker.core/generated-values initial-results))
+          seed))

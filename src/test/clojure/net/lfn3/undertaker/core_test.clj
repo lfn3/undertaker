@@ -175,9 +175,11 @@
   (let [seed (.nextInt (Random.))
         r1 (atom [])
         r2 (atom [])]
-    (undertaker/run-prop {:seed seed}
+    (undertaker/run-prop {::undertaker/test-name "should-be-deterministic"
+                          :seed seed}
       (fn [] (swap! r1 conj (undertaker/int))))
-    (undertaker/run-prop {:seed seed}
+    (undertaker/run-prop {::undertaker/test-name "should-be-deterministic"
+                          :seed seed}
       (fn [] (swap! r2 conj (undertaker/int))))
     (is (= @r1 @r2))))
 

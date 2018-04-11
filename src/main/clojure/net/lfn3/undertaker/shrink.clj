@@ -1,9 +1,7 @@
 (ns net.lfn3.undertaker.shrink
   (:require [net.lfn3.undertaker.source.fixed :as fixed-source]
             [net.lfn3.undertaker.source :as source]
-            [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.intervals :as intervals])
+            [net.lfn3.undertaker.proto :as proto])
   (:import (net.lfn3.undertaker OverrunException UniqueInputValuesExhaustedException)))
 
 (defn move-towards-0 [byte]
@@ -122,21 +120,18 @@
 
 (defn shrink
   ([source f]
-   (try
-     (let [bytes (source/get-sourced-bytes source)
-           intervals (source/get-intervals source)]
-       (source/shrinking!)
-       (let [shrunk-source (-> bytes
-                               (snip-intervals intervals f)
-                               (repeatedly-move-towards-zero f)
-                               (fixed-source/make-fixed-source))
-             _ (source/reset shrunk-source)
-             _ (f shrunk-source)
-             intervals (source/get-intervals shrunk-source)
-             shrunk-source (-> (source/get-sourced-bytes shrunk-source)
-                               (snip-intervals intervals f)
-                               (fixed-source/make-fixed-source))
-             _ (source/reset shrunk-source)
-             result-map (f shrunk-source)]
-         (source/add-source-data-to-results-map shrunk-source result-map)))
-     (finally (source/done-shrinking!)))))
+   (let [bytes (source/get-sourced-bytes source)
+         intervals (source/get-intervals source)
+         shrunk-source (-> bytes
+                           (snip-intervals intervals f)
+                           (repeatedly-move-towards-zero f)
+                           (fixed-source/make-fixed-source))
+         _ (source/reset shrunk-source)
+         _ (f shrunk-source)
+         intervals (source/get-intervals shrunk-source)
+         shrunk-source (-> (source/get-sourced-bytes shrunk-source)
+                           (snip-intervals intervals f)
+                           (fixed-source/make-fixed-source))
+         _ (source/reset shrunk-source)
+         result-map (f shrunk-source)]
+     (source/add-source-data-to-results-map shrunk-source result-map))))

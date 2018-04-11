@@ -37,13 +37,10 @@
   :args (s/cat :fn ::undertaker/prop-fn)
   :ret ::undertaker/wrapped-prop-fn)
 
-(s/fdef undertaker/run-prop-1
-  :args (s/cat :source ::source/source
-               :fn ::undertaker/wrapped-prop-fn)
-  :ret ::undertaker/all-results)
-
 (s/def ::undertaker/iterations integer?)
-(s/def ::undertaker/prop-opts-map (s/keys :opt-un [::undertaker/seed ::undertaker/iterations]))
+(s/def ::undertaker/test-name string?)
+(s/def ::undertaker/prop-opts-map (s/keys :req [::undertaker/test-name]
+                                          :opt-un [::undertaker/seed ::undertaker/iterations]))
 (s/def ::undertaker/disallowed-values (s/coll-of ::bytes/bytes))
 
 (s/fdef undertaker/run-prop

@@ -12,7 +12,8 @@
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
-            [clojure.pprint])
+            [clojure.pprint]
+            [net.lfn3.undertaker.source.fixed :as fixed-source])
   (:import (net.lfn3.undertaker OverrunException UndertakerDebugException UniqueInputValuesExhaustedException)
            (net.lfn3.undertaker.source.sample SampleSource)
            (java.util UUID)
@@ -83,43 +84,51 @@
             (source/completed-test-instance source)
             (reset! result [])))))))
 
-(defn run-prop-1 [source f]
-  (let [result-map (source/add-source-data-to-results-map source (f source))
-        {:keys [::result ::source-used?]} result-map]
-    (if (and (false? result) source-used?)
-      (let [shrunk-result (shrink/shrink source f)]
-        {::initial-results result-map
-         ::shrunk-results shrunk-result})
-      {::initial-results result-map})))
+;So we can rebind in tests
+(defn print-initial-failure [test-name result-data]
+  (println (messages/format-initial-failure test-name result-data)))
+
+(defn do-shrink [f bytes test-name iterations seed]
+  (try
+    (source/shrinking!)
+    (let [initial-failing-source (fixed-source/make-fixed-source bytes)
+          run-data-with-intervals (f initial-failing-source)
+          _ (print-initial-failure test-name
+                                   (-> {::initial-results run-data-with-intervals}
+                                       (assoc ::iterations-run iterations)
+                                       (assoc ::seed seed)))]
+      (shrink/shrink initial-failing-source f))
+    (finally (source/done-shrinking!))))
 
 (defn run-prop
-  ([{:keys [seed iterations debug]
+  ([{:keys [::test-name seed iterations debug]
      :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
             iterations 1000
-            debug false}
-     :as   opts-map}
+            debug false}}
     f]
    (let [source (source.random/make-source seed)
-         wrapped-fn (wrap-fn f)
+         f (wrap-fn f)
          _ (source/starting-test source debug)
          result (loop [iterations-left iterations]
-                  (let [run-data (run-prop-1 source wrapped-fn)
-                        passed? (-> run-data
-                                    ::initial-results
-                                    ::result
-                                    (true?))
-                        used? (-> run-data
-                                  ::initial-results
-                                  ::source-used?)]
-                    (if (and passed?
-                             (> iterations-left 1)
-                             used?)         ;If a source is unused, there isn't much point in rerunning
-                      (do                                   ;the test, since nothing will change
-                        (source/reset source)
-                        (recur (dec iterations-left)))
-                      (-> run-data
-                          (assoc ::iterations-run (- iterations (dec iterations-left)))
-                          (assoc ::seed seed)))))]
+                  (let [run-data (source/add-source-data-to-results-map source (f source))
+                        passed? (true? (::result run-data))
+                        used? (::source-used? run-data)]
+                    (cond (and passed?
+                               (> iterations-left 1)
+                               used?)                       ;If a source is unused, there isn't much point in rerunning
+                          (do                               ;the test, since nothing will change
+                            (source/reset source)
+                            (recur (dec iterations-left)))
+                          (not passed?)
+                          {::initial-results run-data
+                           ::shrunk-results  (do-shrink f
+                                                        (source/get-sourced-bytes source)
+                                                        test-name
+                                                        (- iterations (dec iterations-left))
+                                                        seed)}
+                          :default (-> {::initial-results run-data}
+                                       (assoc ::iterations-run (- iterations (dec iterations-left)))
+                                       (assoc ::seed seed)))))]
      (source/completed-test source)
      result)))
 
@@ -128,7 +137,7 @@
    (cond-> ""
      (and (not (::source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
      (and (not (::source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
-     (and (::source-used? initial-results) (not (::result initial-results))) (str (messages/format-failed name results) (failed-lang-fn name results))
+     (and (::source-used? initial-results) (not (::result initial-results))) (str (messages/format-shrunk results) (failed-lang-fn name results))
      debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results)))
      true (not-empty))))
 
@@ -473,7 +482,8 @@
   (any* (atom 200) simple-type))
 
 (defmacro defprop [name opts & body]
-  (let [name-string (str name)]
+  (let [name-string (str name)
+        opts (assoc opts ::test-name name-string)]
     (when-not (map? opts)
       (throw (IllegalArgumentException. "The second argument to defprop must be a map literal.")))
     `(t/deftest ~name

@@ -3,7 +3,6 @@
             [net.lfn3.undertaker.core :as undertaker]
             [orchestra.spec.test :as orchestra.test]
             [clojure.test :as t :refer [deftest is]]
-            [net.lfn3.undertaker.source :as source]
             [net.lfn3.undertaker.shrink :as shrink]
             [clojure.string :as str]
             [clojure.spec.test.alpha :as s.test]
@@ -16,7 +15,8 @@
   (:import (net.lfn3.undertaker OverrunException)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
+                           (with-redefs [undertaker/print-initial-failure (constantly nil)]
+                             (%1))
                            (orchestra.test/unstrument)))
 
 (def this-ns *ns*)
@@ -40,13 +40,16 @@
     (is (empty? failures))))
 
 (deftest can-fail-prop
-  (is (false? (get-in (undertaker/run-prop {} #(is false)) [::undertaker/initial-results ::undertaker/result]))))
+  (is (false? (get-in (undertaker/run-prop {::undertaker/test-name "can-fail-prop"} #(is false))
+                      [::undertaker/initial-results ::undertaker/result]))))
 
 (deftest can-run-prop
-  (is (true? (get-in (undertaker/run-prop {} (constantly true)) [::undertaker/initial-results ::undertaker/result]))))
+  (is (true? (get-in (undertaker/run-prop {::undertaker/test-name "can-run-prop"} (constantly true))
+                     [::undertaker/initial-results ::undertaker/result]))))
 
 (deftest should-shrink-to-zero
-  (let [result (undertaker/run-prop {:debug true} #(is (boolean? (undertaker/byte))))]
+  (let [result (undertaker/run-prop {::undertaker/test-name "should-shrink-to-zero" :debug true}
+                                    #(is (boolean? (undertaker/byte))))]
     (is (= 0 (->> result
                   ::undertaker/shrunk-results
                   ::undertaker/generated-values
@@ -54,7 +57,8 @@
         result)))
 
 (deftest should-not-shrink-to-zero-if-does-not-fail-on-zero
-  (let [result (undertaker/run-prop {} #(is (= 0 (undertaker/byte))))]
+  (let [result (undertaker/run-prop {::undertaker/test-name "should-not-shrink-to-zero-if-does-not-fail-on-zero"}
+                                    #(is (= 0 (undertaker/byte))))]
     (is (->> result
              ::undertaker/shrunk-results
              ::undertaker/generated-values
@@ -65,7 +69,7 @@
 
 (deftest should-shrink-past-1
   (is (= 0 (->> #(is (= 1 (undertaker/byte)))
-                (undertaker/run-prop {})
+                (undertaker/run-prop {::undertaker/test-name "should-shrink-past-1"})
                 ::undertaker/shrunk-results
                 ::undertaker/generated-values
 
@@ -76,7 +80,7 @@
                    (is (if (= 0 value)
                          true
                          (odd? value))))
-                (undertaker/run-prop {})
+                (undertaker/run-prop {::undertaker/test-name "should-shrink-to-2"})
                 ::undertaker/shrunk-results
                 ::undertaker/generated-values
                 (first)))))
@@ -103,7 +107,7 @@
 
 (deftest shrinking-vec-with-overrun
   (let [result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
-                    (undertaker/run-prop {:debug true}))]
+                    (undertaker/run-prop {::undertaker/test-name "shrinking-vec-with-overrun" :debug true}))]
     (is (= [1] (->> result
                     ::undertaker/shrunk-results
                     ::undertaker/generated-values
@@ -121,10 +125,10 @@
 
 (deftest should-shrink-middle-byte
   (let [result (->> #(let [bool-1 (undertaker/boolean)
-                           a-number (undertaker/int)
-                           bool-2 (undertaker/boolean)]
+                           _ (undertaker/int)
+                           _ (undertaker/boolean)]
                        (is bool-1))
-                    (undertaker/run-prop {}))]
+                    (undertaker/run-prop {::undertaker/test-name "should-shrink-middle-byte"}))]
     (is (= [false 0 false] (-> result
                               ::undertaker/shrunk-results
                               ::undertaker/generated-values
@@ -133,7 +137,7 @@
 
 (deftest should-shrink-vec-to-smallest-failing-case
   (let [result (->> #(is (every? even? (undertaker/vec-of undertaker/byte 1 2)))
-                    (undertaker/run-prop {}))
+                    (undertaker/run-prop {::undertaker/test-name "should-shrink-vec-to-smallest-failing-case"}))
         shrunk-vector (->> result
                            ::undertaker/shrunk-results
                            ::undertaker/generated-values
@@ -146,7 +150,7 @@
   ;I think that's fine?
   (let [result (->> (fn [] (let [value (undertaker/double)]
                              (is (< value 0.9))))
-                    (undertaker/run-prop {:debug true}))
+                    (undertaker/run-prop {::undertaker/test-name "should-shrink-to-below-two" :debug true}))
         shrunk-val (first (get-in result [::undertaker/shrunk-results ::undertaker/generated-values]))]
     (is (<= 0.9 shrunk-val) result)
     (is (<= shrunk-val 2.0) result)))
@@ -169,7 +173,7 @@
   (let [result (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)]
                              (when (and (not= 0 (count value)))
                                (is (every? empty? (keys value)) value))))
-                    (undertaker/run-prop {:debug true}))
+                    (undertaker/run-prop {::undertaker/test-name "should-shrink-multi-part-map-keys" :debug true}))
         shrunk-value (get-in result [::undertaker/shrunk-results ::undertaker/generated-values])]
     (is (= 1 (count (first shrunk-value))) result)
     (is (= 1 (count (first (keys (first shrunk-value))))) result)))
@@ -179,14 +183,14 @@
                              empty-str? (some-> (get-first-key value)
                                                 (empty?))]
                          (is (or (nil? empty-str?) empty-str?))))
-                (undertaker/run-prop {:debug true :seed 1})
+                (undertaker/run-prop {::undertaker/test-name "shrinking-should-be-deterministic-1" :debug true :seed 1})
                 ::undertaker/shrunk-results
                 ::undertaker/generated-values)
         r2 (->> (fn [] (let [value (undertaker/map-of undertaker/string undertaker/short)
                              empty-str? (some-> (get-first-key value)
                                                 (empty?))]
                          (is (or (nil? empty-str?) empty-str?))))
-                (undertaker/run-prop {:debug true :seed 1})
+                (undertaker/run-prop {::undertaker/test-name "shrinking-should-be-deterministic-2" :debug true :seed 1})
                 ::undertaker/shrunk-results
                 ::undertaker/generated-values)]
     (is (= r1 r2))))

@@ -16,7 +16,7 @@
               (let [{:keys [byte]} args]
                 (or (= 0 ret)
                     (< (bit-and 0xff ret)
-                       (bit-and 0xff (:byte args)))))))
+                       (bit-and 0xff byte))))))
 
 (s/fdef shrink/move-bytes-towards-zero
   :args (s/cat :bytes bytes? :fn fn?)
