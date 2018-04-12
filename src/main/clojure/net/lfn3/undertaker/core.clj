@@ -71,7 +71,8 @@
           (f)
           {::result   (check-test-reports @result)
            ::cause    (get-failures-from-test-reports @result)
-           ::reported @result}
+           ::reported @result
+           ::source/source-used? (source/used? source)}
           (catch Throwable e
             (when (or (instance? UndertakerDebugException e)
                       (and (instance? IllegalStateException e)
@@ -79,7 +80,8 @@
               (throw e))
             {::result   false
              ::cause    e
-             ::reported @result})
+             ::reported @result
+             ::source/source-used? (source/used? source)})
           (finally
             (source/completed-test-instance source)
             (reset! result [])))))))
@@ -112,7 +114,7 @@
          result (loop [iterations-left iterations]
                   (let [run-data (source/add-source-data-to-results-map source (f source))
                         passed? (true? (::result run-data))
-                        used? (::source-used? run-data)]
+                        used? (::source/source-used? run-data)]
                     (cond (and passed?
                                (> iterations-left 1)
                                used?)                       ;If a source is unused, there isn't much point in rerunning
@@ -135,9 +137,9 @@
 (defn format-results
   ([name {:keys [::initial-results ::shrunk-results] :as results} failed-lang-fn debug?]
    (cond-> ""
-     (and (not (::source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
-     (and (not (::source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
-     (and (::source-used? initial-results) (not (::result initial-results))) (str (messages/format-shrunk results) (failed-lang-fn name results))
+     (and (not (::source/source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
+     (and (not (::source/source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
+     (and (::source/source-used? initial-results) (not (::result initial-results))) (str (messages/format-shrunk results) (failed-lang-fn name results))
      debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results)))
      true (not-empty))))
 

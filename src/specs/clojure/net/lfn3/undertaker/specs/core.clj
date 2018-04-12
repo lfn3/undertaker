@@ -14,9 +14,8 @@
 (s/def ::undertaker/result boolean?)
 (s/def ::undertaker/generated-values any?)
 (s/def ::undertaker/seed integer?)
-(s/def ::undertaker/source-used? boolean?)
 (s/def ::undertaker/iterations-run integer?)
-(s/def ::undertaker/results-map (s/keys :req [::undertaker/result ::undertaker/source-used?]
+(s/def ::undertaker/results-map (s/keys :req [::undertaker/result ::source/source-used?]
                                         :opt [::undertaker/generated-values]))
 
 (s/def ::undertaker/cause (s/nilable any?))

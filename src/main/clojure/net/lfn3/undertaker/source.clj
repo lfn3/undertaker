@@ -12,6 +12,7 @@
 (def state-atom (atom {::sampling?                     true
                        ::debug?                        false
                        ::shrinking?                    false
+                       ::source-used?                  false
                        ::source-in-use                 nil
                        ::bytes-requested               0
                        ::proto/hints-for-next-interval []
@@ -26,7 +27,7 @@
          ::sampling? false
          ::debug? debug))
 (defn starting-test-instance [source]
-  (swap! state-atom assoc ::source-in-use source))
+  (swap! state-atom assoc ::source-in-use source ::source-used? false))
 (defn completed-test-instance [source]
   (swap! state-atom assoc ::source-in-use nil))
 (defn completed-test [source]
@@ -71,12 +72,14 @@
 
 
 (defn add-range-and-buffer-to-state [{:keys [::proto/interval-stack] :as state} ranges buffer]
-  (-> state
-      (update ::bytes-requested + (count (last (last ranges))))
-      (update ::bytes/byte-buffers conj buffer)
-      (cond->
-        (not (nil? (last interval-stack))) (update ::proto/interval-stack #(update %1 (dec (count %1))
-                                                                                   assoc ::bytes/ranges ranges)))))
+  (let [bytes-requested (count (last (last ranges)))]
+    (-> state
+        (update ::bytes-requested + bytes-requested)
+        (update ::bytes/byte-buffers conj buffer)
+        (cond->
+          (not (zero? bytes-requested)) (assoc ::source-used? true)
+          (not (nil? (last interval-stack))) (update ::proto/interval-stack #(update %1 (dec (count %1))
+                                                                                     assoc ::bytes/ranges ranges))))))
 
 ;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
@@ -132,6 +135,8 @@
 (defn get-sourced-bytes [source]
   (bytes/buffers->bytes (::bytes/byte-buffers @state-atom)))
 
+(defn used? [source] (::source-used? @state-atom))
+
 (defn add-source-data-to-results-map [source result-map]
   (let [success? (:net.lfn3.undertaker.core/result result-map)
         intervals (get-intervals source)]
@@ -140,7 +145,6 @@
       (::debug? @state-atom) (assoc ::proto/completed-intervals intervals)
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (vec (get-sourced-bytes source)))
       (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
-      true (assoc :net.lfn3.undertaker.core/source-used? (not (empty? intervals)))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values
                             (->> intervals
                                  (filter (comp zero? ::proto/interval-depth))
