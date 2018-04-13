@@ -32,7 +32,7 @@
             new-arr (get-bytes-from-java-random rnd new-arr-size)
             buf (ByteBuffer/wrap new-arr 0 requested-size)]
         (swap! state-atom #(-> %1
-                               (assoc ::remaining-pre-genned requested-size
+                               (assoc ::remaining-pre-genned (- new-arr-size requested-size)
                                       ::bytes/bytes new-arr)
                                (update ::bytes/byte-buffers buf)))
         buf))))
