@@ -11,10 +11,16 @@
        ::proto/hints))
 
 (defn push-interval [state hints]
-  (let [{:keys [::bytes/byte-buffers ::proto/interval-stack :net.lfn3.undertaker.source/bytes-requested]} state
+  (let [{:keys [::bytes/byte-buffers
+                ::proto/interval-stack
+                :net.lfn3.undertaker.source/bytes-requested
+                :net.lfn3.undertaker.source/shrinking?]} state
         hints (concat hints (::proto/hints-for-next-interval state))
+        unique-hint? (some (comp (partial = ::proto/unique) first) hints)
         interval-depth (count interval-stack)
-        interval (if (or (seq hints) (zero? interval-depth))
+        interval (if (or (and shrinking? (seq hints))
+                         (and shrinking? (zero? interval-depth))
+                         (and (not shrinking?) unique-hint?))
                    {::proto/interval-start-buffer (count byte-buffers)
                     ::proto/interval-start        bytes-requested
                     ::proto/interval-depth        interval-depth
