@@ -3,7 +3,8 @@
   :url "http://github.com/lfn3/undertaker"
   :license {:name "Apache License Version 2.0"
             :url  "http://www.apache.org/licenses/LICENSE-2.0"}
-  :deploy-repositories [["releases" :clojars]]
+  :repositories [["releases" {:url "https://repo.clojars.org"
+                              :creds :gpg}]]
   :dependencies []
 
   :plugins [[lein-jmh "0.2.2"]]

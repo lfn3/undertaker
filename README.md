@@ -2,6 +2,8 @@
 
 ![The undertaker emerging from it's coffin](http://lfn3.net/img/projects/undertaker/undertaker.gif)
 
+```[net.lfn3/undertaker "0.1.5"]```
+
 A property testing library for Clojure and [Java](https://github.com/lfn3/undertaker-junit).
 If you've used [test.check](https://github.com/clojure/test.check) before you might want to start by reading
 [Coming from test.check](https://github.com/lfn3/undertaker/blob/master/docs/coming-from-test-check.md) instead of this.
