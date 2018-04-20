@@ -1,8 +1,9 @@
-(defproject net.lfn3/undertaker "0.1.5-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject net.lfn3/undertaker "0.1.5"
+  :description "A property testing library for Clojure"
+  :url "http://github.com/lfn3/undertaker"
   :license {:name "Apache License Version 2.0"
             :url  "http://www.apache.org/licenses/LICENSE-2.0"}
+  :deploy-repositories [["releases" :clojars]]
   :dependencies []
 
   :plugins [[lein-jmh "0.2.2"]]
