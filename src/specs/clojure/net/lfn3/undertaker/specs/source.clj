@@ -10,28 +10,17 @@
 (s/def ::source/source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap source.random/make-source (s.gen/int))))
 
-(s/def ::source/sampling? boolean?)
-(s/def ::source/debug? boolean?)
-(s/def ::source/shrinking? boolean?)
-(s/def ::source/source-in-use (s/nilable ::source/source))
-(s/def ::source/bytes-requested nat-int?)
-
-(s/def ::source/state (s/keys :req [::source/sampling?
-                                    ::source/debug?
-                                    ::source/shrinking?
-                                    ::source/source-in-use
-                                    ::source/bytes-requested
-                                    ::proto/hints-for-next-interval
-                                    ::proto/interval-stack
-                                    ::proto/completed-intervals
-                                    ::bytes/byte-buffers]))
-
 (s/fdef source/add-range-and-buffer-to-state
-  :args (s/cat :source-state ::source/state :ranges ::bytes/ranges :buffer ::bytes/byte-buffer)
-  :rest ::source/state)
+  :args (s/cat :source-state ::proto/source-state :ranges ::bytes/ranges :buffer ::bytes/byte-buffer)
+  :rest ::proto/source-state)
+
+(s/def ::source/non-empty-ranges (s/and ::bytes/bytes-ranges
+                                        not-empty
+                                        #(not-empty (first %1))
+                                        #(not-empty (first (first %1)))))
 
 (s/fdef source/get-bytes
-  :args (s/cat :source ::source/source :skip (s/? ::bytes/bytes-to-skip) :ranges ::bytes/ranges)
+  :args (s/cat :source ::source/source :ranges ::source/non-empty-ranges)
   :ret (partial instance? ByteBuffer))
 
 (s/fdef source/push-interval

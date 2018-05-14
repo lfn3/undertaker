@@ -15,18 +15,18 @@
 (defn unsigned<= [x y]
   (not= 1 (Long/compareUnsigned x y)))
 
-(defn range<xf []
+(defn range-xf [f default]
   (fn [xf]
     (fn
       ([] (xf))
       ([result]
        (if (boolean? result)
          (xf result)
-         (xf false)))
+         (xf default)))
       ([result [b1 b2]]
        (cond
          (= b1 b2) result
-         (unsigned< b1 b2) (reduced true)
+         (f b1 b2) (reduced true)
          :default (reduced false))))))
 
 (defn by-idx [b1 b2]
@@ -34,7 +34,11 @@
 
 (defn bytes< [b1 b2]
   (->> (by-idx b1 b2)
-       (transduce (range<xf) identity [])))
+       (transduce (range-xf unsigned< false) identity [])))
+
+(defn bytes<= [b1 b2]
+  (->> (by-idx b1 b2)
+       (transduce (range-xf unsigned<= true) identity [])))
 
 (defn ranges-have-same-length?
   ([ranges]
@@ -259,7 +263,9 @@
            (and (zero? floor) (pos? ceiling))
            (and (pos? floor) (pos? ceiling))
            (and (neg? floor) (neg? ceiling)))
-     [[(->bytes-fn floor) (->bytes-fn ceiling)]]
+     (if (bytes< floor-bytes ceiling-bytes)
+       [[floor-bytes ceiling-bytes]]
+       [[ceiling-bytes floor-bytes]])
      (if (bytes< min-neg-bytes floor-bytes)
        [[min-neg-bytes floor-bytes] [(->bytes-fn 0) ceiling-bytes]]
        [[floor-bytes min-neg-bytes] [(->bytes-fn 0) ceiling-bytes]])))))

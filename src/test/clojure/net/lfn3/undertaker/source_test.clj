@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as s.test]
-            [net.lfn3.undertaker.bytes :as bytes]))
+            [net.lfn3.undertaker.bytes :as bytes]
+            [net.lfn3.undertaker.test-utils :as test-utils]))
 
 (def forgetful-source (source.forgetful/make-source (System/nanoTime)))
 (t/use-fixtures :each #(do (source/completed-test-instance forgetful-source)
@@ -13,25 +14,7 @@
                            (source/starting-test-instance forgetful-source)
                            (%1)))
 
-(def this-ns *ns*)
-
-(def ignored #{})
-
-(deftest check-source
-  (let [target-namespace (first (str/split (str this-ns) #"-test"))
-        targets (->> (s/registry)
-                     (filter #(str/starts-with? (str (key %1)) target-namespace))
-                     (map first)
-                     (remove ignored))
-        result (s.test/check targets {:clojure.spec.test.check/opts {:num-tests 100}})
-        failures (->> result
-                      (filter #(-> %1
-                                   (get-in [:clojure.spec.test.check/ret :result])
-                                   (not)
-                                   (true?))))]
-    (println (str "Checked following specs in " target-namespace ": "))
-    (dorun (map println targets))
-    (is (empty? failures))))
+(test-utils/defchecks net.lfn3.undertaker.source)
 
 (deftest should-emit-bytes
   (source/push-interval forgetful-source)

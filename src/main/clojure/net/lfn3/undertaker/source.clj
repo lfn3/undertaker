@@ -9,12 +9,11 @@
            (net.lfn3.undertaker.source.fixed FixedSource)
            (java.util Collection)))
 
-(def state-atom (atom {::sampling?                     true
-                       ::debug?                        false
-                       ::shrinking?                    false
-                       ::source-used?                  false
-                       ::source-in-use                 nil
-                       ::bytes-requested               0
+(def state-atom (atom {::proto/sampling?               true
+                       ::proto/debug?                  false
+                       ::proto/shrinking?              false
+                       ::proto/source-used?            false
+                       ::proto/bytes-requested         0
                        ::proto/hints-for-next-interval []
                        ::proto/interval-stack          []
                        ::proto/completed-intervals     []
@@ -24,25 +23,25 @@
 
 (defn starting-test [source debug]
   (swap! state-atom assoc
-         ::sampling? false
-         ::debug? debug))
+         ::proto/sampling? false
+         ::proto/debug? debug))
 (defn starting-test-instance [source]
-  (swap! state-atom assoc ::source-in-use source ::source-used? false))
+  (swap! state-atom assoc ::proto/source-used? false))
 (defn completed-test-instance [source]
-  (swap! state-atom assoc ::source-in-use nil))
+  (swap! state-atom assoc ::proto/source-in-use nil))
 (defn completed-test [source]
   (swap! state-atom assoc
          ::proto/interval-stack []
          ::proto/completed-intervals []
          ::bytes/byte-buffers []
          ::proto/hints-for-next-interval []
-         ::bytes-requested 0
-         ::sampling true
-         ::debug false))
+         ::proto/bytes-requested 0
+         ::proto/sampling true
+         ::proto/debug false))
 
-(defn shrinking? [] (::shrinking? @state-atom))
-(defn shrinking! [] (swap! state-atom assoc ::shrinking? true))
-(defn done-shrinking! [] (swap! state-atom assoc ::shrinking? false))
+(defn shrinking? [] (::proto/shrinking? @state-atom))
+(defn shrinking! [] (swap! state-atom assoc ::proto/shrinking? true))
+(defn done-shrinking! [] (swap! state-atom assoc ::proto/shrinking? false))
 
 (defn internal-exception
   ([msg info] (internal-exception msg info nil))
@@ -54,30 +53,24 @@
     (throw (internal-exception (messages/missing-source-err-msg) {:source source
                                                                   :state @state-atom}))))
 
-(defn every-call-in-scope-of-test-should-use-same-source [source]
-  (when (not= source (::source-in-use @state-atom))
-    (throw (internal-exception (messages/more-than-one-source-in-test-scope-err-msg) {:source source
-                                                                                      :state @state-atom}))))
-
 (defn should-only-use-fixed-source-while-shrinking [source]
   (when (and (shrinking?) (not (instance? FixedSource source)))
     (throw (internal-exception (messages/non-fixed-source-during-shrinking-error-msg) {:source source
                                                                                        :state @state-atom}))))
 
 (defn check-invariants [source]
-  (when (::debug? @state-atom)
+  (when (::proto/debug? @state-atom)
     (throw-if-source-is-nil source)
-    ;(every-call-in-scope-of-test-should-use-same-source source)
     (should-only-use-fixed-source-while-shrinking source)))
 
 
 (defn add-range-and-buffer-to-state [{:keys [::proto/interval-stack] :as state} ranges buffer]
   (let [bytes-requested (count (last (last ranges)))]
     (-> state
-        (update ::bytes-requested + bytes-requested)
+        (update ::proto/bytes-requested + bytes-requested)
         (update ::bytes/byte-buffers conj buffer)
         (cond->
-          (not (zero? bytes-requested)) (assoc ::source-used? true)
+          (not (zero? bytes-requested)) (assoc ::proto/source-used? true)
           (not (nil? (last interval-stack))) (update ::proto/interval-stack #(update %1 (dec (count %1))
                                                                                      assoc ::bytes/ranges ranges))))))
 
@@ -111,7 +104,7 @@
   (check-invariants source)
   (swap! state-atom #(cond-> %1
                        true (intervals/pop-interval generated-value)
-                       (and (::sampling? %1)
+                       (and (::proto/sampling? %1)
                             (empty? (::proto/interval-stack %1))) (assoc ::proto/completed-intervals []
                                                                          ::bytes/byte-buffers []))))
 
@@ -126,7 +119,7 @@
          ::proto/interval-stack      []
          ::proto/completed-intervals []
          ::bytes/byte-buffers        []
-         ::bytes-requested           0)
+         ::proto/bytes-requested           0)
   (proto/reset source))
 
 (defn ^Collection get-sourced-byte-buffers [source]
@@ -135,16 +128,17 @@
 (defn get-sourced-bytes [source]
   (bytes/buffers->bytes (::bytes/byte-buffers @state-atom)))
 
-(defn used? [source] (::source-used? @state-atom))
+(defn used? [source] (::proto/source-used? @state-atom))
 
 (defn add-source-data-to-results-map [source result-map]
   (let [success? (:net.lfn3.undertaker.core/result result-map)
         intervals (get-intervals source)]
     (cond-> result-map
-      (::debug? @state-atom) (assoc ::proto/interval-stack (get-wip-intervals source))
-      (::debug? @state-atom) (assoc ::proto/completed-intervals intervals)
-      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (vec (get-sourced-bytes source)))
-      (::debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
+      (::proto/debug? @state-atom) (assoc ::proto/interval-stack (get-wip-intervals source))
+      (::proto/debug? @state-atom) (assoc ::proto/completed-intervals intervals)
+      (::proto/debug? @state-atom) (assoc :net.lfn3.undertaker.core/generated-bytes (vec (get-sourced-bytes source)))
+      (::proto/debug? @state-atom) (assoc :net.lfn3.undertaker.core/source source)
+      (not (contains? result-map ::proto/source-used?)) (assoc ::proto/source-used? (used? source))
       (not success?) (assoc :net.lfn3.undertaker.core/generated-values
                             (->> intervals
                                  (filter (comp zero? ::proto/interval-depth))

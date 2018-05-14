@@ -4,7 +4,8 @@
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [orchestra.spec.test :as orchestra.test]
-            [net.lfn3.undertaker.specs.intervals]))
+            [net.lfn3.undertaker.specs.intervals]
+            [net.lfn3.undertaker.test-utils :as test-utils]))
 
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
@@ -13,20 +14,7 @@
 
 (def this-ns *ns*)
 
-(def ignored #{})
-
-(deftest check-intervals
-    (let [target-namespace (first (str/split (str this-ns) #"-test"))
-          targets (->> (s/registry)
-                       (filter #(str/starts-with? (str (key %1)) target-namespace))
-                       (map first)
-                       (remove ignored))
-          result (s.test/check targets {:clojure.spec.test.check/opts {:num-tests 100}})
-          failures (->> result
-                        (filter #(-> %1
-                                     (get-in [:clojure.spec.test.check/ret :result])
-                                     (not)
-                                     (true?))))]
-        (println (str "Checked following specs in " target-namespace ": "))
-        (dorun (map println targets))
-        (is (empty? failures))))
+(test-utils/defchecks net.lfn3.undertaker.intervals
+                      #{net.lfn3.undertaker.intervals/apply-hints
+                        net.lfn3.undertaker.intervals/build-completed-interval
+                        net.lfn3.undertaker.intervals/pop-interval})

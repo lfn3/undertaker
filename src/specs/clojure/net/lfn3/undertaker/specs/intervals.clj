@@ -4,7 +4,8 @@
             [net.lfn3.undertaker.specs.proto]
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.specs.bytes]
-            [net.lfn3.undertaker.bytes :as bytes]))
+            [net.lfn3.undertaker.bytes :as bytes]
+            [clojure.test.check.generators :as gen]))
 
 (s/fdef intervals/apply-hints
   :args (s/cat :wip-intervals ::proto/interval-stack
@@ -12,12 +13,19 @@
                :ranges ::bytes/ranges)
   :ret ::bytes/ranges)
 
+(s/def ::unique-hint-with-id (s/tuple (s/with-gen (partial = ::proto/unique)
+                                                  #(gen/return ::proto/unique))
+                                      int?))
+
 (s/fdef intervals/get-already-generated-when-unique
-        :args (s/cat :hint ::proto/hint :wip-intervals ::proto/interval-stack :completed-intervals ::proto/completed-intervals)
+        :args (s/cat :hint ::unique-hint-with-id :completed-intervals ::proto/completed-intervals)
         :ret ::bytes/bytes-to-skip)
 
 (s/fdef intervals/pop-interval
-        :args (s/cat :state ::proto/source-state :generated-value ::proto/generated-value)
+        :args (s/cat :state (s/and ::proto/source-state
+                                   (fn [{:keys [::proto/interval-stack]}]
+                                     (not-empty interval-stack)))
+                     :generated-value ::proto/generated-value)
         :ret ::proto/source-state)
 
 (s/fdef intervals/push-interval

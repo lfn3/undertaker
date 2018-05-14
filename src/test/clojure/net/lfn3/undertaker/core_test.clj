@@ -5,45 +5,25 @@
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [net.lfn3.undertaker.core :as undertaker]
-            [clojure.test.check :as tcheck]
-            [clojure.test.check.clojure-test :as tcheck-test]
-            [clojure.test.check.properties :as tcheck-prop]
-            [clojure.test.check.generators :as tcheck-gen]
-            [net.lfn3.undertaker.source :as source]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
-            [net.lfn3.undertaker.source.wrapped-random :as source.wrapped]
-            [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source.always-max :as source.max]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.specs.core]
-            [net.lfn3.undertaker.shrink :as shrink])
-  (:import (java.util Random)
-           (net.lfn3.undertaker OverrunException)))
+            [net.lfn3.undertaker.test-utils :as test-utils])
+  (:import (java.util Random)))
 
 (t/use-fixtures :once #(do (orchestra.test/instrument)
                            (%1)
                            (orchestra.test/unstrument)))
 
-(def this-ns *ns*)
-
-(def ignored #{`undertaker/elements
-               `undertaker/map-of})
-
-(deftest check-core
-  (let [target-namespace (first (str/split (str this-ns) #"-test"))
-        targets (->> (s/registry)
-                     (filter #(str/starts-with? (str (key %1)) target-namespace))
-                     (map first)
-                     (remove ignored))
-        result (s.test/check targets {:clojure.spec.test.check/opts {:num-tests 100}})
-        failures (->> result
-                      (filter #(-> %1
-                                   (get-in [:clojure.spec.test.check/ret :result])
-                                   (not)
-                                   (true?))))]
-    (println (str "Checked following specs in " target-namespace ": "))
-    (dorun (map println targets))
-    (is (empty? failures))))
+(test-utils/defchecks net.lfn3.undertaker.core
+                      #{net.lfn3.undertaker.core/elements
+                        net.lfn3.undertaker.core/map-of
+                        net.lfn3.undertaker.core/int
+                        net.lfn3.undertaker.core/string
+                        net.lfn3.undertaker.core/string-ascii
+                        net.lfn3.undertaker.core/string-alphanumeric
+                        net.lfn3.undertaker.core/string-alpha})
 
 (deftest test-boolean-gen
   (is (boolean? (undertaker/boolean))))
@@ -77,7 +57,7 @@
 
 (deftest int-gen-test
   (is (= 1 (undertaker/int 1 1)))
-  (let [results (repeatedly 10 #(undertaker/int -1 0))]
+  (let [results (repeatedly 100 #(undertaker/int -1 0))]
     (is (not-every? (partial = 0) results))
     (is (not-every? (partial = -1) results))
     (is (every? #(or (= 0 %1) (= -1 %1)) results))))

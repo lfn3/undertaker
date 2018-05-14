@@ -39,17 +39,25 @@
   ([size] (let [br (gen/fmap byte-array (gen/vector gen/byte size))]
             (gen/vector (gen/tuple br br)))))
 
+(defn conformed-bytes<= [b1 b2]
+  (bytes/bytes<= (val b1) (val b2)))
+
 (s/def ::bytes/range (s/with-gen (s/and (s/tuple ::bytes/bytes ::bytes/bytes)
-                                        (comp bytes/conformed-ranges-have-same-length? vector))
+                                        (comp bytes/conformed-ranges-have-same-length? vector)
+                                        ; (partial apply conformed-bytes<=)
+                                        )
                                  range-gen))
 
 (s/def ::bytes/ranges (s/with-gen (s/and (s/coll-of ::bytes/range) bytes/conformed-ranges-have-same-length?)
                                   ranges-gen))
 
-(s/def ::bytes/bytes-range (s/with-gen (s/tuple bytes? bytes?)
+(s/def ::bytes/bytes-range (s/with-gen (s/and (s/tuple bytes? bytes?)
+                                              ;  (partial apply conformed-bytes<=)
+                                              )
                                        byte-range-gen))
 
-(s/def ::bytes/bytes-ranges (s/with-gen (s/and (s/coll-of ::bytes/bytes-range) bytes/ranges-have-same-length?)
+(s/def ::bytes/bytes-ranges (s/with-gen (s/and (s/coll-of ::bytes/bytes-range)
+                                               bytes/ranges-have-same-length?)
                                         byte-ranges-gen))
 
 (s/def ::bytes/sliced-range (s/tuple ::bytes/byte ::bytes/byte))
@@ -57,6 +65,10 @@
 (s/def ::bytes/byte-buffer (s/with-gen (partial instance? ByteBuffer)
                                        (fn [] (gen/fmap #(ByteBuffer/wrap %1) gen/bytes))))
 (s/def ::bytes/byte-buffers (s/coll-of ::bytes/byte-buffer))
+
+(s/fdef bytes/bytes<
+  :args (s/cat :b1 ::bytes/bytes :b2 ::bytes/bytes)
+  :ret boolean?)
 
 (s/fdef bytes/unsigned<=
   :args (s/cat :x int? :y int?)

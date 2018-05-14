@@ -13,8 +13,8 @@
 (defn push-interval [state hints]
   (let [{:keys [::bytes/byte-buffers
                 ::proto/interval-stack
-                :net.lfn3.undertaker.source/bytes-requested
-                :net.lfn3.undertaker.source/shrinking?]} state
+                ::proto/bytes-requested
+                ::proto/shrinking?]} state
         hints (concat hints (::proto/hints-for-next-interval state))
         unique-hint? (some (comp (partial = ::proto/unique) first) hints)
         interval-depth (count interval-stack)
@@ -40,7 +40,7 @@
     uniqueness-hint-id (assoc ::proto/uniqueness-hint-id uniqueness-hint-id)))
 
 (defn pop-interval [state generated-value]
-  (let [{:keys [:net.lfn3.undertaker.source/bytes-requested ::proto/interval-stack ::bytes/byte-buffers]} state
+  (let [{:keys [::proto/bytes-requested ::proto/interval-stack ::bytes/byte-buffers]} state
         interval-to-update (last interval-stack)
         applicable-hints (hints-that-apply interval-stack)
         uniqueness-hint-id (->> applicable-hints
@@ -55,22 +55,25 @@
                                                                                                          uniqueness-hint-id
                                                                                                          bytes-requested)))))
 
-(defmulti apply-hint* (fn [_ _ _ [hint _]] hint))
+(defmulti apply-hint* (fn [_ _ [hint _]] hint))
 
-(defn get-already-generated-when-unique [[_ uniqueness-id] wip-intervals completed-intervals]
+(defn get-already-generated-when-unique [[_ uniqueness-id] completed-intervals]
   (->> completed-intervals
-       (filter #(= uniqueness-id (::proto/uniqueness-hint-id %1)))
-       (seq)
-       (map ::proto/mapped-bytes)
-       (into #{})))
+           (filter #(= uniqueness-id (::proto/uniqueness-hint-id %1)))
+           (map ::proto/mapped-bytes)
+           (into #{})))
 
 (defmethod apply-hint* ::proto/unique
-  [wip-intervals completed-intervals ranges hint]
-  (-> (get-already-generated-when-unique hint wip-intervals completed-intervals)
+  [completed-intervals ranges hint]
+  (-> (get-already-generated-when-unique hint completed-intervals)
       (bytes/punch-skip-values-out-of-ranges ranges)))
 
+(defmethod apply-hint* ::proto/snippable
+  [_ ranges _]
+  ranges)
+
 (defmethod apply-hint* :default
-  [_ _ _ _ hint]
+  [_ _ hint]
   (throw (IllegalArgumentException. (str "Can't apply hint " hint))))
 
 (defn apply-hints [wip-intervals completed-intervals ranges]
@@ -79,7 +82,7 @@
     (loop [ranges ranges
            hints hints]
       (if-let [hint (first hints)]
-        (let [ranges (apply-hint* wip-intervals completed-intervals ranges hint)]
+        (let [ranges (apply-hint* completed-intervals ranges hint)]
           (recur ranges (rest hints)))
         ranges))))
 
