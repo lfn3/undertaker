@@ -1,4 +1,4 @@
-(defproject net.lfn3/undertaker "0.1.5"
+(defproject net.lfn3/undertaker "0.1.6-SNAPSHOT"
   :description "A property testing library for Clojure"
   :url "http://github.com/lfn3/undertaker"
   :license {:name "Apache License Version 2.0"
@@ -18,7 +18,7 @@
              :dev       {:source-paths      ["src/specs/clojure"]
                          :jvm-opts          ["-Dundertaker.debug=true"]
                          :dependencies      [[orchestra "2017.11.12-1"]
-                                             [org.clojure/test.check "0.9.0"]]}
+                                             [org.clojure/test.check "0.9.1-SNAPSHOT"]]}
 
              :specs-jar {:source-paths      ^:replace ["src/specs/clojure"]
                          :java-source-paths ^:replace []
