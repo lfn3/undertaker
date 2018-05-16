@@ -11,13 +11,6 @@
     (is (false? (get-in result [::undertaker/initial-results ::undertaker/result])))
     (is (= ex (get-in result [::undertaker/initial-results ::undertaker/cause])))))
 
-(deftest should-throw-on-nested-props
-  (is (->> #(undertaker/run-prop {::undertaker/test-name "should-throw-on-nested-props"} (constantly true))
-           (undertaker/run-prop {::undertaker/test-name "should-throw-on-nested-props"})
-           ::undertaker/initial-results
-           ::undertaker/cause
-           (instance? IllegalStateException))))
-
 (deftest should-only-run-once-since-source-is-unused
   (let [result (->> (fn [])
                     (undertaker/run-prop {::undertaker/test-name "should-only-run-once-since-source-is-unused"}))]

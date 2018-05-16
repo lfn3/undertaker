@@ -1,15 +1,15 @@
 (ns net.lfn3.undertaker.source.always-min
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.intervals :as intervals])
+            [net.lfn3.undertaker.source.state :as state])
   (:import (java.nio ByteBuffer)))
 
-(defrecord AlwaysMinSource []
+(defrecord AlwaysMinSource [state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges]
+  (get-state-atom [_] state-atom)
+  (get-bytes [_ state ranges]
     (let [flattened-ranges (mapcat identity ranges)]
       (if (every? nil? (map seq flattened-ranges))          ;i.e. range of size zero
-        (byte-array 0)
+        [state (byte-array 0)]
         (let [min-range (loop [idx 0
                                ranges flattened-ranges]
                           (let [min-value (->> ranges
@@ -21,7 +21,7 @@
                               (= 1 (count min-ranges)) (first min-ranges)
                               (< (inc idx) (count (last ranges))) (first min-ranges)
                               :default (recur (inc idx) min-ranges))))]
-          (ByteBuffer/wrap (byte-array min-range))))))
+          [state (ByteBuffer/wrap (byte-array min-range))]))))
   (reset [_]))
 
-(defn make-always-min-source [] (->AlwaysMinSource))
+(defn make-always-min-source [] (->AlwaysMinSource (atom (state/new-state))))

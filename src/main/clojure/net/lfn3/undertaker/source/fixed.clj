@@ -1,18 +1,22 @@
 (ns net.lfn3.undertaker.source.fixed
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.bytes :as bytes])
+            [net.lfn3.undertaker.bytes :as bytes]
+            [net.lfn3.undertaker.source.state :as state])
   (:import (net.lfn3.undertaker OverrunException)
            (java.nio ByteBuffer)))
 
 (defn initial-state [bytes]
-  {::cursor                    0
-   ::bytes/bytes               bytes})
+  (merge (state/new-state)
+         {::cursor      0
+          ::bytes/bytes bytes
+          ::proto/shrinking? true
+          ::proto/sampling? false}))
 
 (defrecord FixedSource [state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges]
+  (get-state-atom [_] state-atom)
+  (get-bytes [_ state ranges]
     (let [size (count (first (first ranges)))
-          state @state-atom
           bytes (byte-array (->> state
                                  (::bytes/bytes)
                                  (drop (::cursor state))
@@ -21,9 +25,7 @@
       (when-not (= (count bytes) size)
         (throw (OverrunException. (IndexOutOfBoundsException. (str "Tried to get " size " bytes from fixed source, "
                                                                    "but only " (count bytes) " were available.")))))
-      (swap! state-atom update ::cursor + size)
-      (bytes/map-into-ranges! buf ranges)
-      buf))
+      [(update state ::cursor + size) buf]))
   (reset [_] (swap! state-atom assoc ::cursor 0)))
 
 (defn make-fixed-source [bytes]

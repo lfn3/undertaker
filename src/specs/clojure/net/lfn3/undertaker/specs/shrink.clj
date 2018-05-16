@@ -28,6 +28,13 @@
         (let [{:keys [bytes]} args]
           (= (count bytes) (count ret)))))
 
+(s/fdef shrink/repeatedly-move-towards-zero
+  :args (s/cat :bytes bytes? :fn ::undertaker/wrapped-prop-fn)
+  :ret bytes?
+  :fn (fn [{:keys [args ret]}]
+        (let [{:keys [bytes]} args]
+          (= (count bytes) (count ret)))))
+
 (defn interval-inside-bytes?
   ([{:keys [bytes interval]}] (interval-inside-bytes? bytes interval))
   ([bytes interval]

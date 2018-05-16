@@ -10,10 +10,6 @@
 (s/def ::source/source (s/with-gen (comp (partial extends? proto/ByteArraySource) class)
                             #(s.gen/fmap source.random/make-source (s.gen/int))))
 
-(s/fdef source/add-range-and-buffer-to-state
-  :args (s/cat :source-state ::proto/source-state :ranges ::bytes/ranges :buffer ::bytes/byte-buffer)
-  :rest ::proto/source-state)
-
 (s/def ::source/non-empty-ranges (s/and ::bytes/bytes-ranges
                                         not-empty
                                         #(not-empty (first %1))

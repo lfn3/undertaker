@@ -5,17 +5,13 @@
             [clojure.test :as t]
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source :as source]
-            [net.lfn3.undertaker.source.multi :as source.multi]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
-            [net.lfn3.undertaker.source.sample :as source.sample]
             [net.lfn3.undertaker.shrink :as shrink]
             [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
-            [clojure.pprint]
-            [net.lfn3.undertaker.source.fixed :as fixed-source])
-  (:import (net.lfn3.undertaker OverrunException UndertakerDebugException UniqueInputValuesExhaustedException)
-           (net.lfn3.undertaker.source.sample SampleSource)
+            [clojure.pprint])
+  (:import (net.lfn3.undertaker UndertakerDebugException UniqueInputValuesExhaustedException)
            (java.util UUID)
            (java.nio ByteBuffer)))
 
@@ -28,7 +24,7 @@
 (defn next-seed [seed]
   (bit-xor (seed-uniquifier) (inc seed)))
 
-(def ^:dynamic *source* (source.sample/make-source (System/nanoTime)))
+(def ^:dynamic *source* (net.lfn3.undertaker.source.wrapped-random/make-source (next-seed (System/nanoTime))))
 
 (def unique-hint-ids (atom 0))
 
@@ -63,8 +59,6 @@
     (source/starting-test-instance source)
     (let [result (atom [])
           report-fn (make-report-fn result)]
-      (when-not (instance? SampleSource *source*)
-        (throw (IllegalStateException. (messages/already-bound-source-error-string))))
       (with-bindings {#'t/report report-fn
                       #'*source* source}
         (try
@@ -91,20 +85,18 @@
   (println (messages/format-initial-failure test-name result-data)))
 
 (defn do-shrink [f bytes test-name iterations seed]
-  (try
-    (source/shrinking!)
-    (let [initial-failing-source (fixed-source/make-fixed-source bytes)
-          run-data-with-intervals (f initial-failing-source)
-          _ (print-initial-failure test-name
-                                   (-> {::initial-results run-data-with-intervals}
-                                       (assoc ::iterations-run iterations)
-                                       (assoc ::seed seed)))]
-      (shrink/shrink initial-failing-source f))
-    (finally (source/done-shrinking!))))
+  (let [initial-failing-source (source.fixed/make-fixed-source bytes)
+        run-data-with-intervals (f initial-failing-source)
+        _ (print-initial-failure test-name
+                                 (-> {::initial-results run-data-with-intervals}
+                                     (assoc ::iterations-run iterations)
+                                     (assoc ::seed seed)))]
+    {::initial-results run-data-with-intervals
+     ::shrunk-results (shrink/shrink initial-failing-source f)}))
 
 (defn run-prop
   ([{:keys [::test-name seed iterations debug]
-     :or   {seed       (bit-xor (System/nanoTime) (seed-uniquifier))
+     :or   {seed       (next-seed (System/nanoTime))
             iterations 1000
             debug false}}
     f]
@@ -121,13 +113,13 @@
                           (do                               ;the test, since nothing will change
                             (source/reset source)
                             (recur (dec iterations-left)))
-                          (not passed?)
-                          {::initial-results run-data
-                           ::shrunk-results  (do-shrink f
-                                                        (source/get-sourced-bytes source)
-                                                        test-name
-                                                        (- iterations (dec iterations-left))
-                                                        seed)}
+                          (and used?                        ;No point in shrinking if it's unused.
+                               (not passed?))
+                          (do-shrink f
+                                     (source/get-sourced-bytes source)
+                                     test-name
+                                     (- iterations (dec iterations-left))
+                                     seed)
                           :default (-> {::initial-results run-data}
                                        (assoc ::iterations-run (- iterations (dec iterations-left)))
                                        (assoc ::seed seed)))))]
@@ -288,21 +280,20 @@
 (defmacro collection
   ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
    `(with-interval
-      (let [hint-id# (swap! unique-hint-ids inc)]
-        (loop [result# (~collection-init-fn)]
-          (let [next# (with-interval-and-hints [[::proto/snippable nil]]
-                        (if (should-generate-elem? ~min-size ~max-size (count result#))
-                          (try
-                            (~generation-fn)
-                            (catch UniqueInputValuesExhaustedException e#
-                              (if (and (< ~min-size (count result#))
-                                       (< (count result#) ~max-size))
-                                ::stop-collection-generation
-                                (throw e#))))
-                          ::stop-collection-generation))]
-            (if-not (= ::stop-collection-generation next#)
-              (recur (~add-to-coll-fn result# next#))
-              result#)))))))
+      (loop [result# (~collection-init-fn)]
+        (let [next# (with-interval-and-hints [[::proto/snippable nil]]
+                      (if (should-generate-elem? ~min-size ~max-size (count result#))
+                        (try
+                          (~generation-fn)
+                          (catch UniqueInputValuesExhaustedException e#
+                            (if (and (< ~min-size (count result#))
+                                     (< (count result#) ~max-size))
+                              ::stop-collection-generation
+                              (throw e#))))
+                        ::stop-collection-generation))]
+          (if-not (= ::stop-collection-generation next#)
+            (recur (~add-to-coll-fn result# next#))
+            result#))))))
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0 default-collection-max-size))

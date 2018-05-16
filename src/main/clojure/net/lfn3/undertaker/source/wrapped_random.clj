@@ -1,6 +1,8 @@
 (ns net.lfn3.undertaker.source.wrapped-random
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.bytes :as bytes])
+            [net.lfn3.undertaker.bytes :as bytes]
+            [net.lfn3.undertaker.source.state :as state]
+            [net.lfn3.undertaker.intervals :as intervals])
   (:import (java.util Random)
            (java.nio ByteBuffer)))
 
@@ -14,42 +16,35 @@
     arr))
 
 (defn initial-state [pre-genned]
-  {::bytes/bytes               pre-genned
-   ::remaining-pre-genned      (count pre-genned)})
+  (merge (state/new-state)
+         {::bytes/bytes          pre-genned
+          ::remaining-pre-genned (count pre-genned)}))
 
-(defn get-buffer [rnd state-atom requested-size]
-  (let [{:keys [::remaining-pre-genned ::bytes/bytes]} @state-atom
+(defn get-buffer [rnd state requested-size]
+  (let [{:keys [::remaining-pre-genned ::bytes/bytes]} state
         within-existing (< requested-size remaining-pre-genned)
         byte-arr-size (count bytes)]
     (if within-existing
       (let [offset (- byte-arr-size remaining-pre-genned)
             buf (ByteBuffer/wrap bytes offset requested-size)]
-        (swap! state-atom #(-> %1
-                               (update ::remaining-pre-genned - requested-size)
-                               (update ::bytes/byte-buffers conj buf)))
-        buf)
+        [(update state ::remaining-pre-genned - requested-size) buf])
       (let [new-arr-size (* 2 byte-arr-size)
             new-arr (get-bytes-from-java-random rnd new-arr-size)
             buf (ByteBuffer/wrap new-arr 0 requested-size)]
-        (swap! state-atom #(-> %1
-                               (assoc ::remaining-pre-genned (- new-arr-size requested-size)
-                                      ::bytes/bytes new-arr)
-                               (update ::bytes/byte-buffers buf)))
-        buf))))
+        [(assoc state ::remaining-pre-genned (- new-arr-size requested-size)
+                      ::bytes/bytes new-arr)
+         buf]))))
 
 (defrecord WrappedRandomSource
   [rnd state-atom]
   proto/ByteArraySource
-  (get-bytes [_ ranges]
-    (let [number-of-bytes-requested (-> ranges (first) (first) (count))
-          buf (get-buffer rnd state-atom number-of-bytes-requested)]
-      (bytes/map-into-ranges! buf ranges)
-      buf))
+  (get-state-atom [_] state-atom)
+  (get-bytes [_ state ranges]
+    (let [number-of-bytes-requested (-> ranges (first) (first) (count))]
+      (get-buffer rnd state number-of-bytes-requested)))
   (reset [_]
-    (swap! state-atom #(->> %1
-                            ::bytes/bytes
-                            (fill-from-java-random rnd)
-                            (initial-state)))))
+    (swap! state-atom #(assoc %1 ::remaining-pre-genned (count (::bytes/bytes %1))
+                                 ::bytes/bytes (fill-from-java-random rnd (::bytes/bytes %1))))))
 
 (defn make-source
   ([^long seed] (make-source seed #=(* 64 1024)))

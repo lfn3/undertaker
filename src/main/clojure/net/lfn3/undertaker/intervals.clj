@@ -1,7 +1,6 @@
 (ns net.lfn3.undertaker.intervals
   (:require [net.lfn3.undertaker.proto :as proto]
-            [net.lfn3.undertaker.bytes :as bytes]
-            [clojure.set :as set]))
+            [net.lfn3.undertaker.bytes :as bytes]))
 
 (defn hints-that-apply
   "This assumes the current interval is the last one in the wip-intervals stack"
