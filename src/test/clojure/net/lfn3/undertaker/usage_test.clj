@@ -2,12 +2,11 @@
   (:require [clojure.test :refer [deftest is] :as t]
             [clojure.string :as str]
             [net.lfn3.undertaker.core :as undertaker]
-            [orchestra.spec.test :as orchestra.test])
+            [orchestra.spec.test :as orchestra.test]
+            [net.lfn3.undertaker.test-utils :as test-utils])
   (:import (net.lfn3.undertaker UniqueInputValuesExhaustedException)))
 
-(t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
-                           (orchestra.test/unstrument)))
+(test-utils/use-standard-fixtures)
 
 (undertaker/defprop vector-coll-identity {}
   (let [actions (undertaker/vec-of (partial undertaker/elements #{#(conj %1 (undertaker/simple-type))

@@ -8,11 +8,7 @@
             [net.lfn3.undertaker.test-utils :as test-utils]))
 
 
-(t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
-                           (orchestra.test/unstrument)))
-
-(def this-ns *ns*)
+(test-utils/use-standard-fixtures)
 
 (test-utils/defchecks net.lfn3.undertaker.intervals
                       #{net.lfn3.undertaker.intervals/apply-hints

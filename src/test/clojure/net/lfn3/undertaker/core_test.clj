@@ -12,9 +12,7 @@
             [net.lfn3.undertaker.test-utils :as test-utils])
   (:import (java.util Random)))
 
-(t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
-                           (orchestra.test/unstrument)))
+(test-utils/use-standard-fixtures)
 
 (test-utils/defchecks net.lfn3.undertaker.core
                       #{net.lfn3.undertaker.core/elements

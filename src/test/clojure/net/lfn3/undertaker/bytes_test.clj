@@ -8,9 +8,7 @@
             [net.lfn3.undertaker.intervals :as intervals])
   (:import (java.nio ByteBuffer)))
 
-(t/use-fixtures :once #(do (orchestra.test/instrument)
-                           (%1)
-                           (orchestra.test/unstrument)))
+(test-utils/use-standard-fixtures)
 
 (test-utils/defchecks net.lfn3.undertaker.bytes
                       #{net.lfn3.undertaker.bytes/map-into-ranges!}) ;Issues with range generation.
