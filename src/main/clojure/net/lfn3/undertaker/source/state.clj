@@ -44,12 +44,19 @@
 (defn push-interval [state hints]
   (intervals/push-interval state hints))
 
+(defn reset [state]
+  (assoc state
+    ::proto/interval-stack []
+    ::proto/completed-intervals []
+    ::bytes/byte-buffers []
+    ::proto/bytes-requested 0
+    ::proto/hints-for-next-interval []))
+
 (defn pop-interval [state generated-value]
   (cond-> state
     true (intervals/pop-interval generated-value)
     (and (::proto/sampling? state)
-         (empty? (::proto/interval-stack state))) (assoc ::proto/completed-intervals []
-                                                         ::bytes/byte-buffers [])))
+         (empty? (::proto/interval-stack state))) (reset)))
 
 ;;Used for gathering data after a test run
 
@@ -57,12 +64,6 @@
 
 (defn used? [state] (not (zero? (::proto/bytes-requested state))))
 
-(defn reset [state]
-  (assoc state
-    ::proto/interval-stack []
-    ::proto/completed-intervals []
-    ::bytes/byte-buffers []
-    ::proto/bytes-requested 0))
 
 (defn get-sourced-byte-buffers [state] (::bytes/byte-buffers state))
 
