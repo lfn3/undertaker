@@ -6,7 +6,8 @@
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as s.test]
             [net.lfn3.undertaker.bytes :as bytes]
-            [net.lfn3.undertaker.test-utils :as test-utils]))
+            [net.lfn3.undertaker.test-utils :as test-utils]
+            [net.lfn3.undertaker.proto :as proto]))
 
 (def source (source.wrapped-random/make-source (System/nanoTime)))
 (t/use-fixtures :each #(do (source/completed-test-instance source)
@@ -17,7 +18,7 @@
 (test-utils/defchecks net.lfn3.undertaker.source)
 
 (deftest should-emit-bytes
-  (source/push-interval source)
+  (source/push-interval source ::proto/leaf-interval [])
   (let [value (.get (source/get-bytes source [[(byte-array [-128]) (byte-array [-1])]
                                                         [(byte-array [0]) (byte-array [127])]]))]
     (is bytes/byte? value)
@@ -25,26 +26,26 @@
     (source/pop-interval source value)))
 
 (deftest should-emit-positive-number
-  (source/push-interval source)
+  (source/push-interval source ::proto/leaf-interval [])
   (let [value (.get (source/get-bytes source [[(byte-array [0]) (byte-array [127])]]))]
     (is pos-int? value)
     (is (contains? (set (range 0 127)) value))
     (source/pop-interval source value)))
 
 (deftest should-emit-unsigned-numbers-in-range
-  (source/push-interval source)
+  (source/push-interval source ::proto/leaf-interval [])
   (let [value (.get (source/get-bytes source [[(byte-array [0]) (byte-array [0])]]))]
     (is (= 0 value))
     (source/pop-interval source value))
 
-  (source/push-interval source)
+  (source/push-interval source ::proto/leaf-interval [])
   (let [values (byte-array 10)]
     (.get (source/get-bytes source [[(byte-array (repeat 10 0)) (byte-array (repeat 10 1))]]) values)
     (is (not-every? (partial = 0) values))
     (is (not-every? (partial = 1) values))
     (source/pop-interval source values))
 
-  (source/push-interval source)
+  (source/push-interval source ::proto/leaf-interval [])
   (let [size 10000
         values (byte-array size)]
     (.get (source/get-bytes source [[(byte-array (repeat size -128)) (byte-array (repeat size -1))]

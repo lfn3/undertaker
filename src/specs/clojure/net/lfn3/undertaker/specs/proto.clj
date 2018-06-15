@@ -15,6 +15,7 @@
                           :snippable ::proto/snippable-hint))
 (s/def ::proto/hints (s/coll-of ::proto/hint))
 (s/def ::proto/hints-for-next-interval ::proto/hints)
+(s/def ::proto/interval-type #{::proto/compound-interval ::proto/leaf-interval})
 
 (s/def ::proto/wip-interval (s/keys :req [::proto/interval-start ::proto/hints ::proto/interval-depth]))
 

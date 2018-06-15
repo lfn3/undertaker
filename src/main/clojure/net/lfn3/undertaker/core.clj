@@ -28,15 +28,24 @@
 
 (def unique-hint-ids (atom 0))
 
-(defmacro with-interval-and-hints [hints & body]
+(defmacro with-interval-and-hints [type hints & body]
   `(do
-     (source/push-interval *source* ~hints)
-     (let [result# (do ~@body)]
-       (source/pop-interval *source* result#)
-       result#)))
+    (source/push-interval *source* ~type ~hints)
+    (let [result# (do ~@body)]
+      (source/pop-interval *source* result#)
+      result#)))
 
-(defmacro with-interval [& body]
-  `(with-interval-and-hints #{} ~@body))
+(defmacro with-leaf-interval-and-hints [hints & body]
+  `(with-interval-and-hints ::proto/leaf-interval ~hints ~@body))
+
+(defmacro with-leaf-interval [& body]
+  `(with-leaf-interval-and-hints #{} ~@body))
+
+(defmacro with-compound-interval-and-hints [hints & body]
+  `(with-interval-and-hints ::proto/compound-interval ~hints ~@body))
+
+(defmacro with-compound-interval [& body]
+  `(with-compound-interval-and-hints #{} ~@body))
 
 (defn failure? [test-report]
   (-> test-report
@@ -147,21 +156,21 @@
   ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
   ([min] (byte min Byte/MAX_VALUE))
   ([min max]
-   (with-interval      ;This is slightly ridiculous, but consistency is key!
+   (with-leaf-interval      ;This is slightly ridiculous, but consistency is key!
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .get)))))
 
 (defn boolean
   ([]
-   (with-interval
+   (with-leaf-interval
      (= 1 (byte 0 1)))))
 
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
   ([floor ceiling & more-ranges]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/short->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getShort)))))
@@ -172,7 +181,7 @@
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling & more-ranges]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getInt)))))
@@ -189,7 +198,7 @@
 (defn char-ascii
   "Generates printable ascii characters"
   ([]
-   (with-interval
+   (with-leaf-interval
      (->> ascii-range
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .get)
@@ -202,7 +211,7 @@
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
   ([]
-   (with-interval
+   (with-leaf-interval
      (->> alphanumeric-range
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .get)
@@ -214,7 +223,7 @@
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
   ([]
-   (with-interval
+   (with-leaf-interval
      (->> alpha-range
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .get)
@@ -224,7 +233,7 @@
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
   ([floor ceiling]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getLong)))))
@@ -237,7 +246,7 @@
   ([] (float (- Float/MAX_VALUE) Float/MAX_VALUE))
   ([min] (float min Float/MAX_VALUE))
   ([floor ceiling]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Float/MIN_VALUE) bytes/float->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getFloat)))))
@@ -250,7 +259,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
           (bytes/punch-skip-values-out-of-ranges start-of-unreal-doubles)
           (source/get-bytes *source*)
@@ -260,7 +269,7 @@
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
   ([floor ceiling]
-   (with-interval
+   (with-leaf-interval
      (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
           (source/get-bytes *source*)
           (get-from-byte-buffer-abs .getDouble)))))
@@ -269,7 +278,7 @@
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [floor ceiling len]
-  (with-interval
+  (with-leaf-interval
     (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
            (cond (< len floor) 1
                  (< ceiling (inc len)) 0
@@ -279,10 +288,10 @@
 
 (defmacro collection
   ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
-   `(with-interval
+   `(with-compound-interval
       (loop [result# (~collection-init-fn)]
-        (let [next# (with-interval-and-hints [[::proto/snippable nil]]
-                      (if (should-generate-elem? ~min-size ~max-size (count result#))
+        (let [next# (with-compound-interval-and-hints [[::proto/snippable nil]]
+                                                      (if (should-generate-elem? ~min-size ~max-size (count result#))
                         (try
                           (~generation-fn)
                           (catch UniqueInputValuesExhaustedException e#
@@ -316,7 +325,7 @@
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
   ([min max]
-   (with-interval
+   (with-compound-interval
      (-> (vec-of char min max)
          (char-array)
          (String.)))))
@@ -325,7 +334,7 @@
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
   ([min max]
-   (with-interval
+   (with-compound-interval
      (-> (vec-of char-ascii min max)
          (char-array)
          (String.)))))
@@ -334,7 +343,7 @@
   ([] (string-alphanumeric 0 default-string-max-size))
   ([min] (string-alphanumeric min (+ default-string-max-size min)))
   ([min max]
-   (with-interval
+   (with-compound-interval
      (-> (vec-of char-alphanumeric min max)
          (char-array)
          (String.)))))
@@ -343,7 +352,7 @@
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
   ([min max]
-   (with-interval
+   (with-compound-interval
      (-> (vec-of char-alpha min max)
          (char-array)
          (String.)))))
@@ -351,14 +360,14 @@
 (defn elements
   "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
   ([coll]
-   (with-interval
+   (with-leaf-interval
      (let [target-idx (int 0 (dec (count coll)))]
        (nth (vec coll) target-idx)))))
 
 (defn shuffle
   "Generates vectors with the elements of coll in random orders"
   ([coll]
-    (with-interval
+    (with-compound-interval
       (if (empty? coll)
         coll
         (loop [remaining coll
@@ -394,34 +403,34 @@
 (defn keyword
   "Generate keywords without namespaces."
   []
-  (with-interval
+  (with-compound-interval
     (frequency [[100 #(core/keyword (symbol-name-or-namespace))]
                 [1 (constantly :/)]])))
 
 (defn keyword-ns
   "Generate keywords with namespaces."
   []
-  (with-interval
+  (with-compound-interval
     (core/keyword (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn symbol
   "Generate symbols without namespaces."
   []
-  (with-interval
+  (with-compound-interval
     (frequency [[100 #(core/symbol (symbol-name-or-namespace))]
                 [1 (constantly '/)]])))
 
 (defn symbol-ns
   "Generate symbols with namespaces."
   []
-  (with-interval
+  (with-compound-interval
     (core/symbol (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn ratio
   "Generates a `clojure.lang.Ratio`. Shrinks toward 0. Not all values generated
    will be ratios, as many values returned by `/` are not ratios."
   []
-  (with-interval
+  (with-compound-interval
     (/ (int) (int Integer/MIN_VALUE -1 1 Integer/MAX_VALUE))))
 
 (defn simple-type
@@ -439,9 +448,9 @@
   ([key-gen value-gen size] (map-of key-gen value-gen size size))
   ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
   ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
-   (with-interval
+   (with-compound-interval
      (let [hint-id (swap! unique-hint-ids inc)
-           kv-gen #(let [k (with-interval
+           kv-gen #(let [k (with-compound-interval
                              (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
                              (key-gen))
                          v (if value-gen-takes-key-as-arg

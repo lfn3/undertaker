@@ -29,7 +29,7 @@
         :ret ::proto/source-state)
 
 (s/fdef intervals/push-interval
-        :args (s/cat :state ::proto/source-state :hints ::proto/hints)
+        :args (s/cat :state ::proto/source-state :interval-type ::proto/interval-type :hints ::proto/hints)
         :ret ::proto/source-state)
 
 (s/fdef intervals/build-completed-interval

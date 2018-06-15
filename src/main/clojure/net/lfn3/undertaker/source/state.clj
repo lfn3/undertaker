@@ -1,9 +1,7 @@
 (ns net.lfn3.undertaker.source.state
   (:require [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.intervals :as intervals]
-            [net.lfn3.undertaker.bytes :as bytes])
-  (:import (net.lfn3.undertaker UniqueInputValuesExhaustedException)
-           (java.nio ByteBuffer)))
+            [net.lfn3.undertaker.bytes :as bytes]))
 
 (defn new-state []
   {::proto/sampling?               true
@@ -31,18 +29,20 @@
 ;; Used to source data for tests -  should usually be within the scope of `run-prop` unless we're sampling
 
 (defn add-range-and-buffer-to-state [{:keys [::proto/interval-stack ::proto/sampling?] :as state} buffer ranges hints]
-  (let [bytes-requested (count (last (last ranges)))]
+  (let [bytes-requested (count (last (last ranges)))
+        interval (last interval-stack)]
+    (assert (or (nil? interval) (= (::proto/interval-type interval) ::proto/leaf-interval)))
     (cond-> state
       true (update ::proto/bytes-requested + bytes-requested)
       (or (not sampling?) (not-empty hints)) (update ::bytes/byte-buffers conj buffer)
-      (not (nil? (last interval-stack))) (update ::proto/interval-stack #(update %1 (dec (count %1))
-                                                                                 assoc ::bytes/ranges ranges)))))
+      (not (nil? interval)) (update ::proto/interval-stack #(update %1 (dec (count %1))
+                                                                    assoc ::bytes/ranges ranges)))))
 
 (defn add-hints-for-next-interval [state hints]
   (update state ::proto/hints-for-next-interval concat hints))
 
-(defn push-interval [state hints]
-  (intervals/push-interval state hints))
+(defn push-interval [state interval-type hints]
+  (intervals/push-interval state interval-type hints))
 
 (defn reset [state]
   (assoc state

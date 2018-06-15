@@ -9,7 +9,7 @@
        last
        ::proto/hints))
 
-(defn push-interval [state hints]
+(defn push-interval [state interval-type hints]
   (let [{:keys [::bytes/byte-buffers
                 ::proto/interval-stack
                 ::proto/bytes-requested
@@ -23,7 +23,8 @@
                    {::proto/interval-start-buffer (count byte-buffers)
                     ::proto/interval-start        bytes-requested
                     ::proto/interval-depth        interval-depth
-                    ::proto/hints                 hints}
+                    ::proto/hints                 hints
+                    ::proto/interval-type         interval-type}
                    nil)]
     (-> state
         (update ::proto/interval-stack conj interval)

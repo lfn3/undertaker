@@ -39,9 +39,8 @@
   (swap! (get-state-atom source) state/add-hints-for-next-interval hints))
 
 (defn push-interval
-  ([source] (push-interval source []))
-  ([source hints]
-   (swap! (get-state-atom source) state/push-interval hints)
+  ([source interval-type hints]
+   (swap! (get-state-atom source) state/push-interval interval-type hints)
    nil))
 
 (defn pop-interval [source generated-value]
