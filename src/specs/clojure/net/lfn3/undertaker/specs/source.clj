@@ -20,7 +20,7 @@
   :ret (partial instance? ByteBuffer))
 
 (s/fdef source/push-interval
-        :args (s/cat :source ::source/source :interval-type ::proto/interval-type :hints (s/? ::proto/hints))
+        :args (s/cat :source ::source/source :interval-type ::proto/interval-type :hints ::proto/hints)
         :ret nil?)
 
 (s/fdef source/get-sourced-byte-buffers
