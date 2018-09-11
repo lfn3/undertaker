@@ -358,11 +358,12 @@
          (String.)))))
 
 (defn elements
-  "Pick a random value from the supplied collection. Shrinks to the first element of the collection."
+  "Pick a random value from the supplied collection. Returns nil if the collection is empty.
+  Shrinks to the first element of the collection."
   ([coll]
    (with-leaf-interval
      (let [target-idx (int 0 (dec (count coll)))]
-       (nth (vec coll) target-idx)))))
+       (nth (vec coll) target-idx nil)))))
 
 (defn shuffle
   "Generates vectors with the elements of coll in random orders"
