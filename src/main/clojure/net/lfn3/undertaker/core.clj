@@ -138,9 +138,12 @@
 (defn format-results
   ([name {:keys [::initial-results ::shrunk-results] :as results} failed-lang-fn debug?]
    (cond-> ""
-     (and (not (::proto/source-used? initial-results)) (::result initial-results)) (str (messages/format-not-property-passed name results))
-     (and (not (::proto/source-used? initial-results)) (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
-     (and (::proto/source-used? initial-results) (not (::result initial-results))) (str (messages/format-shrunk results) (failed-lang-fn name results))
+     (and (not (::proto/source-used? initial-results))
+          (::result initial-results)) (str (messages/format-not-property-passed name results))
+     (and (not (::proto/source-used? initial-results))
+          (not (::result initial-results))) (str (messages/format-not-property-test-failed name results))
+     (and (::proto/source-used? initial-results)
+          (not (::result initial-results))) (str (messages/format-shrunk results) \newline (failed-lang-fn name results))
      debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results)))
      true (not-empty))))
 
