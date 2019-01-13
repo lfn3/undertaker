@@ -200,7 +200,7 @@
 
 (s/fdef bytes/split-number-line-ranges-into-bytewise-min-max
   :args (s/cat :ranges (s/and (s/coll-of number?) (comp even? count))
-               :min-neg-val (s/? number?)
+               :min-neg-val number?
                :->bytes-fn ::bytes/->bytes-fn)
   :ret ::bytes/ranges)
 

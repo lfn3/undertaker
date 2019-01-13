@@ -269,7 +269,6 @@
        [[floor-bytes min-neg-bytes] [(->bytes-fn 0) ceiling-bytes]])))))
 
 (defn split-number-line-ranges-into-bytewise-min-max
-  ([ranges ->bytes-fn] (split-number-line-ranges-into-bytewise-min-max ranges -1 ->bytes-fn))
   ([ranges min-neg-val ->bytes-fn]
    (->> ranges
         (partition 2)

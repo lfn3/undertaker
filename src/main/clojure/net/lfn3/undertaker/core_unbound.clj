@@ -32,25 +32,19 @@
   `(let [buffer# ~byte-buffer]
      (~f buffer# (.position buffer#))))
 
-(defn byte [source min max]
-  (with-leaf-interval source                                ;This is slightly ridiculous, but consistency is key!
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max [min max] bytes/byte->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .get))))
+(defmacro numeric [source ranges min-neg-val ->bytes-fn byte-buffer->]
+  `(with-leaf-interval ~source
+     (->> (bytes/split-number-line-ranges-into-bytewise-min-max ~ranges ~min-neg-val ~->bytes-fn)
+          (source/get-bytes ~source)
+          (get-from-byte-buffer-abs ~byte-buffer->))))
+
+(defn byte [source & ranges] (numeric source ranges -1 bytes/byte->bytes .get))
 
 (defn boolean [source] (with-leaf-interval source (= 1 (byte source 0 1))))
 
-(defn short [source floor ceiling & more-ranges]
-  (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/short->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .getShort))))
+(defn short [source & ranges] (numeric source ranges -1 bytes/short->bytes .getShort))
 
-(defn int [source floor ceiling & more-ranges]
-  (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .getInt))))
+(defn int [source & ranges] (numeric source ranges -1 bytes/int->bytes .getInt))
 
 (defn char [source ranges]
   (with-leaf-interval source
@@ -59,39 +53,23 @@
          (get-from-byte-buffer-abs .get)
          (core/char))))
 
-(defn long [source floor ceiling & more-ranges]
-  (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max
-           (concat [floor ceiling] more-ranges) bytes/long->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .getLong))))
+(defn long [source & ranges] (numeric source ranges -1 bytes/long->bytes .getLong))
 
-(defn float [source floor ceiling & more-ranges]
-  (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max
-           (concat [floor ceiling] more-ranges) (- Float/MIN_VALUE) bytes/float->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .getFloat))))
+(defn float [source & ranges] (numeric source ranges (- Float/MIN_VALUE) bytes/float->bytes .getFloat))
 
 (def start-of-unreal-doubles (->> (range -1 -17 -1)
                                   (mapcat (fn [i] [[127 i] [-1 i]]))
                                   (set)))
 
-(defn real-double [source floor ceiling & more-ranges]
+(defn real-double [source & ranges]
   (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max
-           (concat [floor ceiling] more-ranges) (- Double/MIN_VALUE) bytes/double->bytes)
+    (->> (bytes/split-number-line-ranges-into-bytewise-min-max ranges (- Double/MIN_VALUE) bytes/double->bytes)
+         ;This is the reason we don't use the `numeric` macro
          (bytes/punch-skip-values-out-of-ranges start-of-unreal-doubles)
          (source/get-bytes source)
          (get-from-byte-buffer-abs .getDouble))))
 
-(defn double [source floor ceiling & more-ranges]
-  (with-leaf-interval source
-    (->> (bytes/split-number-line-ranges-into-bytewise-min-max
-           (concat [floor ceiling] more-ranges) (- Double/MIN_VALUE) bytes/double->bytes)
-         (source/get-bytes source)
-         (get-from-byte-buffer-abs .getDouble))))
-
+(defn double [source & ranges] (numeric source ranges (- Double/MIN_VALUE) bytes/double->bytes .getDouble))
 
 ;TODO bias this so it's more likely to produce longer seqs.
 (defn should-generate-elem? [source floor ceiling len]
