@@ -68,7 +68,7 @@
 (defn vectorized-move-bytes-into-range
   ([input min max] (vectorized-move-bytes-into-range input min max #{}))
   ([input min max skip]
-   (let [ranges (split-number-line-min-max-into-bytewise-min-max min max short->bytes)
+   (let [ranges (split-number-line-min-max-into-bytewise-min-max min max -1 short->bytes)
          skip-bytes (set (map short->bytes skip))
          ranges (punch-skip-values-out-of-ranges skip-bytes ranges)]
      (-> input
@@ -142,7 +142,7 @@
     (is (= [0 0 0 4] (vec (buffers->bytes buffers 3 4)))) (nth buffers 3)))
 
 (deftest test-split-number-line-min-max-into-bytewise-min-max
-  (let [vectorized #(->> (split-number-line-min-max-into-bytewise-min-max %1 %2 short->bytes)
+  (let [vectorized #(->> (split-number-line-min-max-into-bytewise-min-max %1 %2 -1 short->bytes)
                          (map (partial map vec))
                          (map vec)
                          (vec))]
@@ -257,7 +257,7 @@
         lower (undertaker/short 0 (dec upper))
         skip (undertaker/set-of (partial undertaker/short lower upper))
         result (punch-skip-values-out-of-ranges (map short->bytes skip)
-                                                (split-number-line-min-max-into-bytewise-min-max lower upper short->bytes))
+                                                (split-number-line-min-max-into-bytewise-min-max lower upper -1 short->bytes))
         ranges-as-shorts (map (partial map #(apply bytes->short %)) result)
         length-of-ranges (->> (mapcat range (map first ranges-as-shorts) (map (comp inc last) ranges-as-shorts))
                               (count))

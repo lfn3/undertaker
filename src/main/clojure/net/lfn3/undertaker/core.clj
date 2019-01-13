@@ -1,19 +1,17 @@
 (ns net.lfn3.undertaker.core
   (:refer-clojure :exclude [int byte long double short char float keyword boolean shuffle symbol list])
   (:require [clojure.core :as core]
-            [clojure.string :as str]
             [clojure.test :as t]
             [net.lfn3.undertaker.proto :as proto]
             [net.lfn3.undertaker.source :as source]
             [net.lfn3.undertaker.source.fixed :as source.fixed]
             [net.lfn3.undertaker.shrink :as shrink]
-            [net.lfn3.undertaker.bytes :as bytes]
             [net.lfn3.undertaker.messages :as messages]
             [net.lfn3.undertaker.source.wrapped-random :as source.random]
+            [net.lfn3.undertaker.core-unbound :as unbound]
             [clojure.pprint])
-  (:import (net.lfn3.undertaker UndertakerDebugException UniqueInputValuesExhaustedException)
-           (java.util UUID)
-           (java.nio ByteBuffer)))
+  (:import (net.lfn3.undertaker UndertakerDebugException)
+           (java.util UUID)))
 
 (defonce seed-uniquifier* (volatile! (core/long 8682522807148012)))
 
@@ -27,25 +25,6 @@
 (def ^:dynamic *source* (net.lfn3.undertaker.source.wrapped-random/make-source (next-seed (System/nanoTime))))
 
 (def unique-hint-ids (atom 0))
-
-(defmacro with-interval-and-hints [type hints & body]
-  `(do
-    (source/push-interval *source* ~type ~hints)
-    (let [result# (do ~@body)]
-      (source/pop-interval *source* result#)
-      result#)))
-
-(defmacro with-leaf-interval-and-hints [hints & body]
-  `(with-interval-and-hints ::proto/leaf-interval ~hints ~@body))
-
-(defmacro with-leaf-interval [& body]
-  `(with-leaf-interval-and-hints #{} ~@body))
-
-(defmacro with-compound-interval-and-hints [hints & body]
-  `(with-interval-and-hints ::proto/compound-interval ~hints ~@body))
-
-(defmacro with-compound-interval [& body]
-  `(with-compound-interval-and-hints #{} ~@body))
 
 (defn failure? [test-report]
   (-> test-report
@@ -147,10 +126,6 @@
      debug? (str "\n\nDebug output follows:\n" (with-out-str (clojure.pprint/pprint results)))
      true (not-empty))))
 
-(defmacro get-from-byte-buffer-abs [f ^ByteBuffer byte-buffer]
-  `(let [buffer# ~byte-buffer]
-     (~f buffer# (.position buffer#))))
-
 ;; === === === === === === === ===
 ;; Public api
 ;; === === === === === === === ===
@@ -158,54 +133,36 @@
 (defn byte
   ([] (byte Byte/MIN_VALUE Byte/MAX_VALUE))
   ([min] (byte min Byte/MAX_VALUE))
-  ([min max]
-   (with-leaf-interval      ;This is slightly ridiculous, but consistency is key!
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max min max bytes/byte->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .get)))))
+  ([min max] (unbound/byte *source* min max)))
 
-(defn boolean
-  ([]
-   (with-leaf-interval
-     (= 1 (byte 0 1)))))
+(defn boolean ([] (unbound/boolean *source*)))
 
 (defn short
   ([] (short Short/MIN_VALUE Short/MAX_VALUE))
   ([min] (short min Short/MAX_VALUE))
-  ([floor ceiling & more-ranges]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/short->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getShort)))))
+  ([floor ceiling & more-ranges] (apply unbound/short *source* floor ceiling more-ranges)))
 
 (defn nat [] (short 0 200))
 
 (defn int
   ([] (int Integer/MIN_VALUE Integer/MAX_VALUE))
   ([min] (int min Integer/MAX_VALUE))
-  ([floor ceiling & more-ranges]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-ranges-into-bytewise-min-max (concat [floor ceiling] more-ranges) bytes/int->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getInt)))))
-
-(defn char
-  "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
-  ([] (core/char (int 0x0000 0xD800))))
+  ([floor ceiling & more-ranges] (apply unbound/int *source* floor ceiling more-ranges)))
 
 (defn vector-ranges-to-byte-ranges [ranges]
   (vec (map (comp vec (partial map byte-array)) ranges)))
+
+(def default-char-range (vector-ranges-to-byte-ranges [[[0x0000] [0xD800]]]))
+
+(defn char
+  "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
+  ([] (unbound/char *source* default-char-range)))
 
 (def ascii-range (vector-ranges-to-byte-ranges [[[32] [126]]]))
 
 (defn char-ascii
   "Generates printable ascii characters"
-  ([]
-   (with-leaf-interval
-     (->> ascii-range
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .get)
-          (core/char)))))
+  ([] (unbound/char *source* ascii-range)))
 
 (def alphanumeric-range (vector-ranges-to-byte-ranges [[[48] [57]]
                                                        [[65] [90]]
@@ -213,33 +170,19 @@
 
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
-  ([]
-   (with-leaf-interval
-     (->> alphanumeric-range
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .get)
-          (core/char)))))
+  ([] (unbound/char *source* alphanumeric-range)))
 
 (def alpha-range (vector-ranges-to-byte-ranges [[[65] [90]]
                                                 [[97] [122]]]))
 
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
-  ([]
-   (with-leaf-interval
-     (->> alpha-range
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .get)
-          (core/char)))))
+  ([] (unbound/char *source* alpha-range)))
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
   ([min] (long min Long/MAX_VALUE))
-  ([floor ceiling]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling bytes/long->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getLong)))))
+  ([floor ceiling & more-ranges] (apply unbound/long *source* floor ceiling more-ranges)))
 
 (def large-integer long)
 
@@ -248,137 +191,78 @@
 (defn float
   ([] (float (- Float/MAX_VALUE) Float/MAX_VALUE))
   ([min] (float min Float/MAX_VALUE))
-  ([floor ceiling]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Float/MIN_VALUE) bytes/float->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getFloat)))))
-
-(def start-of-unreal-doubles (->> (range -1 -17 -1)
-                                  (mapcat (fn [i] [[127 i] [-1 i]]))
-                                  (set)))
+  ([floor ceiling & more-ranges] (apply unbound/float *source* floor ceiling more-ranges)))
 
 (defn real-double
   ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
   ([min] (real-double min Double/MAX_VALUE))
-  ([floor ceiling]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
-          (bytes/punch-skip-values-out-of-ranges start-of-unreal-doubles)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getDouble)))))
+  ([floor ceiling & more-ranges] (apply unbound/real-double *source* floor ceiling more-ranges)))
 
 (defn double
-  ([] (real-double (- Double/MAX_VALUE) Double/MAX_VALUE))
-  ([min] (real-double min Double/MAX_VALUE))
-  ([floor ceiling]
-   (with-leaf-interval
-     (->> (bytes/split-number-line-min-max-into-bytewise-min-max floor ceiling (- Double/MIN_VALUE) bytes/double->bytes)
-          (source/get-bytes *source*)
-          (get-from-byte-buffer-abs .getDouble)))))
+  ([] (double (- Double/MAX_VALUE) Double/MAX_VALUE))
+  ([min] (double min Double/MAX_VALUE))
+  ([floor ceiling & more-ranges] (apply unbound/double *source* floor ceiling more-ranges)))
 
 (def default-string-max-size 2048)
-
-;TODO bias this so it's more likely to produce longer seqs.
-(defn should-generate-elem? [floor ceiling len]
-  (with-leaf-interval
-    (<= 1 (let [value (byte 0 5)]                            ;Side-effecty
-           (cond (< len floor) 1
-                 (< ceiling (inc len)) 0
-                 :default value)))))
-
 (def default-collection-max-size 64)
-
-(defmacro collection
-  ([collection-init-fn generation-fn add-to-coll-fn min-size max-size]
-   `(with-compound-interval
-      (loop [result# (~collection-init-fn)]
-        (let [next# (with-compound-interval-and-hints [[::proto/snippable nil]]
-                                                      (if (should-generate-elem? ~min-size ~max-size (count result#))
-                        (try
-                          (~generation-fn)
-                          (catch UniqueInputValuesExhaustedException e#
-                            (if (and (< ~min-size (count result#))
-                                     (< (count result#) ~max-size))
-                              ::stop-collection-generation
-                              (throw e#))))
-                        ::stop-collection-generation))]
-          (if-not (= ::stop-collection-generation next#)
-            (recur (~add-to-coll-fn result# next#))
-            result#))))))
 
 (defn vec-of
   ([elem-gen] (vec-of elem-gen 0 default-collection-max-size))
   ([elem-gen size] (vec-of elem-gen size size))
-  ([elem-gen min max] (collection vector elem-gen conj min max)))
+  ([elem-gen min max] (unbound/collection *source* vector elem-gen conj min max)))
 
 (defn set-of
   ([elem-gen] (set-of elem-gen 0 default-collection-max-size))
   ([elem-gen size] (set-of elem-gen size size))
   ([elem-gen min max]
    (let [hint-id (swap! unique-hint-ids inc)]
-     (collection hash-set
-                 #(do (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
-                      (elem-gen))
-                 conj
-                 min
-                 max))))
+     (unbound/collection *source*
+                         hash-set
+                         #(do (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
+                              (elem-gen))
+                         conj
+                         min
+                         max))))
 
 (defn string
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
-  ([min max]
-   (with-compound-interval
-     (-> (vec-of char min max)
-         (char-array)
-         (String.)))))
+  ([min max] (unbound/string *source* default-char-range min max)))
 
 (defn string-ascii
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
-  ([min max]
-   (with-compound-interval
-     (-> (vec-of char-ascii min max)
-         (char-array)
-         (String.)))))
+  ([min max] (unbound/string *source* ascii-range min max)))
 
 (defn string-alphanumeric
   ([] (string-alphanumeric 0 default-string-max-size))
   ([min] (string-alphanumeric min (+ default-string-max-size min)))
-  ([min max]
-   (with-compound-interval
-     (-> (vec-of char-alphanumeric min max)
-         (char-array)
-         (String.)))))
+  ([min max] (unbound/string *source* alphanumeric-range min max)))
 
 (defn string-alpha
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
-  ([min max]
-   (with-compound-interval
-     (-> (vec-of char-alpha min max)
-         (char-array)
-         (String.)))))
+  ([min max] (unbound/string *source* alpha-range min max)))
 
 (defn elements
   "Pick a random value from the supplied collection. Returns nil if the collection is empty.
   Shrinks to the first element of the collection."
   ([coll]
-   (with-leaf-interval
-     (let [target-idx (int 0 (dec (count coll)))]
-       (nth (vec coll) target-idx nil)))))
+   (unbound/with-leaf-interval *source*
+     (let [target-idx (unbound/int *source* 0 (dec (count coll)))]
+       (nth (core/vec coll) target-idx nil)))))
 
 (defn shuffle
   "Generates vectors with the elements of coll in random orders"
   ([coll]
-    (with-compound-interval
+    (unbound/with-compound-interval *source*
       (if (empty? coll)
         coll
         (loop [remaining coll
                result []]
           (if-not (<= (count remaining) 1)
-            (let [next-idx (int 0 (dec (count remaining)))]
-              (recur (vec (concat (subvec remaining 0 next-idx) (subvec remaining (inc next-idx))))
+            (let [next-idx (unbound/int *source* 0 (dec (count remaining)))]
+              (recur (core/vec (concat (subvec remaining 0 next-idx) (subvec remaining (inc next-idx))))
                      (conj result (nth remaining next-idx))))
             (conj result (first remaining))))))))
 
@@ -407,34 +291,34 @@
 (defn keyword
   "Generate keywords without namespaces."
   []
-  (with-compound-interval
+  (unbound/with-compound-interval *source*
     (frequency [[100 #(core/keyword (symbol-name-or-namespace))]
                 [1 (constantly :/)]])))
 
 (defn keyword-ns
   "Generate keywords with namespaces."
   []
-  (with-compound-interval
+  (unbound/with-compound-interval *source*
     (core/keyword (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn symbol
   "Generate symbols without namespaces."
   []
-  (with-compound-interval
+  (unbound/with-compound-interval *source*
     (frequency [[100 #(core/symbol (symbol-name-or-namespace))]
                 [1 (constantly '/)]])))
 
 (defn symbol-ns
   "Generate symbols with namespaces."
   []
-  (with-compound-interval
+  (unbound/with-compound-interval *source*
     (core/symbol (symbol-name-or-namespace) (symbol-name-or-namespace))))
 
 (defn ratio
   "Generates a `clojure.lang.Ratio`. Shrinks toward 0. Not all values generated
    will be ratios, as many values returned by `/` are not ratios."
   []
-  (with-compound-interval
+  (unbound/with-compound-interval *source*
     (/ (int) (int Integer/MIN_VALUE -1 1 Integer/MAX_VALUE))))
 
 (defn simple-type
@@ -452,21 +336,21 @@
   ([key-gen value-gen size] (map-of key-gen value-gen size size))
   ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
   ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
-   (with-compound-interval
+   (unbound/with-compound-interval *source*
      (let [hint-id (swap! unique-hint-ids inc)
-           kv-gen #(let [k (with-compound-interval
+           kv-gen #(let [k (unbound/with-compound-interval *source*
                              (source/add-hints-to-next-interval *source* [[::proto/unique hint-id]])
                              (key-gen))
                          v (if value-gen-takes-key-as-arg
                              (value-gen k)
                              (value-gen))]
                      [k v])]
-       (into {} (collection vector kv-gen conj min-size max-size))))))
+       (into {} (unbound/collection *source* vector kv-gen conj min-size max-size))))))
 
 (defn list-of
   ([gen] (list-of gen 0 default-collection-max-size))
   ([gen size] (list-of gen size size))
-  ([gen min-size max-size] (collection (constantly '()) gen conj min-size max-size)))
+  ([gen min-size max-size] (unbound/collection *source* (constantly '()) gen conj min-size max-size)))
 
 (defn any* [limit leaf-gen]
   (if (< 0 (swap! limit dec))

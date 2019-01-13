@@ -253,8 +253,6 @@
     input))
 
 (defn split-number-line-min-max-into-bytewise-min-max
-  ([floor ceiling ->bytes-fn]
-    (split-number-line-min-max-into-bytewise-min-max floor ceiling -1 ->bytes-fn))
   ([floor ceiling min-neg-val ->bytes-fn]
    (let [floor-bytes (->bytes-fn floor)
          ceiling-bytes (->bytes-fn ceiling)
@@ -271,10 +269,12 @@
        [[floor-bytes min-neg-bytes] [(->bytes-fn 0) ceiling-bytes]])))))
 
 (defn split-number-line-ranges-into-bytewise-min-max
-  ([ranges ->bytes-fn]
+  ([ranges ->bytes-fn] (split-number-line-ranges-into-bytewise-min-max ranges -1 ->bytes-fn))
+  ([ranges min-neg-val ->bytes-fn]
    (->> ranges
         (partition 2)
-        (mapcat (fn [[floor ceiling]] (split-number-line-min-max-into-bytewise-min-max floor ceiling ->bytes-fn))))))
+        (mapcat (fn [[floor ceiling]]
+                  (split-number-line-min-max-into-bytewise-min-max floor ceiling min-neg-val ->bytes-fn))))))
 
 (defn byte->bytes [b]
   (byte-array 1 (unchecked-byte b)))
