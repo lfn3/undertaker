@@ -5,7 +5,9 @@
             [net.lfn3.undertaker.proto :as proto]
             [clojure.core :as core])
   (:import (java.nio ByteBuffer)
-           (net.lfn3.undertaker UniqueInputValuesExhaustedException)))
+           (net.lfn3.undertaker UniqueInputValuesExhaustedException)
+           (java.util List)
+           (java.lang.reflect Method Modifier)))
 
 (defmacro with-interval-and-hints [source type hints & body]
   `(do
@@ -46,6 +48,17 @@
 
 (defn int [source & ranges] (numeric source ranges -1 bytes/int->bytes .getInt))
 
+(defn vector-ranges-to-byte-ranges [ranges]
+  (vec (map (comp vec (partial map byte-array)) ranges)))
+
+(def default-char-range (vector-ranges-to-byte-ranges [[[0x0000] [0xD800]]]))
+(def ascii-range (vector-ranges-to-byte-ranges [[[32] [126]]]))
+(def alphanumeric-range (vector-ranges-to-byte-ranges [[[48] [57]]
+                                                       [[65] [90]]
+                                                       [[97] [122]]]))
+(def alpha-range (vector-ranges-to-byte-ranges [[[65] [90]]
+                                                [[97] [122]]]))
+
 (defn char [source ranges]
   (with-leaf-interval source
     (->> ranges
@@ -79,6 +92,7 @@
                   (< ceiling (inc len)) 0
                   :default value)))))
 
+(def default-collection-max-size 64)
 (defmacro collection
   "Because generation-fn is user supplied, it has to dynamically resolve source"
   ([source collection-init-fn generation-fn add-to-coll-fn min-size max-size]
@@ -98,9 +112,63 @@
             (recur (~add-to-coll-fn result# next#))
             result#))))))
 
+(def default-string-max-size 2048)
 (defn string
   [source char-range min max]
   (with-compound-interval source
     (-> (collection source vector (partial char source char-range) conj min max)
         (char-array)
         (String.))))
+
+(defn default-class->generator [source] {String #(string source default-char-range 0 default-string-max-size)
+                                         Integer/TYPE #(int source Integer/MIN_VALUE Integer/MAX_VALUE)
+                                         Integer #(int source Integer/MIN_VALUE Integer/MAX_VALUE)
+                                         Long #(long source Long/MIN_VALUE Long/MAX_VALUE)
+                                         Long/TYPE #(long source Long/MIN_VALUE Long/MAX_VALUE)
+                                         Float #(float source (- Float/MAX_VALUE) Float/MAX_VALUE)
+                                         Float/TYPE #(float source (- Float/MAX_VALUE) Float/MAX_VALUE)
+                                         Double #(double source (- Double/MAX_VALUE) Double/MAX_VALUE)
+                                         Double/TYPE #(double source (- Double/MAX_VALUE) Double/MAX_VALUE)
+                                         Character #(char source default-char-range)
+                                         Character/TYPE #(char source default-char-range)
+                                         Byte #(byte source Byte/MIN_VALUE Byte/MAX_VALUE)
+                                         Byte/TYPE #(byte source Byte/MIN_VALUE Byte/MAX_VALUE)
+                                         Boolean #(boolean source)
+                                         Boolean/TYPE #(boolean source)})
+
+(defn is-static-constructor [^Class c ^Method m]
+  (and (-> m (.getModifiers) (Modifier/isStatic))
+       (-> m (.getReturnType) (= c))))
+
+(defn get-static-constructors [^Class c]
+  (->> (.getDeclaredMethods c)
+       (filter (partial is-static-constructor c))))
+
+(defn find-type-params [class constructor]
+  )
+
+(def reflective*)
+
+(defn generic-class->generator [source]
+  {List (fn [[type]]
+          (let [ctor nil                                    ;FIXME
+                ]
+            (collection source
+                        vector
+                        (partial reflective* source type (find-type-params class ctor))
+                        conj
+                        0
+                        default-collection-max-size)))})
+
+(defn reflective* [source class class->generator type-param->class]
+  (or (some-> class->generator
+              (seq)
+              (get class)
+              (apply nil))))
+
+(defn reflective
+  [source class class->generator]
+  (reflective* source
+               class
+               (merge (default-class->generator source) class->generator)
+               {}))

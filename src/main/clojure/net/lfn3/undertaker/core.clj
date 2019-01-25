@@ -149,35 +149,21 @@
   ([min] (int min Integer/MAX_VALUE))
   ([floor ceiling & more-ranges] (apply unbound/int *source* floor ceiling more-ranges)))
 
-(defn vector-ranges-to-byte-ranges [ranges]
-  (vec (map (comp vec (partial map byte-array)) ranges)))
-
-(def default-char-range (vector-ranges-to-byte-ranges [[[0x0000] [0xD800]]]))
-
 (defn char
   "Returns a java primitive char. Does not generate values outside the BMP (Basic Multilingual Plane)."
-  ([] (unbound/char *source* default-char-range)))
-
-(def ascii-range (vector-ranges-to-byte-ranges [[[32] [126]]]))
+  ([] (unbound/char *source* unbound/default-char-range)))
 
 (defn char-ascii
   "Generates printable ascii characters"
-  ([] (unbound/char *source* ascii-range)))
-
-(def alphanumeric-range (vector-ranges-to-byte-ranges [[[48] [57]]
-                                                       [[65] [90]]
-                                                       [[97] [122]]]))
+  ([] (unbound/char *source* unbound/ascii-range)))
 
 (defn char-alphanumeric
   "Generates characters 0 -> 9, a -> z and A -> Z"
-  ([] (unbound/char *source* alphanumeric-range)))
-
-(def alpha-range (vector-ranges-to-byte-ranges [[[65] [90]]
-                                                [[97] [122]]]))
+  ([] (unbound/char *source* unbound/alphanumeric-range)))
 
 (defn char-alpha
   "Generates characters a -> z and A -> Z"
-  ([] (unbound/char *source* alpha-range)))
+  ([] (unbound/char *source* unbound/alpha-range)))
 
 (defn long
   ([] (long Long/MIN_VALUE Long/MAX_VALUE))
@@ -203,16 +189,14 @@
   ([min] (double min Double/MAX_VALUE))
   ([floor ceiling & more-ranges] (apply unbound/double *source* floor ceiling more-ranges)))
 
-(def default-string-max-size 2048)
-(def default-collection-max-size 64)
 
 (defn vec-of
-  ([elem-gen] (vec-of elem-gen 0 default-collection-max-size))
+  ([elem-gen] (vec-of elem-gen 0 unbound/default-collection-max-size))
   ([elem-gen size] (vec-of elem-gen size size))
   ([elem-gen min max] (unbound/collection *source* vector elem-gen conj min max)))
 
 (defn set-of
-  ([elem-gen] (set-of elem-gen 0 default-collection-max-size))
+  ([elem-gen] (set-of elem-gen 0 unbound/default-collection-max-size))
   ([elem-gen size] (set-of elem-gen size size))
   ([elem-gen min max]
    (let [hint-id (swap! unique-hint-ids inc)]
@@ -227,22 +211,22 @@
 (defn string
   ([] (string 0 default-string-max-size))
   ([min] (string min (+ default-string-max-size min)))
-  ([min max] (unbound/string *source* default-char-range min max)))
+  ([min max] (unbound/string *source* unbound/default-char-range min max)))
 
 (defn string-ascii
   ([] (string-ascii 0 default-string-max-size))
   ([min] (string-ascii min (+ default-string-max-size min)))
-  ([min max] (unbound/string *source* ascii-range min max)))
+  ([min max] (unbound/string *source* unbound/ascii-range min max)))
 
 (defn string-alphanumeric
   ([] (string-alphanumeric 0 default-string-max-size))
   ([min] (string-alphanumeric min (+ default-string-max-size min)))
-  ([min max] (unbound/string *source* alphanumeric-range min max)))
+  ([min max] (unbound/string *source* unbound/alphanumeric-range min max)))
 
 (defn string-alpha
   ([] (string-alpha 0 default-string-max-size))
   ([min] (string-alpha min (+ default-string-max-size min)))
-  ([min max] (unbound/string *source* alpha-range min max)))
+  ([min max] (unbound/string *source* unbound/alpha-range min max)))
 
 (defn elements
   "Pick a random value from the supplied collection. Returns nil if the collection is empty.
@@ -332,7 +316,7 @@
   ((elements [int long double char-ascii string-ascii ratio boolean keyword keyword-ns symbol symbol-ns uuid])))
 
 (defn map-of
-  ([key-gen value-gen] (map-of key-gen value-gen 0 default-collection-max-size))
+  ([key-gen value-gen] (map-of key-gen value-gen 0 unbound/default-collection-max-size))
   ([key-gen value-gen size] (map-of key-gen value-gen size size))
   ([key-gen value-gen min-size max-size] (map-of key-gen value-gen min-size max-size {}))
   ([key-gen value-gen min-size max-size {:keys [value-gen-takes-key-as-arg]}]
@@ -348,7 +332,7 @@
        (into {} (unbound/collection *source* vector kv-gen conj min-size max-size))))))
 
 (defn list-of
-  ([gen] (list-of gen 0 default-collection-max-size))
+  ([gen] (list-of gen 0 unbound/default-collection-max-size))
   ([gen size] (list-of gen size size))
   ([gen min-size max-size] (unbound/collection *source* (constantly '()) gen conj min-size max-size)))
 

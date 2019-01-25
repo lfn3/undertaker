@@ -25,5 +25,6 @@
                          :jar-name          "undertaker-specs.jar"}
 
              :test      {:source-paths ["src/specs/clojure"]
+                         :java-source-paths ["src/test/java"]
                          :jvm-opts     ["-Dundertaker.debug=true" "-Xmx8g"]}
              :jmh       {:jvm-opts ["-Dundertaker.debug=false"]}})
